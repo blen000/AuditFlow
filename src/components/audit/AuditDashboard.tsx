@@ -1,11 +1,11 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { mockFindings } from '@/lib/mock-data';
 import type { AuditFinding, RiskLevel, FindingStatus } from '@/types';
 import { AuditFindingCard } from './AuditFindingCard';
 import { Button } from '@/components/ui/button';
 import { Filter, PlusCircle } from 'lucide-react';
-import { LogFindingDialog } from './LogFindingDialog';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -17,23 +17,8 @@ import {
 
 export default function AuditDashboard() {
   const [findings, setFindings] = useState<AuditFinding[]>(mockFindings);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingFinding, setEditingFinding] = useState<AuditFinding | null>(
-    null
-  );
-
   const [riskFilter, setRiskFilter] = useState<RiskLevel[]>([]);
   const [statusFilter, setStatusFilter] = useState<FindingStatus[]>([]);
-
-  const handleLogNew = () => {
-    setEditingFinding(null);
-    setIsDialogOpen(true);
-  };
-
-  const handleEdit = (finding: AuditFinding) => {
-    setEditingFinding(finding);
-    setIsDialogOpen(true);
-  };
 
   const handleDelete = (id: string) => {
     setFindings((prev) => prev.filter((f) => f.id !== id));
@@ -43,17 +28,6 @@ export default function AuditDashboard() {
     setFindings((prev) =>
       prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
     );
-  };
-
-  const handleSave = (finding: AuditFinding) => {
-    const exists = findings.some((f) => f.id === finding.id);
-    if (exists) {
-      setFindings((prev) =>
-        prev.map((f) => (f.id === finding.id ? finding : f))
-      );
-    } else {
-      setFindings((prev) => [finding, ...prev]);
-    }
   };
 
   const toggleFilter = <T extends string>(
@@ -67,10 +41,12 @@ export default function AuditDashboard() {
       setter([...filter, value]);
     }
   };
-  
-  const filteredFindings = findings.filter(finding => {
-    const riskMatch = riskFilter.length === 0 || riskFilter.includes(finding.riskLevel);
-    const statusMatch = statusFilter.length === 0 || statusFilter.includes(finding.status);
+
+  const filteredFindings = findings.filter((finding) => {
+    const riskMatch =
+      riskFilter.length === 0 || riskFilter.includes(finding.riskLevel);
+    const statusMatch =
+      statusFilter.length === 0 || statusFilter.includes(finding.status);
     return riskMatch && statusMatch;
   });
 
@@ -101,27 +77,31 @@ export default function AuditDashboard() {
                 </DropdownMenuCheckboxItem>
               ))}
 
-              <DropdownMenuLabel className="pt-2">Filter by Status</DropdownMenuLabel>
+              <DropdownMenuLabel className="pt-2">
+                Filter by Status
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {(['Open', 'In Progress', 'Mitigated', 'Closed'] as FindingStatus[]).map(
-                (status) => (
-                  <DropdownMenuCheckboxItem
-                    key={status}
-                    checked={statusFilter.includes(status)}
-                    onCheckedChange={() =>
-                      toggleFilter(statusFilter, setStatusFilter, status)
-                    }
-                  >
-                    {status}
-                  </DropdownMenuCheckboxItem>
-                )
-              )}
+              {(
+                ['Open', 'In Progress', 'Mitigated', 'Closed'] as FindingStatus[]
+              ).map((status) => (
+                <DropdownMenuCheckboxItem
+                  key={status}
+                  checked={statusFilter.includes(status)}
+                  onCheckedChange={() =>
+                    toggleFilter(statusFilter, setStatusFilter, status)
+                  }
+                >
+                  {status}
+                </DropdownMenuCheckboxItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button onClick={handleLogNew}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Log New Finding
+          <Button asChild>
+            <Link href="/findings/new">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Log New Finding
+            </Link>
           </Button>
         </div>
       </div>
@@ -130,18 +110,11 @@ export default function AuditDashboard() {
           <AuditFindingCard
             key={finding.id}
             finding={finding}
-            onEdit={handleEdit}
             onDelete={handleDelete}
             onUpdate={handleUpdate}
           />
         ))}
       </div>
-      <LogFindingDialog
-        isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        onSave={handleSave}
-        finding={editingFinding}
-      />
     </>
   );
 }

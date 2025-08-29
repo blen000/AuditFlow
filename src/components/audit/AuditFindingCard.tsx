@@ -19,24 +19,28 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Calendar as CalendarIcon, MoreHorizontal, Trash2 } from 'lucide-react';
+import {
+  Bell,
+  Calendar as CalendarIcon,
+  MoreHorizontal,
+  Trash2,
+} from 'lucide-react';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 type AuditFindingCardProps = {
   finding: AuditFinding;
-  onEdit: (finding: AuditFinding) => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<AuditFinding>) => void;
 };
 
 export function AuditFindingCard({
   finding,
-  onEdit,
   onDelete,
   onUpdate,
 }: AuditFindingCardProps) {
@@ -67,8 +71,8 @@ export function AuditFindingCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(finding)}>
-                Edit
+              <DropdownMenuItem asChild>
+                <Link href={`/findings/edit/${finding.id}`}>Edit</Link>
               </DropdownMenuItem>
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
@@ -108,7 +112,10 @@ export function AuditFindingCard({
           <Bell className="h-4 w-4" />
           <span>
             {finding.revalidationDate
-              ? `Re-validate by ${format(finding.revalidationDate, 'MMM d, yyyy')}`
+              ? `Re-validate by ${format(
+                  finding.revalidationDate,
+                  'MMM d, yyyy'
+                )}`
               : 'No reminder set'}
           </span>
         </div>
