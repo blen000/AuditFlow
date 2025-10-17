@@ -15,6 +15,9 @@ export default function Header() {
         <Button variant="outline" asChild>
           <Link href="/branches">Manage Branches</Link>
         </Button>
+        <Button variant="outline" asChild>
+          <Link href="/auditee-view">Auditee View</Link>
+        </Button>
       </nav>
     </header>
   );
