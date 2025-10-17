@@ -7,7 +7,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
-import { Building, LayoutDashboard, Users } from 'lucide-react';
+import { Building, LayoutDashboard, PlusCircle, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -23,6 +23,17 @@ export function SidebarNav() {
           >
             <LayoutDashboard />
             <span>Dashboard</span>
+          </SidebarMenuButton>
+        </Link>
+      </SidebarMenuItem>
+       <SidebarMenuItem>
+        <Link href="/findings/new">
+          <SidebarMenuButton
+            isActive={pathname.startsWith('/findings/new')}
+            tooltip="Log New Finding"
+          >
+            <PlusCircle />
+            <span>Log New Finding</span>
           </SidebarMenuButton>
         </Link>
       </SidebarMenuItem>
