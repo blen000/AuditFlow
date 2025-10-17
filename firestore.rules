@@ -1,87 +1,83 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset enforces a public-read, owner-write model for the top-level collections: `branches`, `districts`, `riskLevels`, `statuses`, and `findings`.
+ * @fileOverview Firestore Security Rules for Prototyping.
+ *
+ * Core Philosophy:
+ * This ruleset is designed for the rapid prototyping phase of application development.
+ * It prioritizes ease of use and quick iteration, while still providing a baseline level of security.
+ * All collections are publicly readable. Writes are disallowed for all users.
  *
  * Data Structure:
- * - /branches/{branchId}: Stores branch data.
- * - /districts/{districtId}: Stores district data.
- * - /riskLevels/{riskLevelId}: Stores risk level data.
- * - /statuses/{statusId}: Stores status data.
- * - /findings/{findingId}: Stores audit finding data.
+ * The Firestore database consists of a flat structure with top-level collections for
+ * branches, districts, riskLevels, statuses, and findings.
  *
  * Key Security Decisions:
- * - Public Read: All `get` and `list` operations are allowed for all users, including unauthenticated users.
- * - Owner-Only Writes: `create`, `update`, and `delete` operations are restricted to the owner of the document, based on an `ownerId` field.
- * - Missing Ownership Field: The current data model lacks an `ownerId` or `authorId` field in several entities.  Placeholder rules with `TODO` comments are added where owner-only writes are intended but cannot be enforced.
- * - No User Listing: There are no user-specific collections or subcollections, so user listing is not applicable.
+ * - Public Read Access: All data is readable by any user, including unauthenticated users.
+ * - Write Restrictions: No user is allowed to create, update, or delete any data.
+ * - Data Validation: Data validation is minimized to allow for flexible schema changes during prototyping.
+ *   However, basic authorization-related checks are still enforced.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows anyone to read branch data, but restricts writes to the owner.
+     * @description Allows public read access to branches, but denies all writes.
      * @path /branches/{branchId}
      * @allow (get, list): Any user can read branch data.
-     * @allow (create, update, delete): Only the owner of the branch can modify it. The document must contain an `ownerId` field.
-     * @deny (create, update, delete): If the document does not contain a valid `ownerId`, or if the user is not the owner.
-     * @principle Public read, owner-only writes.
+     * @deny (create, update, delete): No user can modify branch data.
+     * @principle Allows public read access and restricts all write access.
      */
     match /branches/{branchId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows anyone to read district data, but restricts writes to the owner.
+     * @description Allows public read access to districts, but denies all writes.
      * @path /districts/{districtId}
      * @allow (get, list): Any user can read district data.
-     * @allow (create, update, delete): Only the owner of the district can modify it. The document must contain an `ownerId` field.
-     * @deny (create, update, delete): If the document does not contain a valid `ownerId`, or if the user is not the owner.
-     * @principle Public read, owner-only writes.
+     * @deny (create, update, delete): No user can modify district data.
+     * @principle Allows public read access and restricts all write access.
      */
     match /districts/{districtId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows anyone to read risk level data, but restricts writes to the owner.
+     * @description Allows public read access to risk levels, but denies all writes.
      * @path /riskLevels/{riskLevelId}
      * @allow (get, list): Any user can read risk level data.
-     * @allow (create, update, delete): Only the owner of the risk level can modify it. The document must contain an `ownerId` field.
-     * @deny (create, update, delete): If the document does not contain a valid `ownerId`, or if the user is not the owner.
-     * @principle Public read, owner-only writes.
+     * @deny (create, update, delete): No user can modify risk level data.
+     * @principle Allows public read access and restricts all write access.
      */
     match /riskLevels/{riskLevelId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows anyone to read status data, but restricts writes to the owner.
+     * @description Allows public read access to statuses, but denies all writes.
      * @path /statuses/{statusId}
      * @allow (get, list): Any user can read status data.
-     * @allow (create, update, delete): Only the owner of the status can modify it. The document must contain an `ownerId` field.
-     * @deny (create, update, delete): If the document does not contain a valid `ownerId`, or if the user is not the owner.
-     * @principle Public read, owner-only writes.
+     * @deny (create, update, delete): No user can modify status data.
+     * @principle Allows public read access and restricts all write access.
      */
     match /statuses/{statusId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows anyone to read audit finding data, but restricts writes to the owner.
+     * @description Allows public read access to findings, but denies all writes.
      * @path /findings/{findingId}
-     * @allow (get, list): Any user can read audit finding data.
-     * @allow (create, update, delete): Only the owner of the audit finding can modify it. The document must contain an `ownerId` field.
-     * @deny (create, update, delete): If the document does not contain a valid `ownerId`, or if the user is not the owner.
-     * @principle Public read, owner-only writes.
+     * @allow (get, list): Any user can read finding data.
+     * @deny (create, update, delete): No user can modify finding data.
+     * @principle Allows public read access and restricts all write access.
      */
     match /findings/{findingId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create, update, delete: if false;
     }
   }
 }
