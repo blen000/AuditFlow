@@ -11,5 +11,3 @@ export const branches: Branch[] = [
   { name: 'IT Department', district: 'Central Operations' },
   { name: 'Westside Branch', district: 'Metropolis West' },
 ];
-
-export const districts = [...new Set(branches.map((b) => b.district))];

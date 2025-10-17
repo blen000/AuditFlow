@@ -10,7 +10,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
@@ -24,10 +23,20 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import type { Branch } from '@/lib/branches';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { districts, type District } from '@/lib/districts';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Branch name must be at least 3 characters.'),
-  district: z.string().min(3, 'District name must be at least 3 characters.'),
+  district: z.string({
+    required_error: 'You need to select a district.',
+  }),
 });
 
 type AddEditBranchDialogProps = {
@@ -35,6 +44,7 @@ type AddEditBranchDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSubmit: (branch: Branch) => void;
   branch: Branch | null;
+  districtList: District[];
 };
 
 export function AddEditBranchDialog({
@@ -42,6 +52,7 @@ export function AddEditBranchDialog({
   onOpenChange,
   onSubmit,
   branch,
+  districtList,
 }: AddEditBranchDialogProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -103,9 +114,23 @@ export function AddEditBranchDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>District</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Metropolis North" {...field} />
-                  </FormControl>
+                   <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a district" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {districtList.map((district) => (
+                            <SelectItem key={district.name} value={district.name}>
+                              {district.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                   <FormMessage />
                 </FormItem>
               )}

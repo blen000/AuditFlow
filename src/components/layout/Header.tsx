@@ -1,6 +1,14 @@
+'use client';
 import { ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '../ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 
 export default function Header() {
   return (
@@ -12,9 +20,23 @@ export default function Header() {
         </h1>
       </Link>
       <nav className="flex items-center gap-4">
-        <Button variant="outline" asChild>
-          <Link href="/branches">Manage Branches</Link>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              Manage
+              <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href="/branches">Branches</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/districts">Districts</Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <Button variant="outline" asChild>
           <Link href="/auditee-view">Auditee View</Link>
         </Button>
