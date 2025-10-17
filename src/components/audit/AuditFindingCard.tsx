@@ -229,16 +229,18 @@ export function AuditFindingCard({
           )}
         </CardContent>
         <CardFooter className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Bell className="h-4 w-4" />
-            <span>
+            <span className="whitespace-nowrap">
               {finding.revalidationDate
-                ? `Re-validate by ${format(
-                    finding.revalidationDate,
-                    'MMM d, yyyy'
-                  )}`
+                ? `Re-validate by`
                 : 'No reminder set'}
             </span>
+            {finding.revalidationDate && 
+              <span className="whitespace-nowrap font-medium text-foreground">
+                {format(finding.revalidationDate, 'MMM d, yyyy')}
+              </span>
+            }
           </div>
           <Popover>
             <PopoverTrigger asChild>
@@ -246,7 +248,7 @@ export function AuditFindingCard({
                 variant="outline"
                 size="sm"
                 className={cn(
-                  'w-[150px] justify-start text-left font-normal',
+                  'justify-start text-left font-normal',
                   !finding.revalidationDate && 'text-muted-foreground'
                 )}
               >
