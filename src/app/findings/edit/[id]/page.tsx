@@ -1,4 +1,5 @@
 'use client';
+import { use } from 'react';
 import { EditFindingForm } from '@/components/audit/EditFindingForm';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { AuditFinding } from '@/types';
@@ -7,9 +8,9 @@ import { doc } from 'firebase/firestore';
 export default function EditFindingPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = params;
+  const { id } = use(params);
   const firestore = useFirestore();
   const findingRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'findings', id) : null),

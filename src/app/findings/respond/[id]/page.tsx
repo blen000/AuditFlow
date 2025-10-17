@@ -1,5 +1,6 @@
 'use client';
 
+import { use } from 'react';
 import { AuditeeResponseForm } from '@/components/audit/AuditeeResponseForm';
 import PageHeader from '@/components/layout/PageHeader';
 import {
@@ -26,9 +27,9 @@ function toDate(timestamp: Date | Timestamp | undefined): Date | undefined {
 export default function RespondToFindingPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = params;
+  const { id } = use(params);
   const firestore = useFirestore();
   const findingRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'findings', id) : null),
