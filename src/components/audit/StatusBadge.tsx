@@ -1,3 +1,4 @@
+'use client';
 import { Badge } from '@/components/ui/badge';
 import type { FindingStatus } from '@/types';
 import { cn } from '@/lib/utils';
@@ -19,7 +20,7 @@ const statusConfig = {
     label: 'In Progress',
     icon: CircleDotDashed,
     className:
-      'border-accent/50 bg-accent/10 text-accent-foreground dark:text-accent dark:bg-accent/20 dark:border-accent/40',
+      'border-accent/50 bg-accent/10 text-accent dark:text-accent dark:bg-accent/20 dark:border-accent/40',
   },
   Mitigated: {
     label: 'Mitigated',
