@@ -22,7 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import type { Branch } from '@/lib/branches';
+import type { Branch, District } from '@/types';
 import {
   Select,
   SelectContent,
@@ -30,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { districts, type District } from '@/lib/districts';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Branch name must be at least 3 characters.'),
@@ -42,7 +41,7 @@ const formSchema = z.object({
 type AddEditBranchDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (branch: Branch) => void;
+  onSubmit: (branch: Omit<Branch, 'id'>) => void;
   branch: Branch | null;
   districtList: District[];
 };
@@ -63,10 +62,12 @@ export function AddEditBranchDialog({
   });
 
   useEffect(() => {
-    if (branch) {
-      form.reset(branch);
-    } else {
-      form.reset({ name: '', district: '' });
+    if (open) {
+      if (branch) {
+        form.reset(branch);
+      } else {
+        form.reset({ name: '', district: '' });
+      }
     }
   }, [branch, form, open]);
 
@@ -98,11 +99,7 @@ export function AddEditBranchDialog({
                 <FormItem>
                   <FormLabel>Branch / Department Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="e.g., Downtown Main"
-                      {...field}
-                      disabled={!!branch} // Disable editing name for existing branches to preserve key
-                    />
+                    <Input placeholder="e.g., Downtown Main" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -114,29 +111,33 @@ export function AddEditBranchDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>District</FormLabel>
-                   <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a district" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {districtList.map((district) => (
-                            <SelectItem key={district.name} value={district.name}>
-                              {district.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a district" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {districtList.map((district) => (
+                        <SelectItem key={district.id} value={district.name}>
+                          {district.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)} type="button">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                type="button"
+              >
                 Cancel
               </Button>
               <Button type="submit">

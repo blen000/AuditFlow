@@ -3,17 +3,29 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { statuses as initialStatuses, type StatusData } from '@/lib/statuses';
 import { PlusCircle } from 'lucide-react';
 import { AddEditStatusDialog } from '@/components/audit/AddEditStatusDialog';
 import PageHeader from '@/components/layout/PageHeader';
+import {
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+} from '@/firebase';
+import type { StatusData } from '@/types';
+import { collection, doc } from 'firebase/firestore';
 
 export default function StatusesPage() {
-  const [statuses, setStatuses] = useState<StatusData[]>(initialStatuses);
-  const [isDialogOpen, setDialogOpen] = useState(false);
-  const [editingStatus, setEditingStatus] = useState<StatusData | null>(
-    null
+  const firestore = useFirestore();
+  const statusesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'statuses') : null),
+    [firestore]
   );
+  const { data: statuses } = useCollection<StatusData>(statusesQuery);
+
+  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [editingStatus, setEditingStatus] = useState<StatusData | null>(null);
 
   const handleAddNew = () => {
     setEditingStatus(null);
@@ -26,16 +38,13 @@ export default function StatusesPage() {
   };
 
   const handleSubmit = (statusData: StatusData) => {
-    if (editingStatus) {
-      // Update existing status
-      setStatuses(
-        statuses.map((r) =>
-          r.name === editingStatus.name ? { ...r, ...statusData } : r
-        )
-      );
+    if (!firestore) return;
+    if (editingStatus && editingStatus.id) {
+      const statusRef = doc(firestore, 'statuses', editingStatus.id);
+      updateDocumentNonBlocking(statusRef, statusData);
     } else {
-      // Add new status
-      setStatuses([...statuses, statusData]);
+      const statusesCollection = collection(firestore, 'statuses');
+      addDocumentNonBlocking(statusesCollection, statusData);
     }
     setEditingStatus(null);
   };
@@ -60,9 +69,9 @@ export default function StatusesPage() {
               </CardHeader>
               <CardContent>
                 <ul className="divide-y divide-border">
-                  {statuses.map((status) => (
+                  {statuses?.map((status) => (
                     <li
-                      key={status.name}
+                      key={status.id}
                       className="flex items-center justify-between p-4"
                     >
                       <div>

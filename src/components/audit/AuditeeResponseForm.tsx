@@ -17,25 +17,37 @@ import type { AuditFinding, AuditeeAgreement } from '@/types';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
-
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '../ui/card';
+import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { doc, Timestamp } from 'firebase/firestore';
 
 type AuditeeResponseFormProps = {
   finding: AuditFinding;
-  // This will be replaced with a server action in a real app
-  onUpdate?: (id: string, updates: Partial<AuditFinding>) => void;
 };
 
-export function AuditeeResponseForm({
-  finding,
-  onUpdate,
-}: AuditeeResponseFormProps) {
+function toDate(timestamp: Date | Timestamp | undefined): Date | undefined {
+  if (!timestamp) return undefined;
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate();
+  }
+  return timestamp;
+}
+
+export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
   const router = useRouter();
+  const firestore = useFirestore();
   const [agreement, setAgreement] = useState<AuditeeAgreement>(
     finding.auditeeAgreement
   );
   const [mitigationDueDate, setMitigationDueDate] = useState<Date | undefined>(
-    finding.mitigationDueDate
+    toDate(finding.mitigationDueDate)
   );
   const [disagreementReason, setDisagreementReason] = useState(
     finding.auditeeResponse || ''
@@ -43,6 +55,8 @@ export function AuditeeResponseForm({
   const [attachment, setAttachment] = useState<File | null>(null);
 
   const handleSubmit = () => {
+    if (!firestore) return;
+
     const updates: Partial<AuditFinding> = {
       auditeeAgreement: agreement,
       status: agreement === 'Agreed' ? 'In Progress' : 'Open',
@@ -58,10 +72,8 @@ export function AuditeeResponseForm({
       updates.auditeeAttachmentFilename = attachment?.name;
     }
 
-    // In a real app, you'd call a server action here to update the database
-    // For now, we'll log it and redirect.
-    console.log('Submitting Response:', { findingId: finding.id, ...updates });
-    // onUpdate(finding.id, updates);
+    const findingRef = doc(firestore, 'findings', finding.id);
+    updateDocumentNonBlocking(findingRef, updates);
 
     router.push('/');
   };
@@ -73,101 +85,99 @@ export function AuditeeResponseForm({
   };
 
   return (
-      <Card>
-          <CardHeader>
-              <CardTitle>Your Response</CardTitle>
-              <CardDescription>Review the finding and provide your response.</CardDescription>
-          </CardHeader>
-        <CardContent className="grid gap-4 py-4">
+    <Card>
+      <CardHeader>
+        <CardTitle>Your Response</CardTitle>
+        <CardDescription>
+          Review the finding and provide your response.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4 py-4">
+        <div className="space-y-2">
+          <Label>Do you agree with this finding?</Label>
+          <RadioGroup
+            value={agreement}
+            onValueChange={(value: string) =>
+              setAgreement(value as AuditeeAgreement)
+            }
+            className="flex gap-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="Agreed" id="agreed" />
+              <Label htmlFor="agreed">Agree</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="Declined" id="declined" />
+              <Label htmlFor="declined">Decline</Label>
+            </div>
+          </RadioGroup>
+        </div>
+        {agreement === 'Agreed' && (
           <div className="space-y-2">
-            <Label>Do you agree with this finding?</Label>
-            <RadioGroup
-              value={agreement}
-              onValueChange={(value: string) =>
-                setAgreement(value as AuditeeAgreement)
-              }
-              className="flex gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Agreed" id="agreed" />
-                <Label htmlFor="agreed">Agree</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Declined" id="declined" />
-                <Label htmlFor="declined">Decline</Label>
-              </div>
-            </RadioGroup>
+            <Label htmlFor="mitigation-date">
+              Proposed Mitigation Due Date
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="mitigation-date"
+                  variant={'outline'}
+                  className={cn(
+                    'w-full justify-start text-left font-normal',
+                    !mitigationDueDate && 'text-muted-foreground'
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {mitigationDueDate ? (
+                    format(mitigationDueDate, 'PPP')
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={mitigationDueDate}
+                  onSelect={setMitigationDueDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
-          {agreement === 'Agreed' && (
+        )}
+        {agreement === 'Declined' && (
+          <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="mitigation-date">
-                Proposed Mitigation Due Date
+              <Label htmlFor="disagreement-reason">
+                Reason for Disagreement
               </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="mitigation-date"
-                    variant={'outline'}
-                    className={cn(
-                      'w-full justify-start text-left font-normal',
-                      !mitigationDueDate && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {mitigationDueDate ? (
-                      format(mitigationDueDate, 'PPP')
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={mitigationDueDate}
-                    onSelect={setMitigationDueDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Textarea
+                id="disagreement-reason"
+                placeholder="Clearly describe why you disagree with the finding..."
+                value={disagreementReason}
+                onChange={(e) => setDisagreementReason(e.target.value)}
+                className="h-24"
+              />
             </div>
-          )}
-          {agreement === 'Declined' && (
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="disagreement-reason">
-                  Reason for Disagreement
-                </Label>
-                <Textarea
-                  id="disagreement-reason"
-                  placeholder="Clearly describe why you disagree with the finding..."
-                  value={disagreementReason}
-                  onChange={(e) => setDisagreementReason(e.target.value)}
-                  className="h-24"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="attachment">Attach Supporting File</Label>
-                <Input
-                  id="attachment"
-                  type="file"
-                  onChange={handleFileChange}
-                />
-                {attachment && (
-                  <p className="text-xs text-muted-foreground">
-                    Selected: {attachment.name}
-                  </p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="attachment">Attach Supporting File</Label>
+              <Input id="attachment" type="file" onChange={handleFileChange} />
+              {attachment && (
+                <p className="text-xs text-muted-foreground">
+                  Selected: {attachment.name}
+                </p>
+              )}
             </div>
-          )}
-        </CardContent>
-        <CardFooter className='justify-end gap-2'>
-          <Button variant="outline" onClick={() => router.push('/')}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit}>Submit Response</Button>
-        </CardFooter>
-      </Card>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="justify-end gap-2">
+        <Button variant="outline" onClick={() => router.push('/')}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit}>Submit Response</Button>
+      </CardFooter>
+    </Card>
   );
 }

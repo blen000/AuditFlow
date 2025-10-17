@@ -1,11 +1,44 @@
-import { AuditeeResponseForm } from '@/components/audit/AuditeeResponseForm';
-import { mockFindings } from '@/lib/mock-data';
-import PageHeader from '@/components/layout/PageHeader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { InvolvedCasesManager } from '@/components/audit/InvolvedCasesManager';
+'use client';
 
-export default function RespondToFindingPage({ params }: { params: { id: string } }) {
-  const finding = mockFindings.find((f) => f.id === params.id);
+import { AuditeeResponseForm } from '@/components/audit/AuditeeResponseForm';
+import PageHeader from '@/components/layout/PageHeader';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { InvolvedCasesManager } from '@/components/audit/InvolvedCasesManager';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { AuditFinding } from '@/types';
+import { doc } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
+
+function toDate(timestamp: Date | Timestamp | undefined): Date | undefined {
+  if (!timestamp) return undefined;
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate();
+  }
+  return timestamp;
+}
+
+
+export default function RespondToFindingPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const firestore = useFirestore();
+  const findingRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'findings', params.id) : null),
+    [firestore, params.id]
+  );
+  const { data: finding, isLoading } = useDoc<AuditFinding>(findingRef);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   if (!finding) {
     return <div>Finding not found</div>;
@@ -26,9 +59,11 @@ export default function RespondToFindingPage({ params }: { params: { id: string 
                 <CardContent className="space-y-4">
                   <div>
                     <h3 className="font-semibold">Finding Details</h3>
-                    <p className="text-sm text-muted-foreground">{finding.details}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {finding.details}
+                    </p>
                   </div>
-                   {finding.auditCause && (
+                  {finding.auditCause && (
                     <div>
                       <h3 className="font-semibold">Cause of Audit</h3>
                       <p className="whitespace-pre-wrap text-sm text-muted-foreground">
@@ -44,27 +79,30 @@ export default function RespondToFindingPage({ params }: { params: { id: string 
                       </p>
                     </div>
                   )}
-                   {finding.involvedAmounts && finding.involvedAmounts.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold">Amounts Involved</h3>
-                      <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                        {finding.involvedAmounts.map((item, index) => (
-                          <li key={index}>
-                            {item.name}:{' '}
-                            <span className="font-medium text-foreground">
-                              {new Intl.NumberFormat('en-US', {
-                                style: 'currency',
-                                currency: 'USD',
-                              }).format(item.amount)}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {finding.involvedAmounts &&
+                    finding.involvedAmounts.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold">Amounts Involved</h3>
+                        <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                          {finding.involvedAmounts.map((item, index) => (
+                            <li key={index}>
+                              {item.name}:{' '}
+                              <span className="font-medium text-foreground">
+                                {new Intl.NumberFormat('en-US', {
+                                  style: 'currency',
+                                  currency: 'USD',
+                                }).format(item.amount)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   <div>
                     <h3 className="font-semibold">Proposed Recommendation</h3>
-                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">{finding.recommendation}</p>
+                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                      {finding.recommendation}
+                    </p>
                   </div>
                 </CardContent>
               </Card>

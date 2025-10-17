@@ -14,6 +14,7 @@ import { SidebarNav } from '@/components/layout/SidebarNav';
 import { Button } from '@/components/ui/button';
 import { ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'AuditFlow',
@@ -42,24 +43,26 @@ export default function RootLayout({
       <body
         className={cn('font-body antialiased', 'min-h-screen bg-background')}
       >
-        <SidebarProvider>
-          <Sidebar>
-            <SidebarHeader>
-              <Button variant="ghost" className="h-fit w-full justify-start p-0">
-                <Link href="/" className="flex items-center gap-3 p-2">
-                  <ShieldCheck className="h-7 w-7 text-primary" />
-                  <span className="text-2xl font-bold tracking-tight text-foreground">
-                    AuditFlow
-                  </span>
-                </Link>
-              </Button>
-            </SidebarHeader>
-            <SidebarContent>
-              <SidebarNav />
-            </SidebarContent>
-          </Sidebar>
-          <SidebarInset>{children}</SidebarInset>
-        </SidebarProvider>
+        <FirebaseClientProvider>
+          <SidebarProvider>
+            <Sidebar>
+              <SidebarHeader>
+                <Button variant="ghost" className="h-fit w-full justify-start p-0">
+                  <Link href="/" className="flex items-center gap-3 p-2">
+                    <ShieldCheck className="h-7 w-7 text-primary" />
+                    <span className="text-2xl font-bold tracking-tight text-foreground">
+                      AuditFlow
+                    </span>
+                  </Link>
+                </Button>
+              </SidebarHeader>
+              <SidebarContent>
+                <SidebarNav />
+              </SidebarContent>
+            </Sidebar>
+            <SidebarInset>{children}</SidebarInset>
+          </SidebarProvider>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>

@@ -22,7 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import type { RiskLevelData } from '@/lib/risk-levels';
+import type { RiskLevelData } from '@/types';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Risk Level name must be at least 3 characters.'),
@@ -31,7 +31,7 @@ const formSchema = z.object({
 type AddEditRiskLevelDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (riskLevel: RiskLevelData) => void;
+  onSubmit: (riskLevel: Omit<RiskLevelData, 'id'>) => void;
   riskLevel: RiskLevelData | null;
 };
 
@@ -49,10 +49,12 @@ export function AddEditRiskLevelDialog({
   });
 
   useEffect(() => {
-    if (riskLevel) {
-      form.reset(riskLevel);
-    } else {
-      form.reset({ name: '' });
+    if (open) {
+      if (riskLevel) {
+        form.reset(riskLevel);
+      } else {
+        form.reset({ name: '' });
+      }
     }
   }, [riskLevel, form, open]);
 
@@ -65,7 +67,9 @@ export function AddEditRiskLevelDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{riskLevel ? 'Edit Risk Level' : 'Add New Risk Level'}</DialogTitle>
+          <DialogTitle>
+            {riskLevel ? 'Edit Risk Level' : 'Add New Risk Level'}
+          </DialogTitle>
           <DialogDescription>
             {riskLevel
               ? `Update the details for ${riskLevel.name}.`
@@ -84,17 +88,18 @@ export function AddEditRiskLevelDialog({
                 <FormItem>
                   <FormLabel>Risk Level Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="e.g., Critical"
-                      {...field}
-                    />
+                    <Input placeholder="e.g., Critical" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)} type="button">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                type="button"
+              >
                 Cancel
               </Button>
               <Button type="submit">

@@ -22,14 +22,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { AuditFinding } from '@/types';
+import type { AuditFinding, Branch, RiskLevelData } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
 import { useEffect, useState } from 'react';
-import { branches } from '@/lib/branches';
-import { riskLevels } from '@/lib/risk-levels';
 import { Paperclip, PlusCircle, Trash2 } from 'lucide-react';
+import {
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+  updateDocumentNonBlocking,
+} from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -47,15 +52,23 @@ const formSchema = z.object({
   auditCause: z.string().optional(),
   auditEffect: z.string().optional(),
   recommendation: z.string().optional(),
-  involvedAmounts: z.array(z.object({
-    name: z.string().min(1, 'Name is required.'),
-    amount: z.coerce.number().min(0, 'Amount must be a positive number.'),
-  })).optional(),
-  involvedCases: z.array(z.object({
-    id: z.string(),
-    ownerName: z.string().min(1, 'Owner name is required.'),
-    status: z.enum(['Open', 'Resolved']),
-  })).optional(),
+  involvedAmounts: z
+    .array(
+      z.object({
+        name: z.string().min(1, 'Name is required.'),
+        amount: z.coerce.number().min(0, 'Amount must be a positive number.'),
+      })
+    )
+    .optional(),
+  involvedCases: z
+    .array(
+      z.object({
+        id: z.string(),
+        ownerName: z.string().min(1, 'Owner name is required.'),
+        status: z.enum(['Open', 'Resolved']),
+      })
+    )
+    .optional(),
 });
 
 type EditFindingFormProps = {
@@ -64,27 +77,39 @@ type EditFindingFormProps = {
 
 export function EditFindingForm({ finding }: EditFindingFormProps) {
   const router = useRouter();
+  const firestore = useFirestore();
+
+  const branchesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'branches') : null),
+    [firestore]
+  );
+  const { data: branches } = useCollection<Branch>(branchesQuery);
+
+  const riskLevelsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'riskLevels') : null),
+    [firestore]
+  );
+  const { data: riskLevels } = useCollection<RiskLevelData>(riskLevelsQuery);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: finding?.title || '',
-      details: finding?.details || '',
-      riskLevel: finding?.riskLevel,
-      branchOrDepartment: finding?.branchOrDepartment,
-      auditCause: finding?.auditCause || '',
-      auditEffect: finding?.auditEffect || '',
-      recommendation: finding?.recommendation || '',
-      involvedAmounts: finding?.involvedAmounts || [],
-      involvedCases: finding?.involvedCases || [],
-    },
+    defaultValues: {},
   });
 
-  const { fields: amountFields, append: appendAmount, remove: removeAmount } = useFieldArray({
+  const {
+    fields: amountFields,
+    append: appendAmount,
+    remove: removeAmount,
+  } = useFieldArray({
     control: form.control,
     name: 'involvedAmounts',
   });
 
-  const { fields: caseFields, append: appendCase, remove: removeCase } = useFieldArray({
+  const {
+    fields: caseFields,
+    append: appendCase,
+    remove: removeCase,
+  } = useFieldArray({
     control: form.control,
     name: 'involvedCases',
   });
@@ -97,13 +122,17 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
     useState(finding.auditCauseAttachments || []);
   const [existingAuditEffectAttachments, setExistingAuditEffectAttachments] =
     useState(finding.auditEffectAttachments || []);
-  const [existingRecommendationAttachments, setExistingRecommendationAttachments] =
-    useState(finding.recommendationAttachments || []);
+  const [
+    existingRecommendationAttachments,
+    setExistingRecommendationAttachments,
+  ] = useState(finding.recommendationAttachments || []);
 
   const findingAttachments = form.watch('findingAttachments' as any);
   const auditCauseAttachments = form.watch('auditCauseAttachments' as any);
   const auditEffectAttachments = form.watch('auditEffectAttachments' as any);
-  const recommendationAttachments = form.watch('recommendationAttachments' as any);
+  const recommendationAttachments = form.watch(
+    'recommendationAttachments' as any
+  );
 
   useEffect(() => {
     if (finding) {
@@ -119,17 +148,17 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
         involvedCases: finding.involvedCases || [],
       });
       setExistingFindingAttachments(finding.findingAttachments || []);
-      setExistingAuditCauseAttachments(
-        finding.auditCauseAttachments || []
+      setExistingAuditCauseAttachments(finding.auditCauseAttachments || []);
+      setExistingAuditEffectAttachments(finding.auditEffectAttachments || []);
+      setExistingRecommendationAttachments(
+        finding.recommendationAttachments || []
       );
-      setExistingAuditEffectAttachments(
-        finding.auditEffectAttachments || []
-      );
-      setExistingRecommendationAttachments(finding.recommendationAttachments || []);
     }
   }, [finding, form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!firestore) return;
+
     const findingAttachmentFiles = findingAttachments as FileList | undefined;
     const auditCauseAttachmentFiles =
       auditCauseAttachments as FileList | undefined;
@@ -151,8 +180,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       ? Array.from(recommendationAttachmentFiles).map((file) => file.name)
       : [];
 
-    const updatedFinding: AuditFinding = {
-      ...finding,
+    const updatedFinding: Partial<AuditFinding> = {
       ...values,
       riskLevel: values.riskLevel,
       recommendation: values.recommendation || '',
@@ -173,8 +201,10 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
         ...newRecommendationAttachments,
       ],
     };
-    // In a real app, you'd save this to a database
-    console.log('Updated Finding:', updatedFinding);
+
+    const findingRef = doc(firestore, 'findings', finding.id);
+    updateDocumentNonBlocking(findingRef, updatedFinding);
+
     router.push('/');
   }
 
@@ -211,18 +241,15 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Risk Level</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a risk level" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {riskLevels.map((level) => (
-                            <SelectItem key={level.name} value={level.name}>
+                          {riskLevels?.map((level) => (
+                            <SelectItem key={level.id} value={level.name}>
                               {level.name}
                             </SelectItem>
                           ))}
@@ -238,18 +265,15 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Branch / Department Audited</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a branch or department" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {branches.map((branch) => (
-                            <SelectItem key={branch.name} value={branch.name}>
+                          {branches?.map((branch) => (
+                            <SelectItem key={branch.id} value={branch.name}>
                               {branch.name}
                             </SelectItem>
                           ))}
@@ -323,120 +347,141 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
               </FormItem>
 
               <Separator />
-               <div>
+              <div>
                 <h3 className="text-lg font-semibold">Amounts Involved</h3>
-                  {amountFields.map((field, index) => (
-                    <div key={field.id} className="mt-2 flex items-end gap-2 rounded-md border p-4">
-                      <FormField
-                        control={form.control}
-                        name={`involvedAmounts.${index}.name`}
-                        render={({ field }) => (
-                          <FormItem className='flex-1'>
-                            <FormLabel>Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Initial Shortage" {...field} />
-                            </FormControl>
-                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`involvedAmounts.${index}.amount`}
-                        render={({ field }) => (
-                           <FormItem className='flex-1'>
-                            <FormLabel>Amount</FormLabel>
-                            <FormControl>
-                              <Input type="number" placeholder="e.g., 150.00" {...field} />
-                            </FormControl>
-                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => removeAmount(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => appendAmount({ name: '', amount: 0 })}
+                {amountFields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="mt-2 flex items-end gap-2 rounded-md border p-4"
                   >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Amount
-                  </Button>
-               </div>
+                    <FormField
+                      control={form.control}
+                      name={`involvedAmounts.${index}.name`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g., Initial Shortage"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`involvedAmounts.${index}.amount`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>Amount</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="e.g., 150.00"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => removeAmount(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => appendAmount({ name: '', amount: 0 })}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Amount
+                </Button>
+              </div>
               <Separator />
 
               <div>
                 <h3 className="text-lg font-semibold">Involved Cases</h3>
-                  {caseFields.map((field, index) => (
-                    <div key={field.id} className="mt-2 flex items-end gap-2 rounded-md border p-4">
-                      <FormField
-                        control={form.control}
-                        name={`involvedCases.${index}.ownerName`}
-                        render={({ field }) => (
-                          <FormItem className='flex-1'>
-                            <FormLabel>Case Owner / Customer</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., John Doe" {...field} />
-                            </FormControl>
-                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                       <FormField
-                        control={form.control}
-                        name={`involvedCases.${index}.status`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Status</FormLabel>
-                             <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="Open">Open</SelectItem>
-                                <SelectItem value="Resolved">Resolved</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => removeCase(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => appendCase({ id: `CASE-${Date.now()}`, ownerName: '', status: 'Open' })}
+                {caseFields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="mt-2 flex items-end gap-2 rounded-md border p-4"
                   >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Case
-                  </Button>
-               </div>
+                    <FormField
+                      control={form.control}
+                      name={`involvedCases.${index}.ownerName`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>Case Owner / Customer</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`involvedCases.${index}.status`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Open">Open</SelectItem>
+                              <SelectItem value="Resolved">Resolved</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => removeCase(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() =>
+                    appendCase({
+                      id: `CASE-${Date.now()}`,
+                      ownerName: '',
+                      status: 'Open',
+                    })
+                  }
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Case
+                </Button>
+              </div>
               <Separator />
-
 
               <FormField
                 control={form.control}
@@ -458,7 +503,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
 
               <FormItem>
                 <FormLabel>Cause Attachments</FormLabel>
-                 {existingAuditCauseAttachments.length > 0 && (
+                {existingAuditCauseAttachments.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
                       Existing files:
@@ -518,7 +563,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
 
               <FormItem>
                 <FormLabel>Effect Attachments</FormLabel>
-                 {existingAuditEffectAttachments.length > 0 && (
+                {existingAuditEffectAttachments.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
                       Existing files:
@@ -555,7 +600,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   )}
                 <FormMessage />
               </FormItem>
-              
+
               <Separator />
 
               <div className="space-y-2">

@@ -3,17 +3,29 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { districts as initialDistricts, type District } from '@/lib/districts';
 import { PlusCircle } from 'lucide-react';
 import { AddEditDistrictDialog } from '@/components/audit/AddEditDistrictDialog';
 import PageHeader from '@/components/layout/PageHeader';
+import {
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+} from '@/firebase';
+import type { District } from '@/types';
+import { collection, doc } from 'firebase/firestore';
 
 export default function DistrictsPage() {
-  const [districts, setDistricts] = useState<District[]>(initialDistricts);
-  const [isDialogOpen, setDialogOpen] = useState(false);
-  const [editingDistrict, setEditingDistrict] = useState<District | null>(
-    null
+  const firestore = useFirestore();
+  const districtsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'districts') : null),
+    [firestore]
   );
+  const { data: districts } = useCollection<District>(districtsQuery);
+
+  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [editingDistrict, setEditingDistrict] = useState<District | null>(null);
 
   const handleAddNew = () => {
     setEditingDistrict(null);
@@ -26,16 +38,13 @@ export default function DistrictsPage() {
   };
 
   const handleSubmit = (districtData: District) => {
-    if (editingDistrict) {
-      // Update existing district
-      setDistricts(
-        districts.map((d) =>
-          d.name === editingDistrict.name ? { ...d, ...districtData } : d
-        )
-      );
+    if (!firestore) return;
+    if (editingDistrict && editingDistrict.id) {
+      const districtRef = doc(firestore, 'districts', editingDistrict.id);
+      updateDocumentNonBlocking(districtRef, districtData);
     } else {
-      // Add new district
-      setDistricts([...districts, districtData]);
+      const districtsCollection = collection(firestore, 'districts');
+      addDocumentNonBlocking(districtsCollection, districtData);
     }
     setEditingDistrict(null);
   };
@@ -60,9 +69,9 @@ export default function DistrictsPage() {
               </CardHeader>
               <CardContent>
                 <ul className="divide-y divide-border">
-                  {districts.map((district) => (
+                  {districts?.map((district) => (
                     <li
-                      key={district.name}
+                      key={district.id}
                       className="flex items-center justify-between p-4"
                     >
                       <div>

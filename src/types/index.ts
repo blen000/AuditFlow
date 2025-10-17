@@ -1,10 +1,12 @@
+import { Timestamp } from 'firebase/firestore';
+
 export type RiskLevel = 'High' | 'Medium' | 'Low' | string;
 export type FindingStatus = string;
 export type AuditeeAgreement = 'Pending' | 'Agreed' | 'Declined';
 
 export type ProgressUpdate = {
   id: string;
-  date: Date;
+  date: Date | Timestamp;
   details: string;
   attachmentFilename?: string;
 };
@@ -28,9 +30,9 @@ export type AuditFinding = {
   branchOrDepartment: string;
   recommendation: string;
   status: FindingStatus;
-  revalidationDate?: Date;
+  revalidationDate?: Date | Timestamp;
   auditeeAgreement: AuditeeAgreement;
-  mitigationDueDate?: Date;
+  mitigationDueDate?: Date | Timestamp;
   auditeeResponse?: string;
   auditeeAttachmentFilename?: string;
   progressUpdates?: ProgressUpdate[];
@@ -42,4 +44,25 @@ export type AuditFinding = {
   auditEffectAttachments?: string[];
   involvedAmounts?: InvolvedAmount[];
   involvedCases?: InvolvedCase[];
+};
+
+export type Branch = {
+  id?: string;
+  name: string;
+  district: string;
+};
+
+export type District = {
+  id?: string;
+  name: string;
+};
+
+export type RiskLevelData = {
+  id?: string;
+  name: string;
+};
+
+export type StatusData = {
+  id?: string;
+  name: string;
 };

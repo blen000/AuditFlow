@@ -22,7 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import type { District } from '@/lib/districts';
+import type { District } from '@/types';
 
 const formSchema = z.object({
   name: z.string().min(3, 'District name must be at least 3 characters.'),
@@ -31,7 +31,7 @@ const formSchema = z.object({
 type AddEditDistrictDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (district: District) => void;
+  onSubmit: (district: Omit<District, 'id'>) => void;
   district: District | null;
 };
 
@@ -49,10 +49,12 @@ export function AddEditDistrictDialog({
   });
 
   useEffect(() => {
-    if (district) {
-      form.reset(district);
-    } else {
-      form.reset({ name: '' });
+    if (open) {
+      if (district) {
+        form.reset(district);
+      } else {
+        form.reset({ name: '' });
+      }
     }
   }, [district, form, open]);
 
@@ -65,7 +67,9 @@ export function AddEditDistrictDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{district ? 'Edit District' : 'Add New District'}</DialogTitle>
+          <DialogTitle>
+            {district ? 'Edit District' : 'Add New District'}
+          </DialogTitle>
           <DialogDescription>
             {district
               ? `Update the details for ${district.name}.`
@@ -84,17 +88,18 @@ export function AddEditDistrictDialog({
                 <FormItem>
                   <FormLabel>District Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="e.g., Metropolis North"
-                      {...field}
-                    />
+                    <Input placeholder="e.g., Metropolis North" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)} type="button">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                type="button"
+              >
                 Cancel
               </Button>
               <Button type="submit">

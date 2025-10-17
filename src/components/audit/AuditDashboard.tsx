@@ -1,8 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { mockFindings } from '@/lib/mock-data';
-import type { AuditFinding, FindingStatus } from '@/types';
+import type { AuditFinding, FindingStatus, RiskLevel } from '@/types';
 import { AuditFindingCard } from './AuditFindingCard';
 import { Button } from '@/components/ui/button';
 import { Filter, PlusCircle, Search } from 'lucide-react';
@@ -15,31 +14,67 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { Input } from '../ui/input';
-import { riskLevels as allRiskLevels } from '@/lib/risk-levels';
-import { statuses as allStatuses } from '@/lib/statuses';
-import type { RiskLevel } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
+import {
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+  deleteDocumentNonBlocking,
+  updateDocumentNonBlocking,
+} from '@/firebase';
+import { collection, doc, Timestamp } from 'firebase/firestore';
+import type { RiskLevelData, StatusData } from '@/types';
+
+function toDate(timestamp: Date | Timestamp | undefined): Date | undefined {
+  if (!timestamp) return undefined;
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate();
+  }
+  return timestamp;
+}
+
 
 export default function AuditDashboard() {
-  const [findings, setFindings] = useState<AuditFinding[]>(mockFindings);
+  const firestore = useFirestore();
+
+  const findingsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'findings') : null),
+    [firestore]
+  );
+  const { data: findings } = useCollection<AuditFinding>(findingsQuery);
+
+  const riskLevelsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'riskLevels') : null),
+    [firestore]
+  );
+  const { data: allRiskLevels } = useCollection<RiskLevelData>(riskLevelsQuery);
+
+  const statusesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'statuses') : null),
+    [firestore]
+  );
+  const { data: allStatuses } = useCollection<StatusData>(statusesQuery);
+
   const [riskFilter, setRiskFilter] = useState<RiskLevel[]>([]);
   const [statusFilter, setStatusFilter] = useState<FindingStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const handleDelete = (id: string) => {
-    setFindings((prev) => prev.filter((f) => f.id !== id));
+    if (!firestore) return;
+    const findingRef = doc(firestore, 'findings', id);
+    deleteDocumentNonBlocking(findingRef);
   };
 
   const handleUpdate = (id: string, updates: Partial<AuditFinding>) => {
-    setFindings((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
-    );
+    if (!firestore) return;
+    const findingRef = doc(firestore, 'findings', id);
+    updateDocumentNonBlocking(findingRef, updates);
   };
 
   const toggleFilter = <T extends string>(
@@ -54,7 +89,7 @@ export default function AuditDashboard() {
     }
   };
 
-  const filteredFindings = findings.filter((finding) => {
+  const filteredFindings = findings?.filter((finding) => {
     const riskMatch =
       riskFilter.length === 0 || riskFilter.includes(finding.riskLevel);
     const statusMatch =
@@ -62,24 +97,26 @@ export default function AuditDashboard() {
     const searchMatch =
       searchQuery === '' ||
       finding.id.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const dateMatch = (() => {
       if (!dateRange || (!dateRange.from && !dateRange.to)) return true;
 
       const from = dateRange.from;
       const to = dateRange.to;
-      const targetDate = finding.revalidationDate || finding.mitigationDueDate;
+      const targetDate = toDate(finding.revalidationDate) || toDate(finding.mitigationDueDate);
 
       if (!targetDate) return false;
+      const targetDateTime = new Date(targetDate).getTime();
+
 
       if (from && !to) {
-        return targetDate >= from;
+        return targetDateTime >= new Date(from).getTime();
       }
       if (!from && to) {
-        return targetDate <= to;
+        return targetDateTime <= new Date(to).getTime();
       }
       if (from && to) {
-        return targetDate >= from && targetDate <= to;
+        return targetDateTime >= new Date(from).getTime() && targetDateTime <= new Date(to).getTime();
       }
       return true;
     })();
@@ -113,50 +150,52 @@ export default function AuditDashboard() {
               <DropdownMenuLabel>Filter by Date</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <div className="p-2">
-                 <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !dateRange && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (
-                          dateRange.to ? (
-                            <>
-                              {format(dateRange.from, 'LLL dd, y')} -{' '}
-                              {format(dateRange.to, 'LLL dd, y')}
-                            </>
-                          ) : (
-                            format(dateRange.from, 'LLL dd, y')
-                          )
-                        ) : dateRange?.to ? (
-                          `Before ${format(dateRange.to, 'LLL dd, y')}`
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={'outline'}
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !dateRange && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, 'LLL dd, y')} -{' '}
+                            {format(dateRange.to, 'LLL dd, y')}
+                          </>
                         ) : (
-                          <span>Pick a date range</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={2}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                          format(dateRange.from, 'LLL dd, y')
+                        )
+                      ) : dateRange?.to ? (
+                        `Before ${format(dateRange.to, 'LLL dd, y')}`
+                      ) : (
+                        <span>Pick a date range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              <DropdownMenuLabel className="pt-2">Filter by Risk</DropdownMenuLabel>
+              <DropdownMenuLabel className="pt-2">
+                Filter by Risk
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {allRiskLevels.map((level) => (
+              {allRiskLevels?.map((level) => (
                 <DropdownMenuCheckboxItem
-                  key={level.name}
+                  key={level.id}
                   checked={riskFilter.includes(level.name)}
                   onCheckedChange={() =>
                     toggleFilter(riskFilter, setRiskFilter, level.name)
@@ -170,9 +209,9 @@ export default function AuditDashboard() {
                 Filter by Status
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {allStatuses.map((status) => (
+              {allStatuses?.map((status) => (
                 <DropdownMenuCheckboxItem
-                  key={status.name}
+                  key={status.id}
                   checked={statusFilter.includes(status.name)}
                   onCheckedChange={() =>
                     toggleFilter(statusFilter, setStatusFilter, status.name)
@@ -193,7 +232,7 @@ export default function AuditDashboard() {
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredFindings.map((finding) => (
+        {filteredFindings?.map((finding) => (
           <AuditFindingCard
             key={finding.id}
             finding={finding}

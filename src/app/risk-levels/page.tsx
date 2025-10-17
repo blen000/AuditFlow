@@ -3,17 +3,30 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { riskLevels as initialRiskLevels, type RiskLevelData } from '@/lib/risk-levels';
 import { PlusCircle } from 'lucide-react';
 import { AddEditRiskLevelDialog } from '@/components/audit/AddEditRiskLevelDialog';
 import PageHeader from '@/components/layout/PageHeader';
+import {
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+} from '@/firebase';
+import type { RiskLevelData } from '@/types';
+import { collection, doc } from 'firebase/firestore';
 
 export default function RiskLevelsPage() {
-  const [riskLevels, setRiskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
-  const [isDialogOpen, setDialogOpen] = useState(false);
-  const [editingRiskLevel, setEditingRiskLevel] = useState<RiskLevelData | null>(
-    null
+  const firestore = useFirestore();
+  const riskLevelsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'riskLevels') : null),
+    [firestore]
   );
+  const { data: riskLevels } = useCollection<RiskLevelData>(riskLevelsQuery);
+
+  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [editingRiskLevel, setEditingRiskLevel] =
+    useState<RiskLevelData | null>(null);
 
   const handleAddNew = () => {
     setEditingRiskLevel(null);
@@ -26,16 +39,13 @@ export default function RiskLevelsPage() {
   };
 
   const handleSubmit = (riskLevelData: RiskLevelData) => {
-    if (editingRiskLevel) {
-      // Update existing risk level
-      setRiskLevels(
-        riskLevels.map((r) =>
-          r.name === editingRiskLevel.name ? { ...r, ...riskLevelData } : r
-        )
-      );
+    if (!firestore) return;
+    if (editingRiskLevel && editingRiskLevel.id) {
+      const riskLevelRef = doc(firestore, 'riskLevels', editingRiskLevel.id);
+      updateDocumentNonBlocking(riskLevelRef, riskLevelData);
     } else {
-      // Add new risk level
-      setRiskLevels([...riskLevels, riskLevelData]);
+      const riskLevelsCollection = collection(firestore, 'riskLevels');
+      addDocumentNonBlocking(riskLevelsCollection, riskLevelData);
     }
     setEditingRiskLevel(null);
   };
@@ -60,9 +70,9 @@ export default function RiskLevelsPage() {
               </CardHeader>
               <CardContent>
                 <ul className="divide-y divide-border">
-                  {riskLevels.map((riskLevel) => (
+                  {riskLevels?.map((riskLevel) => (
                     <li
-                      key={riskLevel.name}
+                      key={riskLevel.id}
                       className="flex items-center justify-between p-4"
                     >
                       <div>

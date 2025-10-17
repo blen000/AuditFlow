@@ -3,15 +3,33 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { branches as initialBranches, type Branch } from '@/lib/branches';
-import { districts as initialDistricts, type District } from '@/lib/districts';
 import { PlusCircle } from 'lucide-react';
 import { AddEditBranchDialog } from '@/components/audit/AddEditBranchDialog';
 import PageHeader from '@/components/layout/PageHeader';
+import {
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+} from '@/firebase';
+import type { Branch, District } from '@/types';
+import { collection, doc } from 'firebase/firestore';
 
 export default function BranchesPage() {
-  const [branches, setBranches] = useState<Branch[]>(initialBranches);
-  const [districts] = useState<District[]>(initialDistricts);
+  const firestore = useFirestore();
+  const branchesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'branches') : null),
+    [firestore]
+  );
+  const { data: branches } = useCollection<Branch>(branchesQuery);
+
+  const districtsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'districts') : null),
+    [firestore]
+  );
+  const { data: districts } = useCollection<District>(districtsQuery);
+
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
 
@@ -26,16 +44,13 @@ export default function BranchesPage() {
   };
 
   const handleSubmit = (branchData: Branch) => {
-    if (editingBranch) {
-      // Update existing branch
-      setBranches(
-        branches.map((b) =>
-          b.name === editingBranch.name ? { ...b, ...branchData } : b
-        )
-      );
+    if (!firestore) return;
+    if (editingBranch && editingBranch.id) {
+      const branchRef = doc(firestore, 'branches', editingBranch.id);
+      updateDocumentNonBlocking(branchRef, branchData);
     } else {
-      // Add new branch
-      setBranches([...branches, branchData]);
+      const branchesCollection = collection(firestore, 'branches');
+      addDocumentNonBlocking(branchesCollection, branchData);
     }
     setEditingBranch(null);
   };
@@ -60,9 +75,9 @@ export default function BranchesPage() {
               </CardHeader>
               <CardContent>
                 <ul className="divide-y divide-border">
-                  {branches.map((branch) => (
+                  {branches?.map((branch) => (
                     <li
-                      key={branch.name}
+                      key={branch.id}
                       className="flex items-center justify-between p-4"
                     >
                       <div>
@@ -91,7 +106,7 @@ export default function BranchesPage() {
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
         branch={editingBranch}
-        districtList={districts}
+        districtList={districts || []}
       />
     </>
   );

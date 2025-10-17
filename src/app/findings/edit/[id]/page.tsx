@@ -1,8 +1,20 @@
+'use client';
 import { EditFindingForm } from '@/components/audit/EditFindingForm';
-import { mockFindings } from '@/lib/mock-data';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { AuditFinding } from '@/types';
+import { doc } from 'firebase/firestore';
 
 export default function EditFindingPage({ params }: { params: { id: string } }) {
-  const finding = mockFindings.find((f) => f.id === params.id);
+  const firestore = useFirestore();
+  const findingRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'findings', params.id) : null),
+    [firestore, params.id]
+  );
+  const { data: finding, isLoading } = useDoc<AuditFinding>(findingRef);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   if (!finding) {
     return <div>Finding not found</div>;

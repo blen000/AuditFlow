@@ -22,7 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import type { StatusData } from '@/lib/statuses';
+import type { StatusData } from '@/types';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Status name must be at least 3 characters.'),
@@ -31,7 +31,7 @@ const formSchema = z.object({
 type AddEditStatusDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (status: StatusData) => void;
+  onSubmit: (status: Omit<StatusData, 'id'>) => void;
   status: StatusData | null;
 };
 
@@ -49,10 +49,12 @@ export function AddEditStatusDialog({
   });
 
   useEffect(() => {
-    if (status) {
-      form.reset(status);
-    } else {
-      form.reset({ name: '' });
+    if (open) {
+      if (status) {
+        form.reset(status);
+      } else {
+        form.reset({ name: '' });
+      }
     }
   }, [status, form, open]);
 
@@ -65,7 +67,9 @@ export function AddEditStatusDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{status ? 'Edit Status' : 'Add New Status'}</DialogTitle>
+          <DialogTitle>
+            {status ? 'Edit Status' : 'Add New Status'}
+          </DialogTitle>
           <DialogDescription>
             {status
               ? `Update the details for ${status.name}.`
@@ -84,17 +88,18 @@ export function AddEditStatusDialog({
                 <FormItem>
                   <FormLabel>Status Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="e.g., Awaiting Review"
-                      {...field}
-                    />
+                    <Input placeholder="e.g., Awaiting Review" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)} type="button">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                type="button"
+              >
                 Cancel
               </Button>
               <Button type="submit">

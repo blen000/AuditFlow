@@ -1,9 +1,5 @@
 'use client';
-import type {
-  AuditFinding,
-  FindingStatus,
-  ProgressUpdate,
-} from '@/types';
+import type { AuditFinding, FindingStatus, ProgressUpdate } from '@/types';
 import {
   Card,
   CardContent,
@@ -52,7 +48,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { statuses as allStatuses } from '@/lib/statuses';
+import {
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+} from '@/firebase';
+import { collection, Timestamp } from 'firebase/firestore';
+import type { StatusData } from '@/types';
 
 type AuditFindingCardProps = {
   finding: AuditFinding;
@@ -60,12 +62,26 @@ type AuditFindingCardProps = {
   onUpdate: (id: string, updates: Partial<AuditFinding>) => void;
 };
 
+function toDate(timestamp: Date | Timestamp | undefined): Date | undefined {
+  if (!timestamp) return undefined;
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate();
+  }
+  return timestamp;
+}
+
 export function AuditFindingCard({
   finding,
   onDelete,
   onUpdate,
 }: AuditFindingCardProps) {
   const [isProgressDialogOpen, setProgressDialogOpen] = useState(false);
+  const firestore = useFirestore();
+  const statusesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'statuses') : null),
+    [firestore]
+  );
+  const { data: allStatuses } = useCollection<StatusData>(statusesQuery);
 
   const handleStatusChange = (status: FindingStatus) => {
     onUpdate(finding.id, { status });
@@ -96,10 +112,16 @@ export function AuditFindingCard({
     ...(finding.auditCauseAttachments || []),
     ...(finding.auditEffectAttachments || []),
     ...(finding.recommendationAttachments || []),
-    ...(finding.auditeeAttachmentFilename ? [finding.auditeeAttachmentFilename] : []),
+    ...(finding.auditeeAttachmentFilename
+      ? [finding.auditeeAttachmentFilename]
+      : []),
   ];
 
-  const totalAmount = finding.involvedAmounts?.reduce((sum, item) => sum + item.amount, 0) || 0;
+  const totalAmount =
+    finding.involvedAmounts?.reduce((sum, item) => sum + item.amount, 0) || 0;
+    
+  const revalidationDate = toDate(finding.revalidationDate);
+  const mitigationDueDate = toDate(finding.mitigationDueDate);
 
 
   return (
@@ -136,9 +158,9 @@ export function AuditFindingCard({
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
-                    {allStatuses.map((status) => (
+                    {allStatuses?.map((status) => (
                       <DropdownMenuItem
-                        key={status.name}
+                        key={status.id}
                         onClick={() => handleStatusChange(status.name)}
                         disabled={finding.status === status.name}
                       >
@@ -167,42 +189,50 @@ export function AuditFindingCard({
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <StatusBadge status={finding.status} />
             <AgreementBadge agreement={finding.auditeeAgreement} />
-            {finding.mitigationDueDate && (
+            {mitigationDueDate && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Check className="h-3.5 w-3.5" />
-                <span>
-                  Due {format(finding.mitigationDueDate, 'MMM d, yyyy')}
-                </span>
+                <span>Due {format(mitigationDueDate, 'MMM d, yyyy')}</span>
               </div>
             )}
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 text-xs text-muted-foreground">
             {totalAmount > 0 && (
-               <div className="flex items-center gap-1.5">
-                  <CircleDollarSign className="h-3.5 w-3.5" />
-                  <span className='font-semibold text-foreground'>
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalAmount)}
-                  </span>
-                  <span>involved</span>
-               </div>
+              <div className="flex items-center gap-1.5">
+                <CircleDollarSign className="h-3.5 w-3.5" />
+                <span className="font-semibold text-foreground">
+                  {new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                  }).format(totalAmount)}
+                </span>
+                <span>involved</span>
+              </div>
             )}
             {finding.involvedCases && finding.involvedCases.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" />
-                <span className='font-semibold text-foreground'>{finding.involvedCases.length}</span>
+                <span className="font-semibold text-foreground">
+                  {finding.involvedCases.length}
+                </span>
                 <span>case{finding.involvedCases.length > 1 && 's'}</span>
               </div>
             )}
           </div>
 
-
           {allAttachments.length > 0 && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-2">
               {allAttachments.map((filename, index) => (
-                <div key={index} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div
+                  key={index}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                >
                   <Paperclip className="h-3.5 w-3.5" />
-                  <span className="truncate" title={filename}>{filename.length > 20 ? `${filename.slice(0,20)}...` : filename}</span>
+                  <span
+                    className="truncate"
+                    title={filename}
+                  >{filename.length > 20 ? `${filename.slice(0, 20)}...` : filename}</span>
                 </div>
               ))}
             </div>
@@ -213,7 +243,7 @@ export function AuditFindingCard({
               <CollapsibleTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="group flex w-full items-center justify-start gap-2 p-0 text-sm font-semibold hover:bg-transparent hover:text-foreground"
+                  className="group flex w-full items-center justify-start gap-2 p-0 text-sm font-semibold hover:bg-transparent"
                 >
                   <MessageSquare className="h-4 w-4" />
                   <h4>
@@ -226,23 +256,23 @@ export function AuditFindingCard({
               <CollapsibleContent>
                 <div className="mt-2 space-y-3 rounded-md border bg-muted/50 p-3">
                   {[...finding.progressUpdates]
-                    .sort((a, b) => b.date.getTime() - a.date.getTime())
+                    .sort((a, b) => toDate(b.date)!.getTime() - toDate(a.date)!.getTime())
                     .map((update) => (
-                    <div key={update.id} className="text-xs">
-                      <p className="font-semibold text-foreground">
-                        {format(update.date, 'MMM d, yyyy')}:{' '}
-                        <span className="font-normal text-muted-foreground">
-                          {update.details}
-                        </span>
-                      </p>
-                      {update.attachmentFilename && (
-                        <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                          <Paperclip className="h-3 w-3" />
-                          <span>{update.attachmentFilename}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                      <div key={update.id} className="text-xs">
+                        <p className="font-semibold text-foreground">
+                          {format(toDate(update.date)!, 'MMM d, yyyy')}:{' '}
+                          <span className="font-normal text-muted-foreground">
+                            {update.details}
+                          </span>
+                        </p>
+                        {update.attachmentFilename && (
+                          <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                            <Paperclip className="h-3 w-3" />
+                            <span>{update.attachmentFilename}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                 </div>
               </CollapsibleContent>
             </Collapsible>
@@ -252,15 +282,13 @@ export function AuditFindingCard({
           <div className="flex shrink-0 items-center gap-2">
             <Bell className="h-4 w-4" />
             <span className="whitespace-nowrap">
-              {finding.revalidationDate
-                ? `Re-validate by`
-                : 'No reminder set'}
+              {revalidationDate ? `Re-validate by` : 'No reminder set'}
             </span>
-            {finding.revalidationDate && 
+            {revalidationDate && (
               <span className="whitespace-nowrap font-medium text-foreground">
-                {format(finding.revalidationDate, 'MMM d, yyyy')}
+                {format(revalidationDate, 'MMM d, yyyy')}
               </span>
-            }
+            )}
           </div>
           <Popover>
             <PopoverTrigger asChild>
@@ -269,12 +297,12 @@ export function AuditFindingCard({
                 size="sm"
                 className={cn(
                   'justify-start text-left font-normal',
-                  !finding.revalidationDate && 'text-muted-foreground'
+                  !revalidationDate && 'text-muted-foreground'
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {finding.revalidationDate ? (
-                  format(finding.revalidationDate, 'PPP')
+                {revalidationDate ? (
+                  format(revalidationDate, 'PPP')
                 ) : (
                   <span>Set Date</span>
                 )}
@@ -283,7 +311,7 @@ export function AuditFindingCard({
             <PopoverContent className="w-auto p-0">
               <Calendar
                 mode="single"
-                selected={finding.revalidationDate}
+                selected={revalidationDate}
                 onSelect={handleDateSelect}
                 initialFocus
               />

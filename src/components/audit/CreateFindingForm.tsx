@@ -22,13 +22,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { AuditFinding } from '@/types';
+import type { AuditFinding, Branch, RiskLevelData } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
-import { branches } from '@/lib/branches';
-import { riskLevels } from '@/lib/risk-levels';
 import { Paperclip, PlusCircle, Trash2 } from 'lucide-react';
+import {
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+  addDocumentNonBlocking,
+} from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -46,18 +51,40 @@ const formSchema = z.object({
   auditCause: z.string().optional(),
   auditEffect: z.string().optional(),
   recommendation: z.string().optional(),
-  involvedAmounts: z.array(z.object({
-    name: z.string().min(1, 'Name is required.'),
-    amount: z.coerce.number().min(0, 'Amount must be a positive number.'),
-  })).optional(),
-  involvedCases: z.array(z.object({
-    ownerName: z.string().min(1, 'Owner name is required.'),
-  })).optional(),
+  involvedAmounts: z
+    .array(
+      z.object({
+        name: z.string().min(1, 'Name is required.'),
+        amount: z.coerce.number().min(0, 'Amount must be a positive number.'),
+      })
+    )
+    .optional(),
+  involvedCases: z
+    .array(
+      z.object({
+        ownerName: z.string().min(1, 'Owner name is required.'),
+      })
+    )
+    .optional(),
   // We'll handle files separately, not through zod for now
 });
 
 export function CreateFindingForm() {
   const router = useRouter();
+  const firestore = useFirestore();
+
+  const branchesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'branches') : null),
+    [firestore]
+  );
+  const { data: branches } = useCollection<Branch>(branchesQuery);
+
+  const riskLevelsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'riskLevels') : null),
+    [firestore]
+  );
+  const { data: riskLevels } = useCollection<RiskLevelData>(riskLevelsQuery);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -71,24 +98,35 @@ export function CreateFindingForm() {
     },
   });
 
-  const { fields: amountFields, append: appendAmount, remove: removeAmount } = useFieldArray({
+  const {
+    fields: amountFields,
+    append: appendAmount,
+    remove: removeAmount,
+  } = useFieldArray({
     control: form.control,
     name: 'involvedAmounts',
   });
 
-  const { fields: caseFields, append: appendCase, remove: removeCase } = useFieldArray({
+  const {
+    fields: caseFields,
+    append: appendCase,
+    remove: removeCase,
+  } = useFieldArray({
     control: form.control,
     name: 'involvedCases',
   });
-
 
   const { register } = form;
   const findingAttachments = form.watch('findingAttachments' as any);
   const auditCauseAttachments = form.watch('auditCauseAttachments' as any);
   const auditEffectAttachments = form.watch('auditEffectAttachments' as any);
-  const recommendationAttachments = form.watch('recommendationAttachments' as any);
+  const recommendationAttachments = form.watch(
+    'recommendationAttachments' as any
+  );
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!firestore) return;
+
     const findingAttachmentFiles = findingAttachments as FileList | undefined;
     const auditCauseAttachmentFiles =
       auditCauseAttachments as FileList | undefined;
@@ -97,14 +135,18 @@ export function CreateFindingForm() {
     const recommendationAttachmentFiles =
       recommendationAttachments as FileList | undefined;
 
-    const newFinding: AuditFinding = {
-      id: `FIND-${Date.now()}`,
+    const newFinding: Omit<AuditFinding, 'id'> = {
       status: 'Open',
       auditeeAgreement: 'Pending',
       ...values,
       riskLevel: values.riskLevel,
       recommendation: values.recommendation || '',
-      involvedCases: values.involvedCases?.map(c => ({ ...c, id: `CASE-${Date.now()}-${Math.random()}`, status: 'Open' })),
+      involvedCases:
+        values.involvedCases?.map((c) => ({
+          ...c,
+          id: `CASE-${Date.now()}-${Math.random()}`,
+          status: 'Open',
+        })) || [],
       findingAttachments: findingAttachmentFiles
         ? Array.from(findingAttachmentFiles).map((file) => file.name)
         : [],
@@ -118,8 +160,10 @@ export function CreateFindingForm() {
         ? Array.from(recommendationAttachmentFiles).map((file) => file.name)
         : [],
     };
-    // In a real app, you'd save this to a database and upload the files
-    console.log('New Finding:', newFinding);
+
+    const findingsCollection = collection(firestore, 'findings');
+    addDocumentNonBlocking(findingsCollection, newFinding);
+
     router.push('/');
   }
 
@@ -166,8 +210,8 @@ export function CreateFindingForm() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {riskLevels.map((level) => (
-                            <SelectItem key={level.name} value={level.name}>
+                          {riskLevels?.map((level) => (
+                            <SelectItem key={level.id} value={level.name}>
                               {level.name}
                             </SelectItem>
                           ))}
@@ -193,8 +237,8 @@ export function CreateFindingForm() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {branches.map((branch) => (
-                            <SelectItem key={branch.name} value={branch.name}>
+                          {branches?.map((branch) => (
+                            <SelectItem key={branch.id} value={branch.name}>
                               {branch.name}
                             </SelectItem>
                           ))}
@@ -250,97 +294,110 @@ export function CreateFindingForm() {
                 <FormMessage />
               </FormItem>
               <Separator />
-               <div>
+              <div>
                 <h3 className="text-lg font-semibold">Amounts Involved</h3>
-                  {amountFields.map((field, index) => (
-                    <div key={field.id} className="mt-2 flex items-end gap-2 rounded-md border p-4">
-                      <FormField
-                        control={form.control}
-                        name={`involvedAmounts.${index}.name`}
-                        render={({ field }) => (
-                          <FormItem className='flex-1'>
-                            <FormLabel>Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Initial Shortage" {...field} />
-                            </FormControl>
-                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`involvedAmounts.${index}.amount`}
-                        render={({ field }) => (
-                           <FormItem className='flex-1'>
-                            <FormLabel>Amount</FormLabel>
-                            <FormControl>
-                              <Input type="number" placeholder="e.g., 150.00" {...field} />
-                            </FormControl>
-                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => removeAmount(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => appendAmount({ name: '', amount: 0 })}
+                {amountFields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="mt-2 flex items-end gap-2 rounded-md border p-4"
                   >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Amount
-                  </Button>
-               </div>
+                    <FormField
+                      control={form.control}
+                      name={`involvedAmounts.${index}.name`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g., Initial Shortage"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`involvedAmounts.${index}.amount`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>Amount</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="e.g., 150.00"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => removeAmount(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => appendAmount({ name: '', amount: 0 })}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Amount
+                </Button>
+              </div>
 
               <Separator />
-               <div>
+              <div>
                 <h3 className="text-lg font-semibold">Involved Cases</h3>
-                  {caseFields.map((field, index) => (
-                    <div key={field.id} className="mt-2 flex items-end gap-2 rounded-md border p-4">
-                      <FormField
-                        control={form.control}
-                        name={`involvedCases.${index}.ownerName`}
-                        render={({ field }) => (
-                          <FormItem className='flex-1'>
-                            <FormLabel>Case Owner / Customer</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., John Doe" {...field} />
-                            </FormControl>
-                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => removeCase(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => appendCase({ ownerName: '' })}
+                {caseFields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="mt-2 flex items-end gap-2 rounded-md border p-4"
                   >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Case
-                  </Button>
-               </div>
+                    <FormField
+                      control={form.control}
+                      name={`involvedCases.${index}.ownerName`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>Case Owner / Customer</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => removeCase(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => appendCase({ ownerName: '' })}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Case
+                </Button>
+              </div>
 
               <Separator />
               <FormField
