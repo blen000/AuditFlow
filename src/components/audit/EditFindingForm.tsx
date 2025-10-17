@@ -37,12 +37,23 @@ const formSchema = z.object({
   riskLevel: z.enum(['High', 'Medium', 'Low'], {
     required_error: 'You need to select a risk level.',
   }),
+  branchOrDepartment: z.string({
+    required_error: 'You need to select a branch/department.',
+  }),
   mitigationPlan: z.string().optional(),
 });
 
 type EditFindingFormProps = {
   finding: AuditFinding;
 };
+
+const branches = [
+  'Downtown Main',
+  'Suburban Branch',
+  'Loan Processing Center',
+  'Operations HQ',
+  'IT Department',
+];
 
 export function EditFindingForm({ finding }: EditFindingFormProps) {
   const router = useRouter();
@@ -61,6 +72,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
         title: finding.title,
         details: finding.details,
         riskLevel: finding.riskLevel,
+        branchOrDepartment: finding.branchOrDepartment,
         mitigationPlan: finding.mitigationPlan,
       });
     }
@@ -109,30 +121,13 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
-                  name="details"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Finding Details</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe the audit finding in detail..."
-                          className="h-24 resize-none"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
                   name="riskLevel"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Risk Level</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -153,7 +148,52 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                     </FormItem>
                   )}
                 />
+                 <FormField
+                  control={form.control}
+                  name="branchOrDepartment"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Branch / Department Audited</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a branch or department" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {branches.map((branch) => (
+                            <SelectItem key={branch} value={branch}>
+                              {branch}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
+
+              <FormField
+                  control={form.control}
+                  name="details"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Finding Details</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Describe the audit finding in detail..."
+                          className="h-24 resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
               <Separator />
 
@@ -166,7 +206,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                 name="mitigationPlan"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mitigation Plan</FormLabel>
+                    <FormLabel>Proposed Mitigation Plan</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Outline the steps to mitigate this risk..."

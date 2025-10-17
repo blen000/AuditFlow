@@ -36,8 +36,19 @@ const formSchema = z.object({
   riskLevel: z.enum(['High', 'Medium', 'Low'], {
     required_error: 'You need to select a risk level.',
   }),
+  branchOrDepartment: z.string({
+    required_error: 'You need to select a branch/department.',
+  }),
   mitigationPlan: z.string().optional(),
 });
+
+const branches = [
+  'Downtown Main',
+  'Suburban Branch',
+  'Loan Processing Center',
+  'Operations HQ',
+  'IT Department',
+];
 
 export function CreateFindingForm() {
   const router = useRouter();
@@ -54,6 +65,7 @@ export function CreateFindingForm() {
     const newFinding: AuditFinding = {
       id: `FIND-${Date.now()}`,
       status: 'Open',
+      auditeeAgreement: 'Pending',
       ...values,
       mitigationPlan: values.mitigationPlan || '',
     };
@@ -95,23 +107,6 @@ export function CreateFindingForm() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
-                  name="details"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Finding Details</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe the audit finding in detail..."
-                          className="h-24 resize-none"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
                   name="riskLevel"
                   render={({ field }) => (
                     <FormItem>
@@ -139,7 +134,52 @@ export function CreateFindingForm() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="branchOrDepartment"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Branch / Department Audited</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a branch or department" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {branches.map((branch) => (
+                            <SelectItem key={branch} value={branch}>
+                              {branch}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
+
+              <FormField
+                control={form.control}
+                name="details"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Finding Details</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Describe the audit finding in detail..."
+                        className="h-24 resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <Separator />
 
@@ -152,7 +192,7 @@ export function CreateFindingForm() {
                 name="mitigationPlan"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mitigation Plan</FormLabel>
+                    <FormLabel>Proposed Mitigation Plan</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Outline the steps to mitigate this risk..."
