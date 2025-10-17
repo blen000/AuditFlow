@@ -31,8 +31,11 @@ export default function BranchesPage() {
             <CardContent>
               <ul className="divide-y divide-border">
                 {branches.map((branch) => (
-                  <li key={branch} className="flex items-center justify-between p-4">
-                    <span className="font-medium">{branch}</span>
+                  <li key={branch.name} className="flex items-center justify-between p-4">
+                    <div>
+                      <span className="font-medium">{branch.name}</span>
+                      <p className="text-sm text-muted-foreground">{branch.district}</p>
+                    </div>
                     <Button variant="outline" size="sm">
                       Edit
                     </Button>

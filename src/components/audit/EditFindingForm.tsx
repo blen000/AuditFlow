@@ -184,8 +184,8 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                         </FormControl>
                         <SelectContent>
                           {branches.map((branch) => (
-                            <SelectItem key={branch} value={branch}>
-                              {branch}
+                            <SelectItem key={branch.name} value={branch.name}>
+                              {branch.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
