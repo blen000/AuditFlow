@@ -132,6 +132,8 @@ export default function AuditDashboard() {
                           ) : (
                             format(dateRange.from, 'LLL dd, y')
                           )
+                        ) : dateRange?.to ? (
+                          `Before ${format(dateRange.to, 'LLL dd, y')}`
                         ) : (
                           <span>Pick a date range</span>
                         )}
