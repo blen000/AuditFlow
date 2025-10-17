@@ -7,7 +7,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
-import { Building, LayoutDashboard, PlusCircle, Users } from 'lucide-react';
+import { Building, LayoutDashboard, PlusCircle, Users, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -58,6 +58,17 @@ export function SidebarNav() {
             >
               <Building />
               <span>Districts</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <Link href="/risk-levels">
+            <SidebarMenuButton
+              isActive={pathname.startsWith('/risk-levels')}
+              tooltip="Risk Levels"
+            >
+              <ShieldAlert />
+              <span>Risk Levels</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>

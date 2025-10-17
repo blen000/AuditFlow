@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { mockFindings } from '@/lib/mock-data';
-import type { AuditFinding, RiskLevel, FindingStatus } from '@/types';
+import type { AuditFinding, FindingStatus } from '@/types';
 import { AuditFindingCard } from './AuditFindingCard';
 import { Button } from '@/components/ui/button';
 import { Filter, PlusCircle, Search } from 'lucide-react';
@@ -15,6 +15,8 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { Input } from '../ui/input';
+import { riskLevels as allRiskLevels } from '@/lib/risk-levels';
+import type { RiskLevel } from '@/types';
 
 export default function AuditDashboard() {
   const [findings, setFindings] = useState<AuditFinding[]>(mockFindings);
@@ -80,15 +82,15 @@ export default function AuditDashboard() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Filter by Risk</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {(['High', 'Medium', 'Low'] as RiskLevel[]).map((level) => (
+              {allRiskLevels.map((level) => (
                 <DropdownMenuCheckboxItem
-                  key={level}
-                  checked={riskFilter.includes(level)}
+                  key={level.name}
+                  checked={riskFilter.includes(level.name)}
                   onCheckedChange={() =>
-                    toggleFilter(riskFilter, setRiskFilter, level)
+                    toggleFilter(riskFilter, setRiskFilter, level.name)
                   }
                 >
-                  {level}
+                  {level.name}
                 </DropdownMenuCheckboxItem>
               ))}
 

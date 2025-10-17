@@ -1,4 +1,4 @@
-export type RiskLevel = 'High' | 'Medium' | 'Low';
+export type RiskLevel = 'High' | 'Medium' | 'Low' | string;
 export type FindingStatus = 'Open' | 'In Progress' | 'Mitigated' | 'Closed';
 export type AuditeeAgreement = 'Pending' | 'Agreed' | 'Declined';
 

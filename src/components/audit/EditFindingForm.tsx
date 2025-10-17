@@ -28,6 +28,7 @@ import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
 import { useEffect, useState } from 'react';
 import { branches } from '@/lib/branches';
+import { riskLevels } from '@/lib/risk-levels';
 import { Paperclip } from 'lucide-react';
 
 const formSchema = z.object({
@@ -37,7 +38,7 @@ const formSchema = z.object({
   details: z.string().min(20, {
     message: 'Finding details must be at least 20 characters.',
   }),
-  riskLevel: z.enum(['High', 'Medium', 'Low'], {
+  riskLevel: z.string({
     required_error: 'You need to select a risk level.',
   }),
   branchOrDepartment: z.string({
@@ -103,6 +104,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
     const updatedFinding: AuditFinding = {
       ...finding,
       ...values,
+      riskLevel: values.riskLevel,
       mitigationPlan: values.mitigationPlan || '',
       findingAttachments: [
         ...existingFindingAttachments,
@@ -158,10 +160,10 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {(['High', 'Medium', 'Low'] as RiskLevel[]).map(
+                          {riskLevels.map(
                             (level) => (
-                              <SelectItem key={level} value={level}>
-                                {level}
+                              <SelectItem key={level.name} value={level.name}>
+                                {level.name}
                               </SelectItem>
                             )
                           )}
