@@ -1,84 +1,73 @@
 /**
- * @file Firestore Security Rules for Bank Branch Audit System
- *
- * @core_philosophy This ruleset enforces a hierarchical ownership model based on the branch ID.  Each branch "owns" all of its audits, findings, and mitigations.
- *
- * @data_structure The data is structured as follows:
- *   /branches/{branchId}
- *     /audits/{auditId}
- *       /findings/{findingId}
- *         /mitigation (single document)
- *
- * @key_security_decisions
- *   - All read and write operations are restricted to authenticated users.
- *   - There is currently no concept of user-based roles. The application assumes a flat permission model where any authenticated user can access and modify any branch's data.
- *   - If user-based roles are to be implemented, the 'members' map approach (as described in the original backend.json) should be implemented by adding a `members` map to the `Branch` entity and denormalizing into the `Audit`, `Finding`, and `Mitigation` entities.
+ * @description This ruleset enforces a public read policy for lookup collections,
+ *              allowing any user (signed in or not) to read the data. Write
+ *              access is denied to prevent unauthorized modifications.
+ * @dataStructure The database contains flat collections for lookup data
+ *                (riskLevels, statuses, districts, branches) and a main
+ *                'findings' collection. There is no user-specific data.
+ * @keySecurityDecisions All lookup collections are publicly readable. Writes
+ *                       are forbidden to all collections to prevent unauthorized changes.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants read and write access to branch documents.
-     * @path /branches/{branchId}
-     * @allow (read): Authenticated user can read any branch.
-     * @allow (write): Authenticated user can write to any branch.
-     * @deny (write): Unauthenticated user attempts to create a branch.
-     * @principle Allows any authenticated user to manage branches.
+     * @description Allows anyone to read the list of risk levels, but nobody to modify it.
+     * @path /databases/{database}/documents/riskLevels/{riskLevelId}
+     * @allow (get, list) Anyone can read the data.
+     * @deny (create, update, delete) No one can modify the data.
+     * @principle Allows public read access to risk levels.
+     */
+    match /riskLevels/{riskLevelId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Allows anyone to read the list of statuses, but nobody to modify it.
+     * @path /databases/{database}/documents/statuses/{statusId}
+     * @allow (get, list) Anyone can read the data.
+     * @deny (create, update, delete) No one can modify the data.
+     * @principle Allows public read access to statuses.
+     */
+    match /statuses/{statusId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Allows anyone to read the list of districts, but nobody to modify it.
+     * @path /databases/{database}/documents/districts/{districtId}
+     * @allow (get, list) Anyone can read the data.
+     * @deny (create, update, delete) No one can modify the data.
+     * @principle Allows public read access to districts.
+     */
+    match /districts/{districtId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Allows anyone to read the list of branches, but nobody to modify it.
+     * @path /databases/{database}/documents/branches/{branchId}
+     * @allow (get, list) Anyone can read the data.
+     * @deny (create, update, delete) No one can modify the data.
+     * @principle Allows public read access to branches.
      */
     match /branches/{branchId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
-
-    /**
-     * @description Grants read and write access to audit documents within a specific branch.
-     * @path /branches/{branchId}/audits/{auditId}
-     * @allow (read): Authenticated user can read any audit.
-     * @allow (write): Authenticated user can write to any audit.
-     * @deny (write): Unauthenticated user attempts to create an audit.
-     * @principle Allows any authenticated user to manage audits within a branch.
+        /**
+     * @description Denies access to all operations on findings. This is a placeholder.
+     * @path /databases/{database}/documents/findings/{findingId}
+     * @allow None
+     * @deny All operations are denied until access is properly configured.
+     * @principle Restricts all access to findings.
      */
-    match /branches/{branchId}/audits/{auditId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-    }
-
-    /**
-     * @description Grants read and write access to finding documents within a specific audit.
-     * @path /branches/{branchId}/audits/{auditId}/findings/{findingId}
-     * @allow (read): Authenticated user can read any finding.
-     * @allow (write): Authenticated user can write to any finding.
-     * @deny (write): Unauthenticated user attempts to create a finding.
-     * @principle Allows any authenticated user to manage findings within an audit.
-     */
-    match /branches/{branchId}/audits/{auditId}/findings/{findingId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-    }
-
-    /**
-     * @description Grants read and write access to the mitigation document within a specific finding.
-     * @path /branches/{branchId}/audits/{auditId}/findings/{findingId}/mitigation
-     * @allow (read): Authenticated user can read any mitigation.
-     * @allow (write): Authenticated user can write to any mitigation.
-     * @deny (write): Unauthenticated user attempts to create a mitigation.
-     * @principle Allows any authenticated user to manage mitigations for a finding.
-     */
-    match /branches/{branchId}/audits/{auditId}/findings/{findingId}/mitigation {
-      allow get: if isSignedIn();
-      allow list: if false; // Mitigation is a single document, not a collection.  Listing makes no sense.
-      allow create, update, delete: if isSignedIn();
-    }
-
-    // --- Helper Functions ---
-
-    /**
-     * @description Checks if the user is signed in.
-     * @return True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
+    match /findings/{findingId} {
+      allow get, list, create, update, delete: if false;
     }
   }
 }
