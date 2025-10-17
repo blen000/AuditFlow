@@ -2,134 +2,80 @@
  * @fileoverview Firestore Security Rules for Prototyping.
  *
  * Core Philosophy:
- * This ruleset is designed for the rapid prototyping phase. It prioritizes security by default, enforcing strict authorization
- * while minimizing data validation. This approach allows developers to quickly build and iterate on features without being
- * blocked by overly strict schema enforcement.
+ * This ruleset provides secure but permissive access for rapid prototyping.
+ * It prioritizes restricting unauthorized data access above strict data validation.
+ * All collections are secured against unauthorized writes.
  *
  * Data Structure:
- * The Firestore database consists of top-level collections for branches, districts, risk levels, statuses, and audit findings.
- * Each collection contains documents representing entities like bank branches, organizational districts, risk levels, statuses, and
- * audit findings.
+ * The Firestore database consists of several top-level collections: `branches`, `districts`, `riskLevels`, `statuses`, and `findings`.
  *
  * Key Security Decisions:
- * - All write operations require authentication (user must be signed in).
- * - Collection listing is generally disallowed to prevent information disclosure, except where explicitly allowed.
- * - Data validation is minimal, focusing on authorization-critical fields only. The detailed data shape validation is skipped.
- * - No listing any collection except in very specific circumstances
- * - The prototype does not implement granular roles or shared access patterns. All access is owner-based (or admin-based in future iterations).
- * - An explicit deny rule is ALWAYS used when a specific permission is not granted.
- *
- * Denormalization for Authorization:
- * This ruleset does not use any denormalization.
- *
- * Structural Segregation:
- * No structural segregation is employed.
+ * - **No User-Specific Data:** The application currently does not have user accounts.
+ * - **Open Reads:** All collections are publicly readable to facilitate easy data exploration during development.
+ * - **Write Restrictions:** Writes to all collections are denied by default.  Specific write rules must be added as development proceeds and authorization requirements are clarified.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the user is signed in.
-     * @return {boolean} True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-        /**
-     * @description Allows only signed-in users to create branches.
+     * @description Controls access to the 'branches' collection.
      * @path /databases/{database}/documents/branches/{branchId}
-     * @allow (create) Signed-in user creating a new branch.
-     * @deny (create) Unauthenticated user trying to create a branch.
-     * @deny (update) Any user trying to update a branch.
-     * @deny (delete) Any user trying to delete a branch.
-     * @deny (get) Any user trying to get a branch.
-     * @deny (list) Any user trying to list branches.
-     * @principle Allows creation by signed-in user only.
+     * @allow (get, list): Any user can read branch information.
+     * @deny (create, update, delete): No one can create, update, or delete branches by default. This should be configured later with appropriate roles.
+     * @principle Open reads, restricted writes.
      */
     match /branches/{branchId} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows only signed-in users to create districts.
+     * @description Controls access to the 'districts' collection.
      * @path /databases/{database}/documents/districts/{districtId}
-     * @allow (create) Signed-in user creating a new district.
-     * @deny (create) Unauthenticated user trying to create a district.
-     * @deny (update) Any user trying to update a district.
-     * @deny (delete) Any user trying to delete a district.
-     * @deny (get) Any user trying to get a district.
-     * @deny (list) Any user trying to list districts.
-     * @principle Allows creation by signed-in user only.
+     * @allow (get, list): Any user can read district information.
+     * @deny (create, update, delete): No one can create, update, or delete districts by default. This should be configured later with appropriate roles.
+     * @principle Open reads, restricted writes.
      */
     match /districts/{districtId} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows only signed-in users to create risk levels.
+     * @description Controls access to the 'riskLevels' collection.
      * @path /databases/{database}/documents/riskLevels/{riskLevelId}
-     * @allow (create) Signed-in user creating a new risk level.
-     * @deny (create) Unauthenticated user trying to create a risk level.
-     * @deny (update) Any user trying to update a risk level.
-     * @deny (delete) Any user trying to delete a risk level.
-     * @deny (get) Any user trying to get a risk level.
-     * @deny (list) Any user trying to list risk levels.
-     * @principle Allows creation by signed-in user only.
+     * @allow (get, list): Any user can read risk level information.
+     * @deny (create, update, delete): No one can create, update, or delete risk levels by default. This should be configured later with appropriate roles.
+     * @principle Open reads, restricted writes.
      */
     match /riskLevels/{riskLevelId} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows only signed-in users to create statuses.
+     * @description Controls access to the 'statuses' collection.
      * @path /databases/{database}/documents/statuses/{statusId}
-     * @allow (create) Signed-in user creating a new status.
-     * @deny (create) Unauthenticated user trying to create a status.
-     * @deny (update) Any user trying to update a status.
-     * @deny (delete) Any user trying to delete a status.
-     * @deny (get) Any user trying to get a status.
-     * @deny (list) Any user trying to list statuses.
-     * @principle Allows creation by signed-in user only.
+     * @allow (get, list): Any user can read status information.
+     * @deny (create, update, delete): No one can create, update, or delete statuses by default. This should be configured later with appropriate roles.
+     * @principle Open reads, restricted writes.
      */
     match /statuses/{statusId} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows only signed-in users to create audit findings.
+     * @description Controls access to the 'findings' collection.
      * @path /databases/{database}/documents/findings/{findingId}
-     * @allow (create) Signed-in user creating a new audit finding.
-     * @deny (create) Unauthenticated user trying to create an audit finding.
-     * @deny (update) Any user trying to update a audit finding.
-     * @deny (delete) Any user trying to delete a audit finding.
-     * @deny (get) Any user trying to get a audit finding.
-     * @deny (list) Any user trying to list audit findings.
-     * @principle Allows creation by signed-in user only.
+     * @allow (get, list): Any user can read audit finding information.
+     * @deny (create, update, delete): No one can create, update, or delete findings by default. This should be configured later with appropriate roles.
+     * @principle Open reads, restricted writes.
      */
     match /findings/{findingId} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
   }
 }
