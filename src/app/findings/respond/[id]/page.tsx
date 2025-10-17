@@ -43,6 +43,24 @@ export default function RespondToFindingPage({ params }: { params: { id: string 
                       </p>
                     </div>
                   )}
+                   {finding.involvedAmounts && finding.involvedAmounts.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold">Amounts Involved</h3>
+                      <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                        {finding.involvedAmounts.map((item, index) => (
+                          <li key={index}>
+                            {item.name}:{' '}
+                            <span className="font-medium text-foreground">
+                              {new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: 'USD',
+                              }).format(item.amount)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-semibold">Proposed Mitigation Plan</h3>
                     <p className="whitespace-pre-wrap text-sm text-muted-foreground">{finding.mitigationPlan}</p>

@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import * as z from 'zod';
 import {
   Form,
@@ -29,7 +29,7 @@ import PageHeader from '../layout/PageHeader';
 import { useEffect, useState } from 'react';
 import { branches } from '@/lib/branches';
 import { riskLevels } from '@/lib/risk-levels';
-import { Paperclip } from 'lucide-react';
+import { Paperclip, PlusCircle, Trash2 } from 'lucide-react';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -47,6 +47,10 @@ const formSchema = z.object({
   auditCause: z.string().optional(),
   auditEffect: z.string().optional(),
   mitigationPlan: z.string().optional(),
+  involvedAmounts: z.array(z.object({
+    name: z.string().min(1, 'Name is required.'),
+    amount: z.coerce.number().min(0, 'Amount must be a positive number.'),
+  })).optional(),
 });
 
 type EditFindingFormProps = {
@@ -65,7 +69,13 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       auditCause: finding?.auditCause || '',
       auditEffect: finding?.auditEffect || '',
       mitigationPlan: finding?.mitigationPlan || '',
+      involvedAmounts: finding?.involvedAmounts || [],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'involvedAmounts',
   });
 
   const { register } = form;
@@ -94,6 +104,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
         auditCause: finding.auditCause,
         auditEffect: finding.auditEffect,
         mitigationPlan: finding.mitigationPlan,
+        involvedAmounts: finding.involvedAmounts || [],
       });
       setExistingFindingAttachments(finding.findingAttachments || []);
       setExistingAuditCauseAttachments(
@@ -299,6 +310,58 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                 <FormMessage />
               </FormItem>
 
+              <Separator />
+               <div>
+                <h3 className="text-lg font-semibold">Amounts Involved</h3>
+                  {fields.map((field, index) => (
+                    <div key={field.id} className="mt-2 flex items-end gap-2 rounded-md border p-4">
+                      <FormField
+                        control={form.control}
+                        name={`involvedAmounts.${index}.name`}
+                        render={({ field }) => (
+                          <FormItem className='flex-1'>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., Initial Shortage" {...field} />
+                            </FormControl>
+                             <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`involvedAmounts.${index}.amount`}
+                        render={({ field }) => (
+                           <FormItem className='flex-1'>
+                            <FormLabel>Amount</FormLabel>
+                            <FormControl>
+                              <Input type="number" placeholder="e.g., 150.00" {...field} />
+                            </FormControl>
+                             <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => remove(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => append({ name: '', amount: 0 })}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Amount
+                  </Button>
+               </div>
               <Separator />
 
               <FormField

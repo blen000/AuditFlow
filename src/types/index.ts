@@ -9,6 +9,11 @@ export type ProgressUpdate = {
   attachmentFilename?: string;
 };
 
+export type InvolvedAmount = {
+  name: string;
+  amount: number;
+};
+
 export type AuditFinding = {
   id: string;
   title: string;
@@ -29,4 +34,5 @@ export type AuditFinding = {
   auditCauseAttachments?: string[];
   auditEffect?: string;
   auditEffectAttachments?: string[];
+  involvedAmounts?: InvolvedAmount[];
 };

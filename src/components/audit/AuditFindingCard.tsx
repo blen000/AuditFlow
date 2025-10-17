@@ -34,6 +34,7 @@ import {
   PlusCircle,
   MessageSquare,
   ChevronDown,
+  CircleDollarSign,
 } from 'lucide-react';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
@@ -96,6 +97,8 @@ export function AuditFindingCard({
     ...(finding.mitigationAttachments || []),
     ...(finding.auditeeAttachmentFilename ? [finding.auditeeAttachmentFilename] : []),
   ];
+
+  const totalAmount = finding.involvedAmounts?.reduce((sum, item) => sum + item.amount, 0) || 0;
 
 
   return (
@@ -172,6 +175,16 @@ export function AuditFindingCard({
               </div>
             )}
           </div>
+          
+          {totalAmount > 0 && (
+             <div className="flex items-center gap-1.5 pt-2 text-xs text-muted-foreground">
+                <CircleDollarSign className="h-3.5 w-3.5" />
+                <span className='font-semibold'>
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalAmount)}
+                </span>
+                <span>involved</span>
+             </div>
+          )}
 
           {allAttachments.length > 0 && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-2">
@@ -189,7 +202,7 @@ export function AuditFindingCard({
               <CollapsibleTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="group flex w-full items-center justify-start gap-2 p-0 text-sm font-semibold"
+                  className="group flex w-full items-center justify-start gap-2 p-0 text-sm font-semibold text-muted-foreground hover:bg-transparent hover:text-foreground"
                 >
                   <MessageSquare className="h-4 w-4" />
                   <h4>

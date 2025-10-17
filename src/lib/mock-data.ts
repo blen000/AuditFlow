@@ -76,6 +76,11 @@ export const mockFindings: AuditFinding[] = [
       "A teller's cash drawer was short by $150 at the end of the day on three separate occasions in the past month.",
     riskLevel: 'Medium',
     branchOrDepartment: 'Downtown Main',
+    involvedAmounts: [
+      { name: 'Shortage 1', amount: 50 },
+      { name: 'Shortage 2', amount: 75 },
+      { name: 'Shortage 3', amount: 25 },
+    ],
     mitigationPlan:
       '1. Conduct a thorough investigation into the discrepancies.\n2. Implement a policy for immediate reporting and investigation of any cash shortages or overages.\n3. Increase frequency of surprise cash counts.',
     status: 'In Progress',
