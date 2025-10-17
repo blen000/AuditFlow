@@ -33,7 +33,7 @@ export function getSdks(firebaseApp: FirebaseApp) {
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
+    firestore: getFirestore(firebaseApp, '(default)')
   };
 }
 
@@ -41,6 +41,6 @@ export * from './provider';
 export * from './FirebaseAppProvider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
-export * from './non-blocking-writes';
 export * from './errors';
 export * from './error-emitter';
+export * from './non-blocking-updates';
