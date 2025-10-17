@@ -3,9 +3,8 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged } from 'firebase/auth';
+import { Auth, User, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
-import { initiateAnonymousSignIn } from './non-blocking-login';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -82,7 +81,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       (firebaseUser) => { // Auth state determined
         if (!firebaseUser) {
           // If no user is logged in, initiate anonymous sign-in
-          initiateAnonymousSignIn(auth);
+          signInAnonymously(auth);
         }
         setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
       },
