@@ -6,6 +6,7 @@ import * as z from 'zod';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -26,6 +27,7 @@ import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import Header from '../layout/Header';
 import { branches } from '@/lib/branches';
+import { Paperclip } from 'lucide-react';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -41,6 +43,7 @@ const formSchema = z.object({
     required_error: 'You need to select a branch/department.',
   }),
   mitigationPlan: z.string().optional(),
+  // We'll handle files separately, not through zod for now
 });
 
 export function CreateFindingForm() {
@@ -54,15 +57,30 @@ export function CreateFindingForm() {
     },
   });
 
+  const { register } = form;
+  const findingAttachments = form.watch('findingAttachments' as any);
+  const mitigationAttachments = form.watch('mitigationAttachments' as any);
+
+
   function onSubmit(values: z.infer<typeof formSchema>) {
+
+    const findingAttachmentFiles = findingAttachments as FileList | undefined;
+    const mitigationAttachmentFiles = mitigationAttachments as FileList | undefined;
+
     const newFinding: AuditFinding = {
       id: `FIND-${Date.now()}`,
       status: 'Open',
       auditeeAgreement: 'Pending',
       ...values,
       mitigationPlan: values.mitigationPlan || '',
+      findingAttachments: findingAttachmentFiles
+        ? Array.from(findingAttachmentFiles).map((file) => file.name)
+        : [],
+      mitigationAttachments: mitigationAttachmentFiles
+        ? Array.from(mitigationAttachmentFiles).map((file) => file.name)
+        : [],
     };
-    // In a real app, you'd save this to a database
+    // In a real app, you'd save this to a database and upload the files
     console.log('New Finding:', newFinding);
     router.push('/');
   }
@@ -173,6 +191,23 @@ export function CreateFindingForm() {
                   </FormItem>
                 )}
               />
+              
+              <FormItem>
+                <FormLabel>Finding Attachments</FormLabel>
+                <FormControl>
+                  <Input type="file" multiple {...register('findingAttachments' as any)} />
+                </FormControl>
+                <FormDescription>
+                  You can upload multiple files.
+                </FormDescription>
+                {findingAttachments && Array.from(findingAttachments).map((file: any, index: number) => (
+                  <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Paperclip className="h-4 w-4" />
+                    <span>{file.name}</span>
+                  </div>
+                ))}
+                <FormMessage />
+              </FormItem>
 
               <Separator />
 
@@ -197,6 +232,23 @@ export function CreateFindingForm() {
                   </FormItem>
                 )}
               />
+
+              <FormItem>
+                <FormLabel>Mitigation Attachments</FormLabel>
+                <FormControl>
+                  <Input type="file" multiple {...register('mitigationAttachments' as any)} />
+                </FormControl>
+                <FormDescription>
+                  You can upload multiple files for the mitigation plan.
+                </FormDescription>
+                {mitigationAttachments && Array.from(mitigationAttachments).map((file: any, index: number) => (
+                  <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Paperclip className="h-4 w-4" />
+                    <span>{file.name}</span>
+                  </div>
+                ))}
+                <FormMessage />
+              </FormItem>
 
               <div className="flex justify-end gap-2">
                 <Button

@@ -1,7 +1,6 @@
 'use client';
 import type {
   AuditFinding,
-  AuditeeAgreement,
   FindingStatus,
   ProgressUpdate,
 } from '@/types';
@@ -96,6 +95,13 @@ export function AuditFindingCard({
     onUpdate(finding.id, { progressUpdates: updatedProgress });
   };
 
+  const allAttachments = [
+    ...(finding.findingAttachments || []),
+    ...(finding.mitigationAttachments || []),
+    ...(finding.auditeeAttachmentFilename ? [finding.auditeeAttachmentFilename] : []),
+  ];
+
+
   return (
     <>
       <Card className="flex flex-col">
@@ -169,49 +175,55 @@ export function AuditFindingCard({
                 </span>
               </div>
             )}
-            {finding.auditeeAttachmentFilename && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Paperclip className="h-3.5 w-3.5" />
-                <span>{finding.auditeeAttachmentFilename}</span>
-              </div>
-            )}
           </div>
+
+          {allAttachments.length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-2">
+              {allAttachments.map((filename, index) => (
+                <div key={index} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Paperclip className="h-3.5 w-3.5" />
+                  <span className="truncate" title={filename}>{filename.length > 20 ? `${filename.slice(0,20)}...` : filename}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {finding.progressUpdates && finding.progressUpdates.length > 0 && (
-             <Collapsible className="mt-2 space-y-2 pt-2">
-             <CollapsibleTrigger asChild>
-               <Button
-                 variant="ghost"
-                 className="group flex w-full items-center justify-start gap-2 p-0 text-sm font-semibold text-muted-foreground hover:bg-transparent"
-               >
-                 <MessageSquare className="h-4 w-4" />
-                 <h4>
-                   {finding.progressUpdates.length} Progress Update
-                   {finding.progressUpdates.length > 1 && 's'}
-                 </h4>
-                 <ChevronDown className="h-4 w-4 transform transition-transform group-data-[state=open]:rotate-180" />
-               </Button>
-             </CollapsibleTrigger>
-             <CollapsibleContent>
-               <div className="mt-2 space-y-3 rounded-md border bg-muted/50 p-3">
-                 {finding.progressUpdates.map((update) => (
-                   <div key={update.id} className="text-xs">
-                     <p className="font-semibold text-foreground">
-                       {format(update.date, 'MMM d, yyyy')}:{' '}
-                       <span className="font-normal text-muted-foreground">
-                         {update.details}
-                       </span>
-                     </p>
-                     {update.attachmentFilename && (
-                       <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                         <Paperclip className="h-3 w-3" />
-                         <span>{update.attachmentFilename}</span>
-                       </div>
-                     )}
-                   </div>
-                 ))}
-               </div>
-             </CollapsibleContent>
-           </Collapsible>
+            <Collapsible className="mt-2 space-y-2 pt-2">
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="group flex w-full items-center justify-start gap-2 p-0 text-sm font-semibold text-muted-foreground hover:bg-transparent"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <h4>
+                    {finding.progressUpdates.length} Progress Update
+                    {finding.progressUpdates.length > 1 && 's'}
+                  </h4>
+                  <ChevronDown className="h-4 w-4 transform transition-transform group-data-[state=open]:rotate-180" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-2 space-y-3 rounded-md border bg-muted/50 p-3">
+                  {finding.progressUpdates.map((update) => (
+                    <div key={update.id} className="text-xs">
+                      <p className="font-semibold text-foreground">
+                        {format(update.date, 'MMM d, yyyy')}:{' '}
+                        <span className="font-normal text-muted-foreground">
+                          {update.details}
+                        </span>
+                      </p>
+                      {update.attachmentFilename && (
+                        <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                          <Paperclip className="h-3 w-3" />
+                          <span>{update.attachmentFilename}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           )}
         </CardContent>
         <CardFooter className="flex items-center justify-between text-sm text-muted-foreground">

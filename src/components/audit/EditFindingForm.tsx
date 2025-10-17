@@ -6,6 +6,7 @@ import * as z from 'zod';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,8 +26,9 @@ import type { AuditFinding, RiskLevel } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import Header from '../layout/Header';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { branches } from '@/lib/branches';
+import { Paperclip } from 'lucide-react';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -53,11 +55,20 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: '',
-      details: '',
-      mitigationPlan: '',
+      title: finding?.title || '',
+      details: finding?.details || '',
+      riskLevel: finding?.riskLevel,
+      branchOrDepartment: finding?.branchOrDepartment,
+      mitigationPlan: finding?.mitigationPlan || '',
     },
   });
+
+  const { register } = form;
+  const [existingFindingAttachments, setExistingFindingAttachments] = useState(finding.findingAttachments || []);
+  const [existingMitigationAttachments, setExistingMitigationAttachments] = useState(finding.mitigationAttachments || []);
+
+  const findingAttachments = form.watch('findingAttachments' as any);
+  const mitigationAttachments = form.watch('mitigationAttachments' as any);
 
   useEffect(() => {
     if (finding) {
@@ -68,14 +79,29 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
         branchOrDepartment: finding.branchOrDepartment,
         mitigationPlan: finding.mitigationPlan,
       });
+      setExistingFindingAttachments(finding.findingAttachments || []);
+      setExistingMitigationAttachments(finding.mitigationAttachments || []);
     }
   }, [finding, form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    const findingAttachmentFiles = findingAttachments as FileList | undefined;
+    const mitigationAttachmentFiles = mitigationAttachments as FileList | undefined;
+
+    const newFindingAttachments = findingAttachmentFiles
+        ? Array.from(findingAttachmentFiles).map((file) => file.name)
+        : [];
+  
+    const newMitigationAttachments = mitigationAttachmentFiles
+      ? Array.from(mitigationAttachmentFiles).map((file) => file.name)
+      : [];
+
     const updatedFinding: AuditFinding = {
       ...finding,
       ...values,
       mitigationPlan: values.mitigationPlan || '',
+      findingAttachments: [...existingFindingAttachments, ...newFindingAttachments],
+      mitigationAttachments: [...existingMitigationAttachments, ...newMitigationAttachments],
     };
     // In a real app, you'd save this to a database
     console.log('Updated Finding:', updatedFinding);
@@ -188,6 +214,34 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   )}
                 />
 
+              <FormItem>
+                <FormLabel>Finding Attachments</FormLabel>
+                {existingFindingAttachments.length > 0 && (
+                   <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Existing files:</p>
+                    {existingFindingAttachments.map((name, index) => (
+                       <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                         <Paperclip className="h-4 w-4" />
+                         <span>{name}</span>
+                       </div>
+                    ))}
+                  </div>
+                )}
+                <FormControl>
+                  <Input type="file" multiple {...register('findingAttachments' as any)} />
+                </FormControl>
+                <FormDescription>
+                  You can upload new files. Existing files will be kept.
+                </FormDescription>
+                {findingAttachments && Array.from(findingAttachments).map((file: any, index: number) => (
+                  <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Paperclip className="h-4 w-4" />
+                    <span>{file.name}</span>
+                  </div>
+                ))}
+                <FormMessage />
+              </FormItem>
+
               <Separator />
 
               <div className="space-y-2">
@@ -211,6 +265,35 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   </FormItem>
                 )}
               />
+
+              <FormItem>
+                <FormLabel>Mitigation Attachments</FormLabel>
+                {existingMitigationAttachments.length > 0 && (
+                   <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Existing files:</p>
+                    {existingMitigationAttachments.map((name, index) => (
+                       <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                         <Paperclip className="h-4 w-4" />
+                         <span>{name}</span>
+                       </div>
+                    ))}
+                  </div>
+                )}
+                <FormControl>
+                  <Input type="file" multiple {...register('mitigationAttachments' as any)} />
+                </FormControl>
+                <FormDescription>
+                  You can upload new files. Existing files will be kept.
+                </FormDescription>
+                 {mitigationAttachments && Array.from(mitigationAttachments).map((file: any, index: number) => (
+                  <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Paperclip className="h-4 w-4" />
+                    <span>{file.name}</span>
+                  </div>
+                ))}
+                <FormMessage />
+              </FormItem>
+
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"

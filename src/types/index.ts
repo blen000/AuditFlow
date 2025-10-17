@@ -23,4 +23,6 @@ export type AuditFinding = {
   auditeeResponse?: string;
   auditeeAttachmentFilename?: string;
   progressUpdates?: ProgressUpdate[];
+  findingAttachments?: string[];
+  mitigationAttachments?: string[];
 };
