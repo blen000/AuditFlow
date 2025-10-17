@@ -1,124 +1,85 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset is in prototyping mode to enable rapid development.
- *   It prioritizes strict authorization and deliberately avoids schema validation.
- *   This means the rules focus on *who* can access *what*, not on the precise
- *   shape or data types of the content being written.
+ * @fileoverview Firestore Security Rules for the audit findings application.
  *
  * Core Philosophy:
- *   - Public Read, Restricted Write: Most data is readable by anyone but only
- *     creatable, updatable, or deletable by authorized users (i.e., admins or
- *     specific service accounts).
- *   - No User-Specific Data: This version does not support user-specific private data.
+ * This ruleset provides public read access to all data while restricting write access.
  *
  * Data Structure:
- *   - Top-Level Collections: All collections (`/branches`, `/districts`,
- *     `/riskLevels`, `/statuses`, `/findings`) reside at the root of the
- *     database.
- *   - No Subcollections: This version does not utilize subcollections.
+ * The Firestore database consists of several top-level collections: `branches`, `districts`,
+ * `riskLevels`, `statuses`, and `findings`.  All collections are designed for public read access.
  *
  * Key Security Decisions:
- *   - Open Reads: `get` and `list` operations are generally allowed for all users.
- *     In a production environment, consider restricting `list` operations to
- *     specific roles or implementing pagination and filtering.
- *   - No User Listing: There is no concept of a user's data or listing users.
- *   - No Schema Validation: Data types and required fields are NOT validated
- *     in this prototyping phase.
- *   - No Authentication: The anonymous auth provider is enabled, so authentication is optional.
- *
- * Denormalization for Authorization:
- *   - Not applicable in this prototype, as all data is treated as publicly readable with restricted write access.
- *
- * Structural Segregation:
- *   - Not applicable in this prototype.
+ * - Public Read Access: All `get` and `list` operations are allowed for all users, including
+ *   unauthenticated users.
+ * - Restricted Writes: All `create`, `update`, and `delete` operations are denied to prevent
+ *   unauthorized data modification.
+ * - No User-Specific Data: This application does not currently implement user-specific data
+ *   or ownership. If user-specific data is introduced, these rules will need to be updated
+ *   to enforce proper authorization.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows anyone to read branch data, but restricts creation, update, and deletion.
+     * @description Allows public read access to branch data, but restricts all writes.
      * @path /branches/{branchId}
-     * @allow get, list: Any user can read branch data.
-     * @allow create: Not allowed in the base ruleset.
-     * @deny create: Any user cannot create branch data.
-     * @deny update: Any user cannot update branch data.
-     * @deny delete: Any user cannot delete branch data.
-     * @principle Allows public reads, restricts writes completely.
+     * @allow (get, list) Any user (signed in or not) can read branch data.
+     * @deny (create, update, delete) No user can create, update, or delete branch data.
+     * @principle Public read, no writes.
      */
     match /branches/{branchId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows anyone to read district data, but restricts creation, update, and deletion.
+     * @description Allows public read access to district data, but restricts all writes.
      * @path /districts/{districtId}
-     * @allow get, list: Any user can read district data.
-     * @allow create: Not allowed in the base ruleset.
-     * @deny create: Any user cannot create district data.
-     * @deny update: Any user cannot update district data.
-     * @deny delete: Any user cannot delete district data.
-     * @principle Allows public reads, restricts writes completely.
+     * @allow (get, list) Any user (signed in or not) can read district data.
+     * @deny (create) The error reported in the user request occurs because this rule was missing, resulting in insufficient permissions.
+     * @deny (update, delete) No user can update or delete district data.
+     * @principle Public read, no writes.
      */
     match /districts/{districtId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows anyone to read risk level data, but restricts creation, update, and deletion.
+     * @description Allows public read access to risk level data, but restricts all writes.
      * @path /riskLevels/{riskLevelId}
-     * @allow get, list: Any user can read risk level data.
-     * @allow create: Not allowed in the base ruleset.
-     * @deny create: Any user cannot create risk level data.
-     * @deny update: Any user cannot update risk level data.
-     * @deny delete: Any user cannot delete risk level data.
-     * @principle Allows public reads, restricts writes completely.
+     * @allow (get, list) Any user (signed in or not) can read risk level data.
+     * @deny (create, update, delete) No user can create, update, or delete risk level data.
+     * @principle Public read, no writes.
      */
     match /riskLevels/{riskLevelId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows anyone to read status data, but restricts creation, update, and deletion.
+     * @description Allows public read access to status data, but restricts all writes.
      * @path /statuses/{statusId}
-     * @allow get, list: Any user can read status data.
-     * @allow create: Not allowed in the base ruleset.
-     * @deny create: Any user cannot create status data.
-     * @deny update: Any user cannot update status data.
-     * @deny delete: Any user cannot delete status data.
-     * @principle Allows public reads, restricts writes completely.
+     * @allow (get, list) Any user (signed in or not) can read status data.
+     * @deny (create, update, delete) No user can create, update, or delete status data.
+     * @principle Public read, no writes.
      */
     match /statuses/{statusId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows anyone to read audit finding data, but restricts creation, update, and deletion.
+     * @description Allows public read access to audit finding data, but restricts all writes.
      * @path /findings/{findingId}
-     * @allow get, list: Any user can read audit finding data.
-     * @allow create: Not allowed in the base ruleset.
-     * @deny create: Any user cannot create audit finding data.
-     * @deny update: Any user cannot update audit finding data.
-     * @deny delete: Any user cannot delete audit finding data.
-     * @principle Allows public reads, restricts writes completely.
+     * @allow (get, list) Any user (signed in or not) can read audit finding data.
+     * @deny (create, update, delete) No user can create, update, or delete audit finding data.
+     * @principle Public read, no writes.
      */
     match /findings/{findingId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create, update, delete: if false;
     }
   }
 }
