@@ -1,0 +1,227 @@
+{
+  "entities": {
+    "Audit": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Audit",
+      "type": "object",
+      "description": "Represents an audit of a bank branch.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Audit entity."
+        },
+        "branchId": {
+          "type": "string",
+          "description": "Reference to Branch. (Relationship: Branch 1:N Audit)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the audit."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date the audit was conducted.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "branchId",
+        "title",
+        "date"
+      ]
+    },
+    "Finding": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Finding",
+      "type": "object",
+      "description": "Represents a finding discovered during an audit.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Finding entity."
+        },
+        "auditId": {
+          "type": "string",
+          "description": "Reference to Audit. (Relationship: Audit 1:N Finding)"
+        },
+        "details": {
+          "type": "string",
+          "description": "Detailed description of the finding."
+        },
+        "riskLevel": {
+          "type": "string",
+          "description": "The level of risk associated with the finding (e.g., High, Medium, Low)."
+        }
+      },
+      "required": [
+        "id",
+        "auditId",
+        "details",
+        "riskLevel"
+      ]
+    },
+    "Mitigation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Mitigation",
+      "type": "object",
+      "description": "Represents a mitigation plan for a specific finding.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Mitigation entity."
+        },
+        "findingId": {
+          "type": "string",
+          "description": "Reference to Finding. (Relationship: Finding 1:1 Mitigation)"
+        },
+        "strategy": {
+          "type": "string",
+          "description": "The agreed-upon mitigation strategy."
+        },
+        "agreementDate": {
+          "type": "string",
+          "description": "Date the mitigation strategy was agreed upon.",
+          "format": "date-time"
+        },
+        "revalidationDate": {
+          "type": "string",
+          "description": "Date for re-validation of the mitigation.",
+          "format": "date-time"
+        },
+        "isGapFixed": {
+          "type": "boolean",
+          "description": "Indicates if the gap has been fixed as per the agreement."
+        }
+      },
+      "required": [
+        "id",
+        "findingId",
+        "strategy",
+        "agreementDate",
+        "revalidationDate",
+        "isGapFixed"
+      ]
+    },
+    "Branch": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Branch",
+      "type": "object",
+      "description": "Represents a bank branch.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Branch entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the bank branch."
+        },
+        "location": {
+          "type": "string",
+          "description": "Location of the bank branch."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "location"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/branches/{branchId}",
+        "definition": {
+          "entityName": "Branch",
+          "schema": {
+            "$ref": "#/backend/entities/Branch"
+          },
+          "description": "Stores bank branch information.",
+          "params": [
+            {
+              "name": "branchId",
+              "description": "Unique identifier for the branch."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/branches/{branchId}/audits/{auditId}",
+        "definition": {
+          "entityName": "Audit",
+          "schema": {
+            "$ref": "#/backend/entities/Audit"
+          },
+          "description": "Stores audit records for a specific branch.",
+          "params": [
+            {
+              "name": "branchId",
+              "description": "Unique identifier for the branch."
+            },
+            {
+              "name": "auditId",
+              "description": "Unique identifier for the audit."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/branches/{branchId}/audits/{auditId}/findings/{findingId}",
+        "definition": {
+          "entityName": "Finding",
+          "schema": {
+            "$ref": "#/backend/entities/Finding"
+          },
+          "description": "Stores findings for a specific audit.",
+          "params": [
+            {
+              "name": "branchId",
+              "description": "Unique identifier for the branch."
+            },
+            {
+              "name": "auditId",
+              "description": "Unique identifier for the audit."
+            },
+            {
+              "name": "findingId",
+              "description": "Unique identifier for the finding."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/branches/{branchId}/audits/{auditId}/findings/{findingId}/mitigation",
+        "definition": {
+          "entityName": "Mitigation",
+          "schema": {
+            "$ref": "#/backend/entities/Mitigation"
+          },
+          "description": "Stores the mitigation plan for a specific finding.",
+          "params": [
+            {
+              "name": "branchId",
+              "description": "Unique identifier for the branch."
+            },
+            {
+              "name": "auditId",
+              "description": "Unique identifier for the audit."
+            },
+            {
+              "name": "findingId",
+              "description": "Unique identifier for the finding."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to manage audit workflows for bank branches. It emphasizes authorization independence and supports secure list operations. The core entities are Branches, Audits, Findings, and Mitigations.  We are employing hierarchical paths for user-owned data with denormalization of authorization data.  Specifically, since there is no concept of 'user' here, the branch acts as the root and Audits, Findings, and Mitigations exist in a nested hierarchy. This design inherently simplifies security rules based on path ownership.\n\n1.  **Branches Collection:** Stores bank branch information. Top-level collection for listing all branches.\n2.  **Audits Subcollection:** Each branch contains an 'audits' subcollection to store audit records. This establishes a clear parent-child relationship between branches and their audits.\n3.  **Findings Subcollection:**  Each audit contains a 'findings' subcollection to store individual findings. This continues the hierarchical relationship.\n4.  **Mitigations Subcollection:** Each finding contains a 'mitigations' subcollection containing mitigation records.  This is a 1:1 relationship modeled as a subcollection.\n\n**Authorization Independence & Security Rules:** This structure facilitates simple and robust security rules based on path ownership. Security rules can easily check if the requesting user has access to a specific branch, audit, finding, or mitigation based on their path within the database, and it avoids `get()` calls.\n\n**QAPs (Rules are not Filters):**  The structure facilitates secure list operations.  Since all documents within a collection share the same security posture, listing documents is straightforward without needing to filter based on data content within the rules.\n\n**Branch Membership (Future expansion):** Although not included in the current schema, if the application evolves to include user-based access control (e.g., specific auditors assigned to specific branches), a 'members' map could be added to the Branch document and denormalized into the Audit, Finding, and Mitigation documents. This would grant users roles and privileges per Branch and would maintain authorization independence as described in the design principles."
+  }
+}

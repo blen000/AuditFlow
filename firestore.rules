@@ -1,0 +1,84 @@
+/**
+ * @file Firestore Security Rules for Bank Branch Audit System
+ *
+ * @core_philosophy This ruleset enforces a hierarchical ownership model based on the branch ID.  Each branch "owns" all of its audits, findings, and mitigations.
+ *
+ * @data_structure The data is structured as follows:
+ *   /branches/{branchId}
+ *     /audits/{auditId}
+ *       /findings/{findingId}
+ *         /mitigation (single document)
+ *
+ * @key_security_decisions
+ *   - All read and write operations are restricted to authenticated users.
+ *   - There is currently no concept of user-based roles. The application assumes a flat permission model where any authenticated user can access and modify any branch's data.
+ *   - If user-based roles are to be implemented, the 'members' map approach (as described in the original backend.json) should be implemented by adding a `members` map to the `Branch` entity and denormalizing into the `Audit`, `Finding`, and `Mitigation` entities.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Grants read and write access to branch documents.
+     * @path /branches/{branchId}
+     * @allow (read): Authenticated user can read any branch.
+     * @allow (write): Authenticated user can write to any branch.
+     * @deny (write): Unauthenticated user attempts to create a branch.
+     * @principle Allows any authenticated user to manage branches.
+     */
+    match /branches/{branchId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Grants read and write access to audit documents within a specific branch.
+     * @path /branches/{branchId}/audits/{auditId}
+     * @allow (read): Authenticated user can read any audit.
+     * @allow (write): Authenticated user can write to any audit.
+     * @deny (write): Unauthenticated user attempts to create an audit.
+     * @principle Allows any authenticated user to manage audits within a branch.
+     */
+    match /branches/{branchId}/audits/{auditId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Grants read and write access to finding documents within a specific audit.
+     * @path /branches/{branchId}/audits/{auditId}/findings/{findingId}
+     * @allow (read): Authenticated user can read any finding.
+     * @allow (write): Authenticated user can write to any finding.
+     * @deny (write): Unauthenticated user attempts to create a finding.
+     * @principle Allows any authenticated user to manage findings within an audit.
+     */
+    match /branches/{branchId}/audits/{auditId}/findings/{findingId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Grants read and write access to the mitigation document within a specific finding.
+     * @path /branches/{branchId}/audits/{auditId}/findings/{findingId}/mitigation
+     * @allow (read): Authenticated user can read any mitigation.
+     * @allow (write): Authenticated user can write to any mitigation.
+     * @deny (write): Unauthenticated user attempts to create a mitigation.
+     * @principle Allows any authenticated user to manage mitigations for a finding.
+     */
+    match /branches/{branchId}/audits/{auditId}/findings/{findingId}/mitigation {
+      allow get: if isSignedIn();
+      allow list: if false; // Mitigation is a single document, not a collection.  Listing makes no sense.
+      allow create, update, delete: if isSignedIn();
+    }
+
+    // --- Helper Functions ---
+
+    /**
+     * @description Checks if the user is signed in.
+     * @return True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+  }
+}
