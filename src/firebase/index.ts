@@ -24,7 +24,7 @@ export function initializeFirebase() {
     );
     // The conditional logic here is to prevent an error in the local dev
     // environment when the config is empty.
-    const app = initializeApp(firebaseConfig.projectId ? firebaseConfig : undefined);
+    const app = initializeApp(firebaseConfig.projectId ? firebaseConfig : {});
     return getSdks(app);
   }
 }
@@ -38,9 +38,9 @@ export function getSdks(firebaseApp: FirebaseApp) {
 }
 
 export * from './provider';
-export * from './client-provider';
+export * from './FirebaseAppProvider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
-export * from './non-blocking-updates';
+export * from './non-blocking-writes';
 export * from './errors';
 export * from './error-emitter';

@@ -14,7 +14,7 @@ import { SidebarNav } from '@/components/layout/SidebarNav';
 import { Button } from '@/components/ui/button';
 import { ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
-import { FirebaseClientProvider } from '@/firebase';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
   title: 'AuditFlow',
