@@ -1,29 +1,36 @@
 /**
- * @fileoverview Firestore Security Rules for Prototyping.
+ * @fileOverview Firestore Security Rules for Prototyping.
  *
  * Core Philosophy:
- * This ruleset provides secure but permissive access for rapid prototyping.
- * It prioritizes restricting unauthorized data access above strict data validation.
- * All collections are secured against unauthorized writes.
+ * This ruleset is designed for the rapid prototyping phase of application development.
+ * It prioritizes ease of use and quick iteration, focusing on basic authorization
+ * without strict schema validation.  All collections are globally readable, but
+ * writes are disallowed. This enables quick UI development against live data.
  *
  * Data Structure:
- * The Firestore database consists of several top-level collections: `branches`, `districts`, `riskLevels`, `statuses`, and `findings`.
+ * The Firestore database consists of several top-level collections: `branches`,
+ * `districts`, `riskLevels`, `statuses`, and `findings`. Each collection stores
+ * documents representing the corresponding entities.
  *
  * Key Security Decisions:
- * - **No User-Specific Data:** The application currently does not have user accounts.
- * - **Open Reads:** All collections are publicly readable to facilitate easy data exploration during development.
- * - **Write Restrictions:** Writes to all collections are denied by default.  Specific write rules must be added as development proceeds and authorization requirements are clarified.
+ * - **Global Read Access:** All collections are readable by anyone, including
+ *   unauthenticated users. This simplifies initial development and data exploration.
+ * - **Write Protection:** All write operations (create, update, delete) are
+ *   disabled. This prevents accidental data modification during development.
+ * - **No Schema Validation:** The rules do not enforce strict schema validation.
+ *   This allows for flexible data structures and faster iteration, but it's
+ *   crucial to add proper validation before production deployment.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to the 'branches' collection.
+     * @description Allows anyone to read branches, but denies all writes.
      * @path /databases/{database}/documents/branches/{branchId}
-     * @allow (get, list): Any user can read branch information.
-     * @deny (create, update, delete): No one can create, update, or delete branches by default. This should be configured later with appropriate roles.
-     * @principle Open reads, restricted writes.
+     * @allow (get, list)
+     * @deny (create, update, delete)
+     * @principle Allows public read access for prototyping.
      */
     match /branches/{branchId} {
       allow get, list: if true;
@@ -31,11 +38,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Controls access to the 'districts' collection.
+     * @description Allows anyone to read districts, but denies all writes.
      * @path /databases/{database}/documents/districts/{districtId}
-     * @allow (get, list): Any user can read district information.
-     * @deny (create, update, delete): No one can create, update, or delete districts by default. This should be configured later with appropriate roles.
-     * @principle Open reads, restricted writes.
+     * @allow (get, list)
+     * @deny (create, update, delete)
+     * @principle Allows public read access for prototyping.
      */
     match /districts/{districtId} {
       allow get, list: if true;
@@ -43,11 +50,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Controls access to the 'riskLevels' collection.
+     * @description Allows anyone to read riskLevels, but denies all writes.
      * @path /databases/{database}/documents/riskLevels/{riskLevelId}
-     * @allow (get, list): Any user can read risk level information.
-     * @deny (create, update, delete): No one can create, update, or delete risk levels by default. This should be configured later with appropriate roles.
-     * @principle Open reads, restricted writes.
+     * @allow (get, list)
+     * @deny (create, update, delete)
+     * @principle Allows public read access for prototyping.
      */
     match /riskLevels/{riskLevelId} {
       allow get, list: if true;
@@ -55,11 +62,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Controls access to the 'statuses' collection.
+     * @description Allows anyone to read statuses, but denies all writes.
      * @path /databases/{database}/documents/statuses/{statusId}
-     * @allow (get, list): Any user can read status information.
-     * @deny (create, update, delete): No one can create, update, or delete statuses by default. This should be configured later with appropriate roles.
-     * @principle Open reads, restricted writes.
+     * @allow (get, list)
+     * @deny (create, update, delete)
+     * @principle Allows public read access for prototyping.
      */
     match /statuses/{statusId} {
       allow get, list: if true;
@@ -67,11 +74,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Controls access to the 'findings' collection.
+     * @description Allows anyone to read findings, but denies all writes.
      * @path /databases/{database}/documents/findings/{findingId}
-     * @allow (get, list): Any user can read audit finding information.
-     * @deny (create, update, delete): No one can create, update, or delete findings by default. This should be configured later with appropriate roles.
-     * @principle Open reads, restricted writes.
+     * @allow (get, list)
+     * @deny (create, update, delete)
+     * @principle Allows public read access for prototyping.
      */
     match /findings/{findingId} {
       allow get, list: if true;
