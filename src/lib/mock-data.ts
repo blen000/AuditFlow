@@ -10,7 +10,7 @@ export const mockFindings: AuditFinding[] = [
     branchOrDepartment: 'Downtown Main',
     auditCause: 'Weak access control policies and lack of regular access review.',
     auditEffect: 'Potential for unauthorized withdrawal of cash or other valuables, leading to financial loss and reputational damage.',
-    mitigationPlan:
+    recommendation:
       '1. Immediately revoke the unauthorized access codes.\n2. Implement a dual-control system for vault access.\n3. Conduct a full audit of vault contents.\n4. Provide mandatory security protocol retraining for all staff.',
     status: 'In Progress',
     revalidationDate: new Date('2024-08-15T00:00:00.000Z'),
@@ -41,7 +41,7 @@ export const mockFindings: AuditFinding[] = [
       'A sample review of 50 new accounts opened in the last quarter revealed that 5 of them had incomplete KYC documentation. Specifically, proof of address was missing.',
     riskLevel: 'Medium',
     branchOrDepartment: 'Suburban Branch',
-    mitigationPlan:
+    recommendation:
       '1. Contact the affected customers to complete their documentation within 15 days.\n2. Implement a new checklist in the account opening software that prevents proceeding without all required documents being uploaded.\n3. Monthly internal audits of new accounts.',
     status: 'Open',
     auditeeAgreement: 'Pending',
@@ -53,7 +53,7 @@ export const mockFindings: AuditFinding[] = [
       'The fire extinguishers on the second floor have not been serviced and are past their expiration date. The last service date was over 2 years ago.',
     riskLevel: 'Medium',
     branchOrDepartment: 'Suburban Branch',
-    mitigationPlan:
+    recommendation:
       '1. Replace all expired fire extinguishers immediately.\n2. Establish a quarterly maintenance and check-up schedule with a certified vendor.',
     status: 'Mitigated',
     revalidationDate: new Date('2024-06-20T00:00:00.000Z'),
@@ -67,7 +67,7 @@ export const mockFindings: AuditFinding[] = [
       'The same officer is responsible for both approving and disbursing small personal loans, creating a potential for fraud.',
     riskLevel: 'High',
     branchOrDepartment: 'Loan Processing Center',
-    mitigationPlan:
+    recommendation:
       'Reassign duties to ensure one person approves and another disburses the loan amounts.',
     status: 'Closed',
     revalidationDate: new Date('2024-05-01T00:00:00.00Z'),
@@ -85,7 +85,7 @@ export const mockFindings: AuditFinding[] = [
       { name: 'Shortage 2', amount: 75 },
       { name: 'Shortage 3', amount: 25 },
     ],
-    mitigationPlan:
+    recommendation:
       '1. Conduct a thorough investigation into the discrepancies.\n2. Implement a policy for immediate reporting and investigation of any cash shortages or overages.\n3. Increase frequency of surprise cash counts.',
     status: 'In Progress',
     revalidationDate: new Date('2024-08-30T00:00:00.000Z'),
@@ -100,7 +100,7 @@ export const mockFindings: AuditFinding[] = [
       'The side entrance to the branch is often left propped open by staff during breaks, bypassing security access controls.',
     riskLevel: 'High',
     branchOrDepartment: 'Suburban Branch',
-    mitigationPlan:
+    recommendation:
       '1. Install an alarm that sounds if the door is held open for more than 60 seconds.\n2. Reiterate policy on physical security with all staff members.\n3. Manager to perform random checks on all entrances.',
     status: 'Open',
     auditeeAgreement: 'Pending',
@@ -116,7 +116,7 @@ export const mockFindings: AuditFinding[] = [
       'Sensitive customer documents were found in an unlocked recycling bin, not in the designated secure shredding bins.',
     riskLevel: 'High',
     branchOrDepartment: 'Operations HQ',
-    mitigationPlan:
+    recommendation:
       '1. Immediately secure and shred the documents found.\n2. Conduct mandatory data privacy and handling training for all employees.\n3. Replace open recycling bins in sensitive areas with secure shredding consoles.',
     status: 'Mitigated',
     revalidationDate: new Date('2024-07-01T00:00:00.000Z'),
@@ -130,7 +130,7 @@ export const mockFindings: AuditFinding[] = [
       'Audit of branch computers found that several workstations were missing critical security patches that were released over 3 months ago.',
     riskLevel: 'Medium',
     branchOrDepartment: 'IT Department',
-    mitigationPlan:
+    recommendation:
       '1. Deploy all pending critical security patches to all workstations immediately.\n2. Automate the patch management process to ensure patches are applied within 30 days of release.\n3. Perform monthly vulnerability scans.',
     status: 'Closed',
     revalidationDate: new Date('2024-06-10T00:00:00.000Z'),

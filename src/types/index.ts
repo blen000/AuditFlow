@@ -26,7 +26,7 @@ export type AuditFinding = {
   details: string;
   riskLevel: RiskLevel;
   branchOrDepartment: string;
-  mitigationPlan: string;
+  recommendation: string;
   status: FindingStatus;
   revalidationDate?: Date;
   auditeeAgreement: AuditeeAgreement;
@@ -35,7 +35,7 @@ export type AuditFinding = {
   auditeeAttachmentFilename?: string;
   progressUpdates?: ProgressUpdate[];
   findingAttachments?: string[];
-  mitigationAttachments?: string[];
+  recommendationAttachments?: string[];
   auditCause?: string;
   auditCauseAttachments?: string[];
   auditEffect?: string;

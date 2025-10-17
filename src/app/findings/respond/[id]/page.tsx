@@ -63,8 +63,8 @@ export default function RespondToFindingPage({ params }: { params: { id: string 
                     </div>
                   )}
                   <div>
-                    <h3 className="font-semibold">Proposed Mitigation Plan</h3>
-                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">{finding.mitigationPlan}</p>
+                    <h3 className="font-semibold">Proposed Recommendation</h3>
+                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">{finding.recommendation}</p>
                   </div>
                 </CardContent>
               </Card>

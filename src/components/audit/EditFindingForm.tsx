@@ -46,7 +46,7 @@ const formSchema = z.object({
   }),
   auditCause: z.string().optional(),
   auditEffect: z.string().optional(),
-  mitigationPlan: z.string().optional(),
+  recommendation: z.string().optional(),
   involvedAmounts: z.array(z.object({
     name: z.string().min(1, 'Name is required.'),
     amount: z.coerce.number().min(0, 'Amount must be a positive number.'),
@@ -73,7 +73,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       branchOrDepartment: finding?.branchOrDepartment,
       auditCause: finding?.auditCause || '',
       auditEffect: finding?.auditEffect || '',
-      mitigationPlan: finding?.mitigationPlan || '',
+      recommendation: finding?.recommendation || '',
       involvedAmounts: finding?.involvedAmounts || [],
       involvedCases: finding?.involvedCases || [],
     },
@@ -97,13 +97,13 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
     useState(finding.auditCauseAttachments || []);
   const [existingAuditEffectAttachments, setExistingAuditEffectAttachments] =
     useState(finding.auditEffectAttachments || []);
-  const [existingMitigationAttachments, setExistingMitigationAttachments] =
-    useState(finding.mitigationAttachments || []);
+  const [existingRecommendationAttachments, setExistingRecommendationAttachments] =
+    useState(finding.recommendationAttachments || []);
 
   const findingAttachments = form.watch('findingAttachments' as any);
   const auditCauseAttachments = form.watch('auditCauseAttachments' as any);
   const auditEffectAttachments = form.watch('auditEffectAttachments' as any);
-  const mitigationAttachments = form.watch('mitigationAttachments' as any);
+  const recommendationAttachments = form.watch('recommendationAttachments' as any);
 
   useEffect(() => {
     if (finding) {
@@ -114,7 +114,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
         branchOrDepartment: finding.branchOrDepartment,
         auditCause: finding.auditCause,
         auditEffect: finding.auditEffect,
-        mitigationPlan: finding.mitigationPlan,
+        recommendation: finding.recommendation,
         involvedAmounts: finding.involvedAmounts || [],
         involvedCases: finding.involvedCases || [],
       });
@@ -125,7 +125,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       setExistingAuditEffectAttachments(
         finding.auditEffectAttachments || []
       );
-      setExistingMitigationAttachments(finding.mitigationAttachments || []);
+      setExistingRecommendationAttachments(finding.recommendationAttachments || []);
     }
   }, [finding, form]);
 
@@ -135,8 +135,8 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       auditCauseAttachments as FileList | undefined;
     const auditEffectAttachmentFiles =
       auditEffectAttachments as FileList | undefined;
-    const mitigationAttachmentFiles =
-      mitigationAttachments as FileList | undefined;
+    const recommendationAttachmentFiles =
+      recommendationAttachments as FileList | undefined;
 
     const newFindingAttachments = findingAttachmentFiles
       ? Array.from(findingAttachmentFiles).map((file) => file.name)
@@ -147,15 +147,15 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
     const newAuditEffectAttachments = auditEffectAttachmentFiles
       ? Array.from(auditEffectAttachmentFiles).map((file) => file.name)
       : [];
-    const newMitigationAttachments = mitigationAttachmentFiles
-      ? Array.from(mitigationAttachmentFiles).map((file) => file.name)
+    const newRecommendationAttachments = recommendationAttachmentFiles
+      ? Array.from(recommendationAttachmentFiles).map((file) => file.name)
       : [];
 
     const updatedFinding: AuditFinding = {
       ...finding,
       ...values,
       riskLevel: values.riskLevel,
-      mitigationPlan: values.mitigationPlan || '',
+      recommendation: values.recommendation || '',
       findingAttachments: [
         ...existingFindingAttachments,
         ...newFindingAttachments,
@@ -168,9 +168,9 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
         ...existingAuditEffectAttachments,
         ...newAuditEffectAttachments,
       ],
-      mitigationAttachments: [
-        ...existingMitigationAttachments,
-        ...newMitigationAttachments,
+      recommendationAttachments: [
+        ...existingRecommendationAttachments,
+        ...newRecommendationAttachments,
       ],
     };
     // In a real app, you'd save this to a database
@@ -559,15 +559,15 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
               <Separator />
 
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Mitigation</h3>
+                <h3 className="text-lg font-semibold">Recommendation</h3>
               </div>
 
               <FormField
                 control={form.control}
-                name="mitigationPlan"
+                name="recommendation"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Proposed Mitigation Plan</FormLabel>
+                    <FormLabel>Proposed Recommendation</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Outline the steps to mitigate this risk..."
@@ -581,13 +581,13 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
               />
 
               <FormItem>
-                <FormLabel>Mitigation Attachments</FormLabel>
-                {existingMitigationAttachments.length > 0 && (
+                <FormLabel>Recommendation Attachments</FormLabel>
+                {existingRecommendationAttachments.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
                       Existing files:
                     </p>
-                    {existingMitigationAttachments.map((name, index) => (
+                    {existingRecommendationAttachments.map((name, index) => (
                       <div
                         key={index}
                         className="flex items-center gap-2 text-sm text-muted-foreground"
@@ -602,14 +602,14 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   <Input
                     type="file"
                     multiple
-                    {...register('mitigationAttachments' as any)}
+                    {...register('recommendationAttachments' as any)}
                   />
                 </FormControl>
                 <FormDescription>
                   You can upload new files. Existing files will be kept.
                 </FormDescription>
-                {mitigationAttachments &&
-                  Array.from(mitigationAttachments).map(
+                {recommendationAttachments &&
+                  Array.from(recommendationAttachments).map(
                     (file: any, index: number) => (
                       <div
                         key={index}

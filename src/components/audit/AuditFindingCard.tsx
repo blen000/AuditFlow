@@ -95,7 +95,7 @@ export function AuditFindingCard({
     ...(finding.findingAttachments || []),
     ...(finding.auditCauseAttachments || []),
     ...(finding.auditEffectAttachments || []),
-    ...(finding.mitigationAttachments || []),
+    ...(finding.recommendationAttachments || []),
     ...(finding.auditeeAttachmentFilename ? [finding.auditeeAttachmentFilename] : []),
   ];
 
@@ -213,7 +213,7 @@ export function AuditFindingCard({
               <CollapsibleTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="group flex w-full items-center justify-start gap-2 p-0 text-sm font-semibold text-muted-foreground hover:bg-transparent hover:text-foreground"
+                  className="group flex w-full items-center justify-start gap-2 p-0 text-sm font-semibold hover:bg-transparent hover:text-foreground"
                 >
                   <MessageSquare className="h-4 w-4" />
                   <h4>

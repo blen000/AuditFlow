@@ -45,7 +45,7 @@ const formSchema = z.object({
   }),
   auditCause: z.string().optional(),
   auditEffect: z.string().optional(),
-  mitigationPlan: z.string().optional(),
+  recommendation: z.string().optional(),
   involvedAmounts: z.array(z.object({
     name: z.string().min(1, 'Name is required.'),
     amount: z.coerce.number().min(0, 'Amount must be a positive number.'),
@@ -65,7 +65,7 @@ export function CreateFindingForm() {
       details: '',
       auditCause: '',
       auditEffect: '',
-      mitigationPlan: '',
+      recommendation: '',
       involvedAmounts: [],
       involvedCases: [],
     },
@@ -86,7 +86,7 @@ export function CreateFindingForm() {
   const findingAttachments = form.watch('findingAttachments' as any);
   const auditCauseAttachments = form.watch('auditCauseAttachments' as any);
   const auditEffectAttachments = form.watch('auditEffectAttachments' as any);
-  const mitigationAttachments = form.watch('mitigationAttachments' as any);
+  const recommendationAttachments = form.watch('recommendationAttachments' as any);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const findingAttachmentFiles = findingAttachments as FileList | undefined;
@@ -94,8 +94,8 @@ export function CreateFindingForm() {
       auditCauseAttachments as FileList | undefined;
     const auditEffectAttachmentFiles =
       auditEffectAttachments as FileList | undefined;
-    const mitigationAttachmentFiles =
-      mitigationAttachments as FileList | undefined;
+    const recommendationAttachmentFiles =
+      recommendationAttachments as FileList | undefined;
 
     const newFinding: AuditFinding = {
       id: `FIND-${Date.now()}`,
@@ -103,7 +103,7 @@ export function CreateFindingForm() {
       auditeeAgreement: 'Pending',
       ...values,
       riskLevel: values.riskLevel,
-      mitigationPlan: values.mitigationPlan || '',
+      recommendation: values.recommendation || '',
       involvedCases: values.involvedCases?.map(c => ({ ...c, id: `CASE-${Date.now()}-${Math.random()}`, status: 'Open' })),
       findingAttachments: findingAttachmentFiles
         ? Array.from(findingAttachmentFiles).map((file) => file.name)
@@ -114,8 +114,8 @@ export function CreateFindingForm() {
       auditEffectAttachments: auditEffectAttachmentFiles
         ? Array.from(auditEffectAttachmentFiles).map((file) => file.name)
         : [],
-      mitigationAttachments: mitigationAttachmentFiles
-        ? Array.from(mitigationAttachmentFiles).map((file) => file.name)
+      recommendationAttachments: recommendationAttachmentFiles
+        ? Array.from(recommendationAttachmentFiles).map((file) => file.name)
         : [],
     };
     // In a real app, you'd save this to a database and upload the files
@@ -426,14 +426,14 @@ export function CreateFindingForm() {
               </FormItem>
               <Separator />
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Mitigation</h3>
+                <h3 className="text-lg font-semibold">Recommendation</h3>
               </div>
               <FormField
                 control={form.control}
-                name="mitigationPlan"
+                name="recommendation"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Proposed Mitigation Plan</FormLabel>
+                    <FormLabel>Proposed Recommendation</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Outline the steps to mitigate this risk..."
@@ -446,19 +446,19 @@ export function CreateFindingForm() {
                 )}
               />
               <FormItem>
-                <FormLabel>Mitigation Attachments</FormLabel>
+                <FormLabel>Recommendation Attachments</FormLabel>
                 <FormControl>
                   <Input
                     type="file"
                     multiple
-                    {...register('mitigationAttachments' as any)}
+                    {...register('recommendationAttachments' as any)}
                   />
                 </FormControl>
                 <FormDescription>
-                  You can upload multiple files for the mitigation plan.
+                  You can upload multiple files for the recommendation.
                 </FormDescription>
-                {mitigationAttachments &&
-                  Array.from(mitigationAttachments).map(
+                {recommendationAttachments &&
+                  Array.from(recommendationAttachments).map(
                     (file: any, index: number) => (
                       <div
                         key={index}
