@@ -4,11 +4,15 @@ import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { AuditFinding } from '@/types';
 import { doc } from 'firebase/firestore';
 
-export default function EditFindingPage({ params }: { params: { id: string } }) {
+export default function EditFindingPage({
+  params: { id },
+}: {
+  params: { id: string };
+}) {
   const firestore = useFirestore();
   const findingRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'findings', params.id) : null),
-    [firestore, params.id]
+    () => (firestore ? doc(firestore, 'findings', id) : null),
+    [firestore, id]
   );
   const { data: finding, isLoading } = useDoc<AuditFinding>(findingRef);
 

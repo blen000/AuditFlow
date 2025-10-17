@@ -23,16 +23,15 @@ function toDate(timestamp: Date | Timestamp | undefined): Date | undefined {
   return timestamp;
 }
 
-
 export default function RespondToFindingPage({
-  params,
+  params: { id },
 }: {
   params: { id: string };
 }) {
   const firestore = useFirestore();
   const findingRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'findings', params.id) : null),
-    [firestore, params.id]
+    () => (firestore ? doc(firestore, 'findings', id) : null),
+    [firestore, id]
   );
   const { data: finding, isLoading } = useDoc<AuditFinding>(findingRef);
 
