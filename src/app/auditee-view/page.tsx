@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import Header from '@/components/layout/Header';
+import PageHeader from '@/components/layout/PageHeader';
 import {
   Select,
   SelectContent,
@@ -34,18 +34,13 @@ export default function AuditeeViewPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <Header />
+      <PageHeader
+        title="Auditee Response View"
+        description="Select your branch/department to view and respond to findings."
+      />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight">
-                Auditee Response View
-              </h2>
-              <p className="text-muted-foreground">
-                Select your branch/department to view and respond to findings.
-              </p>
-            </div>
             <div className="w-full md:w-64">
               <Select onValueChange={setSelectedBranch}>
                 <SelectTrigger>
@@ -65,9 +60,7 @@ export default function AuditeeViewPage() {
           {selectedBranch && (
             <Card>
               <CardHeader>
-                <CardTitle>
-                  Findings for {selectedBranch}
-                </CardTitle>
+                <CardTitle>Findings for {selectedBranch}</CardTitle>
               </CardHeader>
               <CardContent>
                 {filteredFindings.length > 0 ? (

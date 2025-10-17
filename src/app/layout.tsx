@@ -2,6 +2,18 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarTrigger,
+  SidebarContent,
+  SidebarHeader,
+  SidebarInset,
+} from '@/components/ui/sidebar';
+import { SidebarNav } from '@/components/layout/SidebarNav';
+import { Button } from '@/components/ui/button';
+import { ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'AuditFlow',
@@ -27,8 +39,27 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={cn('font-body antialiased', 'min-h-screen bg-background')}>
-        {children}
+      <body
+        className={cn('font-body antialiased', 'min-h-screen bg-background')}
+      >
+        <SidebarProvider>
+          <Sidebar>
+            <SidebarHeader>
+              <Button variant="ghost" className="h-fit w-full justify-start p-0">
+                <Link href="/" className="flex items-center gap-3 p-2">
+                  <ShieldCheck className="h-7 w-7 text-primary" />
+                  <span className="text-2xl font-bold tracking-tight text-foreground">
+                    AuditFlow
+                  </span>
+                </Link>
+              </Button>
+            </SidebarHeader>
+            <SidebarContent>
+              <SidebarNav />
+            </SidebarContent>
+          </Sidebar>
+          <SidebarInset>{children}</SidebarInset>
+        </SidebarProvider>
         <Toaster />
       </body>
     </html>

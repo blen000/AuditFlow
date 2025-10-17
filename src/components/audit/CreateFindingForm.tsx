@@ -25,7 +25,7 @@ import {
 import type { AuditFinding, RiskLevel } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
-import Header from '../layout/Header';
+import PageHeader from '../layout/PageHeader';
 import { branches } from '@/lib/branches';
 import { Paperclip } from 'lucide-react';
 
@@ -61,11 +61,10 @@ export function CreateFindingForm() {
   const findingAttachments = form.watch('findingAttachments' as any);
   const mitigationAttachments = form.watch('mitigationAttachments' as any);
 
-
   function onSubmit(values: z.infer<typeof formSchema>) {
-
     const findingAttachmentFiles = findingAttachments as FileList | undefined;
-    const mitigationAttachmentFiles = mitigationAttachments as FileList | undefined;
+    const mitigationAttachmentFiles =
+      mitigationAttachments as FileList | undefined;
 
     const newFinding: AuditFinding = {
       id: `FIND-${Date.now()}`,
@@ -87,16 +86,12 @@ export function CreateFindingForm() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <Header />
+      <PageHeader
+        title="Log New Audit Finding"
+        description="Log a new audit finding for your team to address."
+      />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-2xl">
-          <h2 className="mb-4 text-3xl font-bold tracking-tight">
-            Log New Audit Finding
-          </h2>
-          <p className="mb-6 text-muted-foreground">
-            Log a new audit finding for your team to address.
-          </p>
-
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -191,21 +186,29 @@ export function CreateFindingForm() {
                   </FormItem>
                 )}
               />
-              
+
               <FormItem>
                 <FormLabel>Finding Attachments</FormLabel>
                 <FormControl>
-                  <Input type="file" multiple {...register('findingAttachments' as any)} />
+                  <Input
+                    type="file"
+                    multiple
+                    {...register('findingAttachments' as any)}
+                  />
                 </FormControl>
                 <FormDescription>
                   You can upload multiple files.
                 </FormDescription>
-                {findingAttachments && Array.from(findingAttachments).map((file: any, index: number) => (
-                  <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Paperclip className="h-4 w-4" />
-                    <span>{file.name}</span>
-                  </div>
-                ))}
+                {findingAttachments &&
+                  Array.from(findingAttachments).map((file: any, index: number) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 text-sm text-muted-foreground"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                      <span>{file.name}</span>
+                    </div>
+                  ))}
                 <FormMessage />
               </FormItem>
 
@@ -236,17 +239,27 @@ export function CreateFindingForm() {
               <FormItem>
                 <FormLabel>Mitigation Attachments</FormLabel>
                 <FormControl>
-                  <Input type="file" multiple {...register('mitigationAttachments' as any)} />
+                  <Input
+                    type="file"
+                    multiple
+                    {...register('mitigationAttachments' as any)}
+                  />
                 </FormControl>
                 <FormDescription>
                   You can upload multiple files for the mitigation plan.
                 </FormDescription>
-                {mitigationAttachments && Array.from(mitigationAttachments).map((file: any, index: number) => (
-                  <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Paperclip className="h-4 w-4" />
-                    <span>{file.name}</span>
-                  </div>
-                ))}
+                {mitigationAttachments &&
+                  Array.from(mitigationAttachments).map(
+                    (file: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        <span>{file.name}</span>
+                      </div>
+                    )
+                  )}
                 <FormMessage />
               </FormItem>
 

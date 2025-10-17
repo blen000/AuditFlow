@@ -25,7 +25,7 @@ import {
 import type { AuditFinding, RiskLevel } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
-import Header from '../layout/Header';
+import PageHeader from '../layout/PageHeader';
 import { useEffect, useState } from 'react';
 import { branches } from '@/lib/branches';
 import { Paperclip } from 'lucide-react';
@@ -64,8 +64,11 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
   });
 
   const { register } = form;
-  const [existingFindingAttachments, setExistingFindingAttachments] = useState(finding.findingAttachments || []);
-  const [existingMitigationAttachments, setExistingMitigationAttachments] = useState(finding.mitigationAttachments || []);
+  const [existingFindingAttachments, setExistingFindingAttachments] = useState(
+    finding.findingAttachments || []
+  );
+  const [existingMitigationAttachments, setExistingMitigationAttachments] =
+    useState(finding.mitigationAttachments || []);
 
   const findingAttachments = form.watch('findingAttachments' as any);
   const mitigationAttachments = form.watch('mitigationAttachments' as any);
@@ -86,12 +89,13 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const findingAttachmentFiles = findingAttachments as FileList | undefined;
-    const mitigationAttachmentFiles = mitigationAttachments as FileList | undefined;
+    const mitigationAttachmentFiles =
+      mitigationAttachments as FileList | undefined;
 
     const newFindingAttachments = findingAttachmentFiles
-        ? Array.from(findingAttachmentFiles).map((file) => file.name)
-        : [];
-  
+      ? Array.from(findingAttachmentFiles).map((file) => file.name)
+      : [];
+
     const newMitigationAttachments = mitigationAttachmentFiles
       ? Array.from(mitigationAttachmentFiles).map((file) => file.name)
       : [];
@@ -100,8 +104,14 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       ...finding,
       ...values,
       mitigationPlan: values.mitigationPlan || '',
-      findingAttachments: [...existingFindingAttachments, ...newFindingAttachments],
-      mitigationAttachments: [...existingMitigationAttachments, ...newMitigationAttachments],
+      findingAttachments: [
+        ...existingFindingAttachments,
+        ...newFindingAttachments,
+      ],
+      mitigationAttachments: [
+        ...existingMitigationAttachments,
+        ...newMitigationAttachments,
+      ],
     };
     // In a real app, you'd save this to a database
     console.log('Updated Finding:', updatedFinding);
@@ -110,15 +120,12 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <Header />
+      <PageHeader
+        title="Edit Audit Finding"
+        description="Update the details for this audit finding."
+      />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-2xl">
-          <h2 className="mb-4 text-3xl font-bold tracking-tight">
-            Edit Audit Finding
-          </h2>
-          <p className="mb-6 text-muted-foreground">
-            Update the details for this audit finding.
-          </p>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -144,10 +151,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Risk Level</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a risk level" />
@@ -167,16 +171,13 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                     </FormItem>
                   )}
                 />
-                 <FormField
+                <FormField
                   control={form.control}
                   name="branchOrDepartment"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Branch / Department Audited</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a branch or department" />
@@ -197,48 +198,63 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
               </div>
 
               <FormField
-                  control={form.control}
-                  name="details"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Finding Details</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe the audit finding in detail..."
-                          className="h-24 resize-none"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                control={form.control}
+                name="details"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Finding Details</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Describe the audit finding in detail..."
+                        className="h-24 resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormItem>
                 <FormLabel>Finding Attachments</FormLabel>
                 {existingFindingAttachments.length > 0 && (
-                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Existing files:</p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Existing files:
+                    </p>
                     {existingFindingAttachments.map((name, index) => (
-                       <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
-                         <Paperclip className="h-4 w-4" />
-                         <span>{name}</span>
-                       </div>
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        <span>{name}</span>
+                      </div>
                     ))}
                   </div>
                 )}
                 <FormControl>
-                  <Input type="file" multiple {...register('findingAttachments' as any)} />
+                  <Input
+                    type="file"
+                    multiple
+                    {...register('findingAttachments' as any)}
+                  />
                 </FormControl>
                 <FormDescription>
                   You can upload new files. Existing files will be kept.
                 </FormDescription>
-                {findingAttachments && Array.from(findingAttachments).map((file: any, index: number) => (
-                  <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Paperclip className="h-4 w-4" />
-                    <span>{file.name}</span>
-                  </div>
-                ))}
+                {findingAttachments &&
+                  Array.from(findingAttachments).map(
+                    (file: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        <span>{file.name}</span>
+                      </div>
+                    )
+                  )}
                 <FormMessage />
               </FormItem>
 
@@ -269,28 +285,43 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
               <FormItem>
                 <FormLabel>Mitigation Attachments</FormLabel>
                 {existingMitigationAttachments.length > 0 && (
-                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Existing files:</p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Existing files:
+                    </p>
                     {existingMitigationAttachments.map((name, index) => (
-                       <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
-                         <Paperclip className="h-4 w-4" />
-                         <span>{name}</span>
-                       </div>
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        <span>{name}</span>
+                      </div>
                     ))}
                   </div>
                 )}
                 <FormControl>
-                  <Input type="file" multiple {...register('mitigationAttachments' as any)} />
+                  <Input
+                    type="file"
+                    multiple
+                    {...register('mitigationAttachments' as any)}
+                  />
                 </FormControl>
                 <FormDescription>
                   You can upload new files. Existing files will be kept.
                 </FormDescription>
-                 {mitigationAttachments && Array.from(mitigationAttachments).map((file: any, index: number) => (
-                  <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Paperclip className="h-4 w-4" />
-                    <span>{file.name}</span>
-                  </div>
-                ))}
+                {mitigationAttachments &&
+                  Array.from(mitigationAttachments).map(
+                    (file: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        <span>{file.name}</span>
+                      </div>
+                    )
+                  )}
                 <FormMessage />
               </FormItem>
 
