@@ -44,7 +44,6 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { AgreementBadge } from './AgreementBadge';
-import { AuditeeResponseDialog } from './AuditeeResponseDialog';
 import { useState } from 'react';
 import { AddProgressUpdateDialog } from './AddProgressUpdateDialog';
 import {
@@ -64,7 +63,6 @@ export function AuditFindingCard({
   onDelete,
   onUpdate,
 }: AuditFindingCardProps) {
-  const [isResponseDialogOpen, setResponseDialogOpen] = useState(false);
   const [isProgressDialogOpen, setProgressDialogOpen] = useState(false);
 
   const statuses: FindingStatus[] = [
@@ -80,21 +78,6 @@ export function AuditFindingCard({
 
   const handleDateSelect = (date: Date | undefined) => {
     onUpdate(finding.id, { revalidationDate: date });
-  };
-
-  const handleAuditeeResponse = (
-    agreement: AuditeeAgreement,
-    updates: {
-      mitigationDueDate?: Date;
-      auditeeResponse?: string;
-      auditeeAttachmentFilename?: string;
-    }
-  ) => {
-    onUpdate(finding.id, {
-      auditeeAgreement: agreement,
-      status: agreement === 'Agreed' ? 'In Progress' : 'Open',
-      ...updates,
-    });
   };
 
   const handleAddProgress = (update: {
@@ -134,9 +117,11 @@ export function AuditFindingCard({
                 <DropdownMenuItem asChild>
                   <Link href={`/findings/edit/${finding.id}`}>Edit</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setResponseDialogOpen(true)}>
-                  <Handshake className="mr-2 h-4 w-4" />
-                  Auditee Response
+                <DropdownMenuItem asChild>
+                  <Link href={`/findings/respond/${finding.id}`}>
+                    <Handshake className="mr-2 h-4 w-4" />
+                    Auditee Response
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setProgressDialogOpen(true)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -192,41 +177,41 @@ export function AuditFindingCard({
             )}
           </div>
           {finding.progressUpdates && finding.progressUpdates.length > 0 && (
-            <Collapsible className="mt-2 space-y-2 pt-2">
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="group flex w-full items-center justify-start gap-2 p-0 text-sm font-semibold text-muted-foreground hover:bg-transparent"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  <h4>
-                    {finding.progressUpdates.length} Progress Update
-                    {finding.progressUpdates.length > 1 && 's'}
-                  </h4>
-                  <ChevronDown className="h-4 w-4 transform transition-transform group-data-[state=open]:rotate-180" />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="mt-2 space-y-3 rounded-md border bg-muted/50 p-3">
-                  {finding.progressUpdates.map((update) => (
-                    <div key={update.id} className="text-xs">
-                      <p className="font-semibold text-foreground">
-                        {format(update.date, 'MMM d, yyyy')}:{' '}
-                        <span className="font-normal text-muted-foreground">
-                          {update.details}
-                        </span>
-                      </p>
-                      {update.attachmentFilename && (
-                        <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                          <Paperclip className="h-3 w-3" />
-                          <span>{update.attachmentFilename}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+             <Collapsible className="mt-2 space-y-2 pt-2">
+             <CollapsibleTrigger asChild>
+               <Button
+                 variant="ghost"
+                 className="group flex w-full items-center justify-start gap-2 p-0 text-sm font-semibold text-muted-foreground hover:bg-transparent"
+               >
+                 <MessageSquare className="h-4 w-4" />
+                 <h4>
+                   {finding.progressUpdates.length} Progress Update
+                   {finding.progressUpdates.length > 1 && 's'}
+                 </h4>
+                 <ChevronDown className="h-4 w-4 transform transition-transform group-data-[state=open]:rotate-180" />
+               </Button>
+             </CollapsibleTrigger>
+             <CollapsibleContent>
+               <div className="mt-2 space-y-3 rounded-md border bg-muted/50 p-3">
+                 {finding.progressUpdates.map((update) => (
+                   <div key={update.id} className="text-xs">
+                     <p className="font-semibold text-foreground">
+                       {format(update.date, 'MMM d, yyyy')}:{' '}
+                       <span className="font-normal text-muted-foreground">
+                         {update.details}
+                       </span>
+                     </p>
+                     {update.attachmentFilename && (
+                       <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                         <Paperclip className="h-3 w-3" />
+                         <span>{update.attachmentFilename}</span>
+                       </div>
+                     )}
+                   </div>
+                 ))}
+               </div>
+             </CollapsibleContent>
+           </Collapsible>
           )}
         </CardContent>
         <CardFooter className="flex items-center justify-between text-sm text-muted-foreground">
@@ -270,12 +255,6 @@ export function AuditFindingCard({
           </Popover>
         </CardFooter>
       </Card>
-      <AuditeeResponseDialog
-        open={isResponseDialogOpen}
-        onOpenChange={setResponseDialogOpen}
-        finding={finding}
-        onSubmit={handleAuditeeResponse}
-      />
       <AddProgressUpdateDialog
         open={isProgressDialogOpen}
         onOpenChange={setProgressDialogOpen}
