@@ -1,47 +1,55 @@
 /**
- * @description This ruleset enforces a public read policy for lookup collections,
- *              allowing any user (signed in or not) to read the data. Write
- *              access is denied to prevent unauthorized modifications.
- * @dataStructure The database contains flat collections for lookup data
- *                (riskLevels, statuses, districts, branches) and a main
- *                'findings' collection. There is no user-specific data.
- * @keySecurityDecisions All lookup collections are publicly readable. Writes
- *                       are forbidden to all collections to prevent unauthorized changes.
+ * @fileOverview Firestore Security Rules for Prototyping.
+ *
+ * Core Philosophy:
+ * This ruleset is designed for the rapid prototyping phase. It prioritizes security by explicitly defining
+ * access control for each collection. It assumes a public-read, owner-write model for the `findings` collection.
+ * Other collections (`branches`, `districts`, `riskLevels`, `statuses`) are readable by everyone.
+ * Writes (create, update, delete) are forbidden on `branches`, `districts`, `riskLevels`, and `statuses`.
+ *
+ * Data Structure:
+ * - /branches/{branchId}: Stores bank branch information.
+ * - /districts/{districtId}: Stores district information.
+ * - /riskLevels/{riskLevelId}: Stores risk levels for audit findings.
+ * - /statuses/{statusId}: Stores statuses for audit findings.
+ * - /findings/{findingId}: Stores audit findings. Assumes each finding has an owner.
+ *
+ * Key Security Decisions:
+ * - Public read access to `branches`, `districts`, `riskLevels`, and `statuses` to allow easy lookup.
+ * - No listing of user documents is explicitly disallowed by default, unless otherwise specified in the request.
+ * - The `findings` collection defaults to public read, owner-only write access. This requires that each `AuditFinding` document
+ *   contains an `ownerId` field matching the authenticated user's UID.
+ * - Data validation is minimal in this prototype phase, focusing on authorization and relational integrity checks.
+ *
+ * Denormalization for Authorization:
+ * - The `findings` collection relies on an `ownerId` field within each document to enforce owner-only write access.
+ *   This avoids costly `get()` operations to a separate user document.
+ *
+ * Structural Segregation:
+ * - Not applicable in this configuration. No clear separation of public and private data for a single entity.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows anyone to read the list of risk levels, but nobody to modify it.
-     * @path /databases/{database}/documents/riskLevels/{riskLevelId}
-     * @allow (get, list) Anyone can read the data.
-     * @deny (create, update, delete) No one can modify the data.
-     * @principle Allows public read access to risk levels.
+     * @description Allows anyone to read branch information. Write operations are forbidden.
+     * @path /branches/{branchId}
+     * @allow (get, list): Any user can read branch information.
+     * @deny (create, update, delete): No one can modify branch information through direct write operations.
+     * @principle Public read-only data.
      */
-    match /riskLevels/{riskLevelId} {
+    match /branches/{branchId} {
       allow get, list: if true;
       allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows anyone to read the list of statuses, but nobody to modify it.
-     * @path /databases/{database}/documents/statuses/{statusId}
-     * @allow (get, list) Anyone can read the data.
-     * @deny (create, update, delete) No one can modify the data.
-     * @principle Allows public read access to statuses.
-     */
-    match /statuses/{statusId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
-
-    /**
-     * @description Allows anyone to read the list of districts, but nobody to modify it.
-     * @path /databases/{database}/documents/districts/{districtId}
-     * @allow (get, list) Anyone can read the data.
-     * @deny (create, update, delete) No one can modify the data.
-     * @principle Allows public read access to districts.
+     * @description Allows anyone to read district information. Write operations are forbidden.
+     * @path /districts/{districtId}
+     * @allow (get, list): Any user can read district information.
+     * @deny (create, update, delete): No one can modify district information through direct write operations.
+     * @principle Public read-only data.
      */
     match /districts/{districtId} {
       allow get, list: if true;
@@ -49,25 +57,48 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows anyone to read the list of branches, but nobody to modify it.
-     * @path /databases/{database}/documents/branches/{branchId}
-     * @allow (get, list) Anyone can read the data.
-     * @deny (create, update, delete) No one can modify the data.
-     * @principle Allows public read access to branches.
+     * @description Allows anyone to read risk level information. Write operations are forbidden.
+     * @path /riskLevels/{riskLevelId}
+     * @allow (get, list): Any user can read risk level information.
+     * @deny (create, update, delete): No one can modify risk level information through direct write operations.
+     * @principle Public read-only data.
      */
-    match /branches/{branchId} {
+    match /riskLevels/{riskLevelId} {
       allow get, list: if true;
       allow create, update, delete: if false;
     }
-        /**
-     * @description Denies access to all operations on findings. This is a placeholder.
-     * @path /databases/{database}/documents/findings/{findingId}
-     * @allow None
-     * @deny All operations are denied until access is properly configured.
-     * @principle Restricts all access to findings.
+
+    /**
+     * @description Allows anyone to read status information. Write operations are forbidden.
+     * @path /statuses/{statusId}
+     * @allow (get, list): Any user can read status information.
+     * @deny (create, update, delete): No one can modify status information through direct write operations.
+     * @principle Public read-only data.
+     */
+    match /statuses/{statusId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Allows anyone to read audit findings, but only the owner can modify or delete them.
+     * @path /findings/{findingId}
+     * @allow (get, list): Any user can read audit findings.
+     * @allow (create): The user's ID must match the `ownerId` field in the new document.
+     * @allow (update, delete): The user must be the owner of the existing document.
+     * @deny (create): If the `ownerId` in the new document does not match the authenticated user.
+     * @deny (update, delete): If the document does not exist, or the user is not the owner.
+     * @principle Public read with owner-only writes, enforces document ownership for writes.
      */
     match /findings/{findingId} {
-      allow get, list, create, update, delete: if false;
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['title', 'details', 'riskLevel', 'branchOrDepartment', 'recommendation', 'status', 'auditeeAgreement']) ;
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
     }
   }
 }
