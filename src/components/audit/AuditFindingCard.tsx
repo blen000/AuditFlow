@@ -205,7 +205,9 @@ export function AuditFindingCard({
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="mt-2 space-y-3 rounded-md border bg-muted/50 p-3">
-                  {finding.progressUpdates.map((update) => (
+                  {[...finding.progressUpdates]
+                    .sort((a, b) => b.date.getTime() - a.date.getTime())
+                    .map((update) => (
                     <div key={update.id} className="text-xs">
                       <p className="font-semibold text-foreground">
                         {format(update.date, 'MMM d, yyyy')}:{' '}
