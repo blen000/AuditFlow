@@ -173,7 +173,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
               <FormField
                   control={form.control}
                   name="details"
-                  render={({ field })_ => (
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel>Finding Details</FormLabel>
                       <FormControl>
