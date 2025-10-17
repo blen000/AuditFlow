@@ -1,5 +1,6 @@
 import AuditDashboard from '@/components/audit/AuditDashboard';
 import Header from '@/components/layout/Header';
+import Link from 'next/link';
 
 export default function Home() {
   return (

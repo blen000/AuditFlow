@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import Header from '../layout/Header';
 import { useEffect } from 'react';
+import { branches } from '@/lib/branches';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -46,14 +47,6 @@ const formSchema = z.object({
 type EditFindingFormProps = {
   finding: AuditFinding;
 };
-
-const branches = [
-  'Downtown Main',
-  'Suburban Branch',
-  'Loan Processing Center',
-  'Operations HQ',
-  'IT Department',
-];
 
 export function EditFindingForm({ finding }: EditFindingFormProps) {
   const router = useRouter();
@@ -180,7 +173,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
               <FormField
                   control={form.control}
                   name="details"
-                  render={({ field }) => (
+                  render={({ field })_ => (
                     <FormItem>
                       <FormLabel>Finding Details</FormLabel>
                       <FormControl>

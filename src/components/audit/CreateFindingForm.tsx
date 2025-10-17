@@ -25,6 +25,7 @@ import type { AuditFinding, RiskLevel } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import Header from '../layout/Header';
+import { branches } from '@/lib/branches';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -41,14 +42,6 @@ const formSchema = z.object({
   }),
   mitigationPlan: z.string().optional(),
 });
-
-const branches = [
-  'Downtown Main',
-  'Suburban Branch',
-  'Loan Processing Center',
-  'Operations HQ',
-  'IT Department',
-];
 
 export function CreateFindingForm() {
   const router = useRouter();
