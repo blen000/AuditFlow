@@ -34,6 +34,7 @@ import {
   Paperclip,
   PlusCircle,
   MessageSquare,
+  ChevronDown,
 } from 'lucide-react';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
@@ -46,7 +47,11 @@ import { AgreementBadge } from './AgreementBadge';
 import { AuditeeResponseDialog } from './AuditeeResponseDialog';
 import { useState } from 'react';
 import { AddProgressUpdateDialog } from './AddProgressUpdateDialog';
-import { Separator } from '../ui/separator';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 type AuditFindingCardProps = {
   finding: AuditFinding;
@@ -182,31 +187,41 @@ export function AuditFindingCard({
             )}
           </div>
           {finding.progressUpdates && finding.progressUpdates.length > 0 && (
-            <div className="mt-2 space-y-3 pt-2">
-               <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <h4 className="text-sm font-semibold">Progress Updates</h4>
-              </div>
-              <div className="space-y-3 rounded-md border bg-muted/50 p-3">
-                {finding.progressUpdates.slice(0, 2).map((update) => (
-                  <div key={update.id} className="text-xs">
-                    <p className="font-semibold text-foreground">
-                      {format(update.date, 'MMM d, yyyy')}:{' '}
-                      <span className="font-normal text-muted-foreground">{update.details}</span>
-                    </p>
-                    {update.attachmentFilename && (
-                       <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                        <Paperclip className="h-3 w-3" />
-                        <span>{update.attachmentFilename}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {finding.progressUpdates.length > 2 && (
-                  <Button variant="link" size="sm" className="h-auto p-0 text-xs">View all updates</Button>
-                )}
-              </div>
-            </div>
+            <Collapsible className="mt-2 space-y-2 pt-2">
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="group flex w-full items-center justify-start gap-2 p-0 text-sm font-semibold text-muted-foreground hover:bg-transparent"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <h4>
+                    {finding.progressUpdates.length} Progress Update
+                    {finding.progressUpdates.length > 1 && 's'}
+                  </h4>
+                  <ChevronDown className="h-4 w-4 transform transition-transform group-data-[state=open]:rotate-180" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-2 space-y-3 rounded-md border bg-muted/50 p-3">
+                  {finding.progressUpdates.map((update) => (
+                    <div key={update.id} className="text-xs">
+                      <p className="font-semibold text-foreground">
+                        {format(update.date, 'MMM d, yyyy')}:{' '}
+                        <span className="font-normal text-muted-foreground">
+                          {update.details}
+                        </span>
+                      </p>
+                      {update.attachmentFilename && (
+                        <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                          <Paperclip className="h-3 w-3" />
+                          <span>{update.attachmentFilename}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           )}
         </CardContent>
         <CardFooter className="flex items-center justify-between text-sm text-muted-foreground">
