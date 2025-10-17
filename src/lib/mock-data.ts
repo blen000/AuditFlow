@@ -28,6 +28,10 @@ export const mockFindings: AuditFinding[] = [
         date: new Date('2024-07-20T00:00:00.000Z'),
         details: 'Dual-control system installed. Staff retraining scheduled for next week.',
       }
+    ],
+    involvedCases: [
+      { id: 'CASE-001-1', ownerName: 'John Doe (Teller)', status: 'Resolved' },
+      { id: 'CASE-001-2', ownerName: 'Jane Smith (Head Teller)', status: 'Open' }
     ]
   },
   {
@@ -100,6 +104,10 @@ export const mockFindings: AuditFinding[] = [
       '1. Install an alarm that sounds if the door is held open for more than 60 seconds.\n2. Reiterate policy on physical security with all staff members.\n3. Manager to perform random checks on all entrances.',
     status: 'Open',
     auditeeAgreement: 'Pending',
+    involvedCases: [
+      { id: 'CASE-006-1', ownerName: 'Security Team', status: 'Open' },
+      { id: 'CASE-006-2', ownerName: 'Branch Manager', status: 'Open' }
+    ]
   },
   {
     id: 'FIND-007',

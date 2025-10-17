@@ -2,6 +2,7 @@ import { AuditeeResponseForm } from '@/components/audit/AuditeeResponseForm';
 import { mockFindings } from '@/lib/mock-data';
 import PageHeader from '@/components/layout/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { InvolvedCasesManager } from '@/components/audit/InvolvedCasesManager';
 
 export default function RespondToFindingPage({ params }: { params: { id: string } }) {
   const finding = mockFindings.find((f) => f.id === params.id);
@@ -14,9 +15,9 @@ export default function RespondToFindingPage({ params }: { params: { id: string 
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader title="Respond to Audit Finding" />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
-        <div className="mx-auto max-w-4xl">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-            <div>
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <div className="space-y-8">
               <Card>
                 <CardHeader>
                   <CardTitle>{finding.title}</CardTitle>
@@ -67,10 +68,13 @@ export default function RespondToFindingPage({ params }: { params: { id: string 
                   </div>
                 </CardContent>
               </Card>
+              {finding.involvedCases && finding.involvedCases.length > 0 && (
+                <InvolvedCasesManager finding={finding} />
+              )}
             </div>
-            <div>
-              <AuditeeResponseForm finding={finding} />
-            </div>
+          </div>
+          <div>
+            <AuditeeResponseForm finding={finding} />
           </div>
         </div>
       </main>

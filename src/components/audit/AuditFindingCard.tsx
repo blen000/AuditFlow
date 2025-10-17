@@ -35,6 +35,7 @@ import {
   MessageSquare,
   ChevronDown,
   CircleDollarSign,
+  Users,
 } from 'lucide-react';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
@@ -176,15 +177,25 @@ export function AuditFindingCard({
             )}
           </div>
           
-          {totalAmount > 0 && (
-             <div className="flex items-center gap-1.5 pt-2 text-xs text-muted-foreground">
-                <CircleDollarSign className="h-3.5 w-3.5" />
-                <span className='font-semibold'>
-                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalAmount)}
-                </span>
-                <span>involved</span>
-             </div>
-          )}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 text-xs text-muted-foreground">
+            {totalAmount > 0 && (
+               <div className="flex items-center gap-1.5">
+                  <CircleDollarSign className="h-3.5 w-3.5" />
+                  <span className='font-semibold text-foreground'>
+                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalAmount)}
+                  </span>
+                  <span>involved</span>
+               </div>
+            )}
+            {finding.involvedCases && finding.involvedCases.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                <span className='font-semibold text-foreground'>{finding.involvedCases.length}</span>
+                <span>case{finding.involvedCases.length > 1 && 's'}</span>
+              </div>
+            )}
+          </div>
+
 
           {allAttachments.length > 0 && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-2">

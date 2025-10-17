@@ -50,6 +50,9 @@ const formSchema = z.object({
     name: z.string().min(1, 'Name is required.'),
     amount: z.coerce.number().min(0, 'Amount must be a positive number.'),
   })).optional(),
+  involvedCases: z.array(z.object({
+    ownerName: z.string().min(1, 'Owner name is required.'),
+  })).optional(),
   // We'll handle files separately, not through zod for now
 });
 
@@ -64,12 +67,18 @@ export function CreateFindingForm() {
       auditEffect: '',
       mitigationPlan: '',
       involvedAmounts: [],
+      involvedCases: [],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields: amountFields, append: appendAmount, remove: removeAmount } = useFieldArray({
     control: form.control,
     name: 'involvedAmounts',
+  });
+
+  const { fields: caseFields, append: appendCase, remove: removeCase } = useFieldArray({
+    control: form.control,
+    name: 'involvedCases',
   });
 
 
@@ -95,6 +104,7 @@ export function CreateFindingForm() {
       ...values,
       riskLevel: values.riskLevel,
       mitigationPlan: values.mitigationPlan || '',
+      involvedCases: values.involvedCases?.map(c => ({ ...c, id: `CASE-${Date.now()}-${Math.random()}`, status: 'Open' })),
       findingAttachments: findingAttachmentFiles
         ? Array.from(findingAttachmentFiles).map((file) => file.name)
         : [],
@@ -242,7 +252,7 @@ export function CreateFindingForm() {
               <Separator />
                <div>
                 <h3 className="text-lg font-semibold">Amounts Involved</h3>
-                  {fields.map((field, index) => (
+                  {amountFields.map((field, index) => (
                     <div key={field.id} className="mt-2 flex items-end gap-2 rounded-md border p-4">
                       <FormField
                         control={form.control}
@@ -274,7 +284,7 @@ export function CreateFindingForm() {
                         type="button"
                         variant="destructive"
                         size="icon"
-                        onClick={() => remove(index)}
+                        onClick={() => removeAmount(index)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -285,10 +295,50 @@ export function CreateFindingForm() {
                     variant="outline"
                     size="sm"
                     className="mt-2"
-                    onClick={() => append({ name: '', amount: 0 })}
+                    onClick={() => appendAmount({ name: '', amount: 0 })}
                   >
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Add Amount
+                  </Button>
+               </div>
+
+              <Separator />
+               <div>
+                <h3 className="text-lg font-semibold">Involved Cases</h3>
+                  {caseFields.map((field, index) => (
+                    <div key={field.id} className="mt-2 flex items-end gap-2 rounded-md border p-4">
+                      <FormField
+                        control={form.control}
+                        name={`involvedCases.${index}.ownerName`}
+                        render={({ field }) => (
+                          <FormItem className='flex-1'>
+                            <FormLabel>Case Owner / Customer</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., John Doe" {...field} />
+                            </FormControl>
+                             <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => removeCase(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => appendCase({ ownerName: '' })}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Case
                   </Button>
                </div>
 

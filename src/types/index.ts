@@ -14,6 +14,12 @@ export type InvolvedAmount = {
   amount: number;
 };
 
+export type InvolvedCase = {
+  id: string;
+  ownerName: string;
+  status: 'Open' | 'Resolved';
+};
+
 export type AuditFinding = {
   id: string;
   title: string;
@@ -35,4 +41,5 @@ export type AuditFinding = {
   auditEffect?: string;
   auditEffectAttachments?: string[];
   involvedAmounts?: InvolvedAmount[];
+  involvedCases?: InvolvedCase[];
 };
