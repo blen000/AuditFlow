@@ -1,27 +1,31 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset defines access control for the Firestore database.
- *
- * Core Philosophy:
- * This ruleset provides open read access to all collections while restricting write access. Write access is currently denied to all users.
+ * @file Overview
+ * This ruleset provides open read access to all collections to support rapid prototyping,
+ * while strictly prohibiting any write operations. This approach allows developers
+ * to quickly populate and view data in the application without implementing detailed
+ * authorization logic during the initial development phase.
  *
  * Data Structure:
- * The database contains several top-level collections: `branches`, `districts`, `riskLevels`, `statuses`, and `findings`.
+ * - The database contains top-level collections for branches, districts, risk levels,
+ *   statuses, and audit findings. There is no user-specific data or hierarchy.
  *
  * Key Security Decisions:
- * - All collections are publicly readable, including `list` operations.
- * - All write operations (create, update, delete) are currently denied.
+ * - Read-only access for all collections (branches, districts, riskLevels, statuses, findings).
+ *   This decision is made to facilitate easy data viewing during the prototyping phase.
+ * - All write operations (create, update, delete) are strictly denied.
+ * - No user-based or role-based access control is implemented at this stage.
+ * - Data validation is not enforced, allowing for flexible schema evolution.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows anyone to read the list of branches. Writes are disallowed.
+     * @description Allows anyone to read branch data, but prohibits all write operations.
      * @path /branches/{branchId}
-     * @allow (get, list): Any user can read a branch or list all branches.
-     * @deny (create, update, delete): No one can create, update, or delete branches.
-     * @principle Public read access with no writes.
+     * @allow (get, list)
+     * @deny (create, update, delete)
+     * @principle Allows open reads for prototyping while preventing unauthorized data modification.
      */
     match /branches/{branchId} {
       allow get, list: if true;
@@ -29,11 +33,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows anyone to read the list of districts. Writes are disallowed.
+     * @description Allows anyone to read district data, but prohibits all write operations.
      * @path /districts/{districtId}
-     * @allow (get, list): Any user can read a district or list all districts.
-     * @deny (create, update, delete): No one can create, update, or delete districts.
-     * @principle Public read access with no writes.
+     * @allow (get, list)
+     * @deny (create, update, delete)
+     * @principle Allows open reads for prototyping while preventing unauthorized data modification.
      */
     match /districts/{districtId} {
       allow get, list: if true;
@@ -41,11 +45,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows anyone to read the list of riskLevels. Writes are disallowed.
+     * @description Allows anyone to read risk level data, but prohibits all write operations.
      * @path /riskLevels/{riskLevelId}
-     * @allow (get, list): Any user can read a riskLevel or list all riskLevels.
-     * @deny (create, update, delete): No one can create, update, or delete riskLevels.
-     * @principle Public read access with no writes.
+     * @allow (get, list)
+     * @deny (create, update, delete)
+     * @principle Allows open reads for prototyping while preventing unauthorized data modification.
      */
     match /riskLevels/{riskLevelId} {
       allow get, list: if true;
@@ -53,11 +57,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows anyone to read the list of statuses. Writes are disallowed.
+     * @description Allows anyone to read status data, but prohibits all write operations.
      * @path /statuses/{statusId}
-     * @allow (get, list): Any user can read a status or list all statuses.
-     * @deny (create, update, delete): No one can create, update, or delete statuses.
-     * @principle Public read access with no writes.
+     * @allow (get, list)
+     * @deny (create, update, delete)
+     * @principle Allows open reads for prototyping while preventing unauthorized data modification.
      */
     match /statuses/{statusId} {
       allow get, list: if true;
@@ -65,11 +69,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows anyone to read the list of findings. Writes are disallowed.
+     * @description Allows anyone to read audit finding data, but prohibits all write operations.
      * @path /findings/{findingId}
-     * @allow (get, list): Any user can read a finding or list all findings.
-     * @deny (create, update, delete): No one can create, update, or delete findings.
-     * @principle Public read access with no writes.
+     * @allow (get, list)
+     * @deny (create, update, delete)
+     * @principle Allows open reads for prototyping while preventing unauthorized data modification.
      */
     match /findings/{findingId} {
       allow get, list: if true;
