@@ -13,4 +13,6 @@ export type AuditFinding = {
   revalidationDate?: Date;
   auditeeAgreement: AuditeeAgreement;
   mitigationDueDate?: Date;
+  auditeeResponse?: string;
+  auditeeAttachmentFilename?: string;
 };

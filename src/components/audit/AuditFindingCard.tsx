@@ -26,6 +26,7 @@ import {
   MoreHorizontal,
   Trash2,
   Handshake,
+  Paperclip,
 } from 'lucide-react';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
@@ -68,12 +69,16 @@ export function AuditFindingCard({
 
   const handleAuditeeResponse = (
     agreement: AuditeeAgreement,
-    mitigationDueDate?: Date
+    updates: {
+      mitigationDueDate?: Date;
+      auditeeResponse?: string;
+      auditeeAttachmentFilename?: string;
+    }
   ) => {
     onUpdate(finding.id, {
       auditeeAgreement: agreement,
-      mitigationDueDate: mitigationDueDate,
       status: agreement === 'Agreed' ? 'In Progress' : 'Open',
+      ...updates,
     });
   };
 
@@ -127,7 +132,7 @@ export function AuditFindingCard({
             {finding.branchOrDepartment} &mdash; {finding.details}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-grow flex-wrap items-center gap-2">
+        <CardContent className="flex flex-grow flex-wrap items-center gap-x-4 gap-y-2">
           <StatusBadge status={finding.status} />
           <AgreementBadge agreement={finding.auditeeAgreement} />
           {finding.mitigationDueDate && (
@@ -136,6 +141,12 @@ export function AuditFindingCard({
               <span>
                 Due {format(finding.mitigationDueDate, 'MMM d, yyyy')}
               </span>
+            </div>
+          )}
+          {finding.auditeeAttachmentFilename && (
+             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Paperclip className="h-3.5 w-3.5" />
+              <span>{finding.auditeeAttachmentFilename}</span>
             </div>
           )}
         </CardContent>

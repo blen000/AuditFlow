@@ -66,6 +66,8 @@ export const mockFindings: AuditFinding[] = [
     status: 'In Progress',
     revalidationDate: new Date('2024-08-30T00:00:00.000Z'),
     auditeeAgreement: 'Declined',
+    auditeeResponse: 'The teller in question was on leave for two of the dates mentioned. We believe this is an accounting error during shift change, not a drawer shortage.',
+    auditeeAttachmentFilename: 'shift_logs.pdf',
   },
   {
     id: 'FIND-006',

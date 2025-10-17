@@ -13,17 +13,30 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { AuditFinding, AuditeeAgreement } from '@/types';
+import { Textarea } from '../ui/textarea';
+import { Input } from '../ui/input';
 
 type AuditeeResponseDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   finding: AuditFinding;
-  onSubmit: (agreement: AuditeeAgreement, mitigationDueDate?: Date) => void;
+  onSubmit: (
+    agreement: AuditeeAgreement,
+    updates: {
+      mitigationDueDate?: Date;
+      auditeeResponse?: string;
+      auditeeAttachmentFilename?: string;
+    }
+  ) => void;
 };
 
 export function AuditeeResponseDialog({
@@ -38,15 +51,40 @@ export function AuditeeResponseDialog({
   const [mitigationDueDate, setMitigationDueDate] = useState<Date | undefined>(
     finding.mitigationDueDate
   );
+  const [disagreementReason, setDisagreementReason] = useState(
+    finding.auditeeResponse || ''
+  );
+  const [attachment, setAttachment] = useState<File | null>(null);
 
   const handleSubmit = () => {
-    onSubmit(agreement, mitigationDueDate);
+    const updates: {
+      mitigationDueDate?: Date;
+      auditeeResponse?: string;
+      auditeeAttachmentFilename?: string;
+    } = {};
+
+    if (agreement === 'Agreed') {
+      updates.mitigationDueDate = mitigationDueDate;
+      updates.auditeeResponse = '';
+      updates.auditeeAttachmentFilename = '';
+    } else {
+      updates.mitigationDueDate = undefined;
+      updates.auditeeResponse = disagreementReason;
+      updates.auditeeAttachmentFilename = attachment?.name;
+    }
+    onSubmit(agreement, updates);
     onOpenChange(false);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setAttachment(e.target.files[0]);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Auditee Response</DialogTitle>
           <DialogDescription>
@@ -109,6 +147,35 @@ export function AuditeeResponseDialog({
                   />
                 </PopoverContent>
               </Popover>
+            </div>
+          )}
+          {agreement === 'Declined' && (
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="disagreement-reason">
+                  Reason for Disagreement
+                </Label>
+                <Textarea
+                  id="disagreement-reason"
+                  placeholder="Clearly describe why you disagree with the finding..."
+                  value={disagreementReason}
+                  onChange={(e) => setDisagreementReason(e.target.value)}
+                  className="h-24"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="attachment">Attach Supporting File</Label>
+                <Input
+                  id="attachment"
+                  type="file"
+                  onChange={handleFileChange}
+                />
+                {attachment && (
+                  <p className="text-xs text-muted-foreground">
+                    Selected: {attachment.name}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>
