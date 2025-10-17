@@ -16,6 +16,7 @@ import {
 } from '../ui/dropdown-menu';
 import { Input } from '../ui/input';
 import { riskLevels as allRiskLevels } from '@/lib/risk-levels';
+import { statuses as allStatuses } from '@/lib/statuses';
 import type { RiskLevel } from '@/types';
 
 export default function AuditDashboard() {
@@ -98,17 +99,15 @@ export default function AuditDashboard() {
                 Filter by Status
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {(
-                ['Open', 'In Progress', 'Mitigated', 'Closed'] as FindingStatus[]
-              ).map((status) => (
+              {allStatuses.map((status) => (
                 <DropdownMenuCheckboxItem
-                  key={status}
-                  checked={statusFilter.includes(status)}
+                  key={status.name}
+                  checked={statusFilter.includes(status.name)}
                   onCheckedChange={() =>
-                    toggleFilter(statusFilter, setStatusFilter, status)
+                    toggleFilter(statusFilter, setStatusFilter, status.name)
                   }
                 >
-                  {status}
+                  {status.name}
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuContent>

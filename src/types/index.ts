@@ -1,5 +1,5 @@
 export type RiskLevel = 'High' | 'Medium' | 'Low' | string;
-export type FindingStatus = 'Open' | 'In Progress' | 'Mitigated' | 'Closed';
+export type FindingStatus = string;
 export type AuditeeAgreement = 'Pending' | 'Agreed' | 'Declined';
 
 export type ProgressUpdate = {

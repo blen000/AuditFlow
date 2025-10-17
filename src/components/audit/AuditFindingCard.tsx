@@ -50,6 +50,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { statuses as allStatuses } from '@/lib/statuses';
 
 type AuditFindingCardProps = {
   finding: AuditFinding;
@@ -63,13 +64,6 @@ export function AuditFindingCard({
   onUpdate,
 }: AuditFindingCardProps) {
   const [isProgressDialogOpen, setProgressDialogOpen] = useState(false);
-
-  const statuses: FindingStatus[] = [
-    'Open',
-    'In Progress',
-    'Mitigated',
-    'Closed',
-  ];
 
   const handleStatusChange = (status: FindingStatus) => {
     onUpdate(finding.id, { status });
@@ -138,13 +132,13 @@ export function AuditFindingCard({
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
-                    {statuses.map((status) => (
+                    {allStatuses.map((status) => (
                       <DropdownMenuItem
-                        key={status}
-                        onClick={() => handleStatusChange(status)}
-                        disabled={finding.status === status}
+                        key={status.name}
+                        onClick={() => handleStatusChange(status.name)}
+                        disabled={finding.status === status.name}
                       >
-                        {status}
+                        {status.name}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuSubContent>
