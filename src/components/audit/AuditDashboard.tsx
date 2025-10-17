@@ -5,7 +5,7 @@ import { mockFindings } from '@/lib/mock-data';
 import type { AuditFinding, RiskLevel, FindingStatus } from '@/types';
 import { AuditFindingCard } from './AuditFindingCard';
 import { Button } from '@/components/ui/button';
-import { Filter, PlusCircle } from 'lucide-react';
+import { Filter, PlusCircle, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -14,11 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
+import { Input } from '../ui/input';
 
 export default function AuditDashboard() {
   const [findings, setFindings] = useState<AuditFinding[]>(mockFindings);
   const [riskFilter, setRiskFilter] = useState<RiskLevel[]>([]);
   const [statusFilter, setStatusFilter] = useState<FindingStatus[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleDelete = (id: string) => {
     setFindings((prev) => prev.filter((f) => f.id !== id));
@@ -47,17 +49,30 @@ export default function AuditDashboard() {
       riskFilter.length === 0 || riskFilter.includes(finding.riskLevel);
     const statusMatch =
       statusFilter.length === 0 || statusFilter.includes(finding.status);
-    return riskMatch && statusMatch;
+    const searchMatch =
+      searchQuery === '' ||
+      finding.id.toLowerCase().includes(searchQuery.toLowerCase());
+    return riskMatch && statusMatch && searchMatch;
   });
 
   return (
     <>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Audit Findings</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 md:w-auto">
+          <div className="relative flex-1 md:flex-initial">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search by Case No..."
+              className="pl-8 sm:w-[200px] md:w-[250px] lg:w-[300px]"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" className="shrink-0">
                 <Filter className="mr-2 h-4 w-4" />
                 Filter
               </Button>
@@ -100,7 +115,7 @@ export default function AuditDashboard() {
           <Button asChild>
             <Link href="/findings/new">
               <PlusCircle className="mr-2 h-4 w-4" />
-              Log New Finding
+              Log New
             </Link>
           </Button>
         </div>
