@@ -18,12 +18,19 @@ import { Input } from '../ui/input';
 import { riskLevels as allRiskLevels } from '@/lib/risk-levels';
 import { statuses as allStatuses } from '@/lib/statuses';
 import type { RiskLevel } from '@/types';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { Calendar } from '../ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import type { DateRange } from 'react-day-picker';
 
 export default function AuditDashboard() {
   const [findings, setFindings] = useState<AuditFinding[]>(mockFindings);
   const [riskFilter, setRiskFilter] = useState<RiskLevel[]>([]);
   const [statusFilter, setStatusFilter] = useState<FindingStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const handleDelete = (id: string) => {
     setFindings((prev) => prev.filter((f) => f.id !== id));
@@ -55,7 +62,29 @@ export default function AuditDashboard() {
     const searchMatch =
       searchQuery === '' ||
       finding.id.toLowerCase().includes(searchQuery.toLowerCase());
-    return riskMatch && statusMatch && searchMatch;
+    
+    const dateMatch = (() => {
+      if (!dateRange || (!dateRange.from && !dateRange.to)) return true;
+
+      const from = dateRange.from;
+      const to = dateRange.to;
+      const targetDate = finding.revalidationDate || finding.mitigationDueDate;
+
+      if (!targetDate) return false;
+
+      if (from && !to) {
+        return targetDate >= from;
+      }
+      if (!from && to) {
+        return targetDate <= to;
+      }
+      if (from && to) {
+        return targetDate >= from && targetDate <= to;
+      }
+      return true;
+    })();
+
+    return riskMatch && statusMatch && searchMatch && dateMatch;
   });
 
   return (
@@ -80,8 +109,48 @@ export default function AuditDashboard() {
                 Filter
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Filter by Risk</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel>Filter by Date</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <div className="p-2">
+                 <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={'outline'}
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !dateRange && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, 'LLL dd, y')} -{' '}
+                              {format(dateRange.to, 'LLL dd, y')}
+                            </>
+                          ) : (
+                            format(dateRange.from, 'LLL dd, y')
+                          )
+                        ) : (
+                          <span>Pick a date range</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                      />
+                    </PopoverContent>
+                  </Popover>
+              </div>
+
+              <DropdownMenuLabel className="pt-2">Filter by Risk</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {allRiskLevels.map((level) => (
                 <DropdownMenuCheckboxItem
