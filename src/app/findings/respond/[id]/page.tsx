@@ -24,10 +24,11 @@ function toDate(timestamp: Date | Timestamp | undefined): Date | undefined {
 }
 
 export default function RespondToFindingPage({
-  params: { id },
+  params,
 }: {
   params: { id: string };
 }) {
+  const { id } = params;
   const firestore = useFirestore();
   const findingRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'findings', id) : null),
