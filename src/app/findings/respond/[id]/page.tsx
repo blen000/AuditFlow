@@ -27,6 +27,22 @@ export default function RespondToFindingPage({ params }: { params: { id: string 
                     <h3 className="font-semibold">Finding Details</h3>
                     <p className="text-sm text-muted-foreground">{finding.details}</p>
                   </div>
+                   {finding.auditCause && (
+                    <div>
+                      <h3 className="font-semibold">Cause of Audit</h3>
+                      <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                        {finding.auditCause}
+                      </p>
+                    </div>
+                  )}
+                  {finding.auditEffect && (
+                    <div>
+                      <h3 className="font-semibold">Effect of Audit</h3>
+                      <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                        {finding.auditEffect}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-semibold">Proposed Mitigation Plan</h3>
                     <p className="whitespace-pre-wrap text-sm text-muted-foreground">{finding.mitigationPlan}</p>

@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { AuditFinding, RiskLevel } from '@/types';
+import type { AuditFinding } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
@@ -44,6 +44,8 @@ const formSchema = z.object({
   branchOrDepartment: z.string({
     required_error: 'You need to select a branch/department.',
   }),
+  auditCause: z.string().optional(),
+  auditEffect: z.string().optional(),
   mitigationPlan: z.string().optional(),
 });
 
@@ -60,6 +62,8 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       details: finding?.details || '',
       riskLevel: finding?.riskLevel,
       branchOrDepartment: finding?.branchOrDepartment,
+      auditCause: finding?.auditCause || '',
+      auditEffect: finding?.auditEffect || '',
       mitigationPlan: finding?.mitigationPlan || '',
     },
   });
@@ -68,10 +72,16 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
   const [existingFindingAttachments, setExistingFindingAttachments] = useState(
     finding.findingAttachments || []
   );
+  const [existingAuditCauseAttachments, setExistingAuditCauseAttachments] =
+    useState(finding.auditCauseAttachments || []);
+  const [existingAuditEffectAttachments, setExistingAuditEffectAttachments] =
+    useState(finding.auditEffectAttachments || []);
   const [existingMitigationAttachments, setExistingMitigationAttachments] =
     useState(finding.mitigationAttachments || []);
 
   const findingAttachments = form.watch('findingAttachments' as any);
+  const auditCauseAttachments = form.watch('auditCauseAttachments' as any);
+  const auditEffectAttachments = form.watch('auditEffectAttachments' as any);
   const mitigationAttachments = form.watch('mitigationAttachments' as any);
 
   useEffect(() => {
@@ -81,22 +91,39 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
         details: finding.details,
         riskLevel: finding.riskLevel,
         branchOrDepartment: finding.branchOrDepartment,
+        auditCause: finding.auditCause,
+        auditEffect: finding.auditEffect,
         mitigationPlan: finding.mitigationPlan,
       });
       setExistingFindingAttachments(finding.findingAttachments || []);
+      setExistingAuditCauseAttachments(
+        finding.auditCauseAttachments || []
+      );
+      setExistingAuditEffectAttachments(
+        finding.auditEffectAttachments || []
+      );
       setExistingMitigationAttachments(finding.mitigationAttachments || []);
     }
   }, [finding, form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const findingAttachmentFiles = findingAttachments as FileList | undefined;
+    const auditCauseAttachmentFiles =
+      auditCauseAttachments as FileList | undefined;
+    const auditEffectAttachmentFiles =
+      auditEffectAttachments as FileList | undefined;
     const mitigationAttachmentFiles =
       mitigationAttachments as FileList | undefined;
 
     const newFindingAttachments = findingAttachmentFiles
       ? Array.from(findingAttachmentFiles).map((file) => file.name)
       : [];
-
+    const newAuditCauseAttachments = auditCauseAttachmentFiles
+      ? Array.from(auditCauseAttachmentFiles).map((file) => file.name)
+      : [];
+    const newAuditEffectAttachments = auditEffectAttachmentFiles
+      ? Array.from(auditEffectAttachmentFiles).map((file) => file.name)
+      : [];
     const newMitigationAttachments = mitigationAttachmentFiles
       ? Array.from(mitigationAttachmentFiles).map((file) => file.name)
       : [];
@@ -109,6 +136,14 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       findingAttachments: [
         ...existingFindingAttachments,
         ...newFindingAttachments,
+      ],
+      auditCauseAttachments: [
+        ...existingAuditCauseAttachments,
+        ...newAuditCauseAttachments,
+      ],
+      auditEffectAttachments: [
+        ...existingAuditEffectAttachments,
+        ...newAuditEffectAttachments,
       ],
       mitigationAttachments: [
         ...existingMitigationAttachments,
@@ -153,20 +188,21 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Risk Level</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a risk level" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {riskLevels.map(
-                            (level) => (
-                              <SelectItem key={level.name} value={level.name}>
-                                {level.name}
-                              </SelectItem>
-                            )
-                          )}
+                          {riskLevels.map((level) => (
+                            <SelectItem key={level.name} value={level.name}>
+                              {level.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -179,7 +215,10 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Branch / Department Audited</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a branch or department" />
@@ -260,6 +299,126 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                 <FormMessage />
               </FormItem>
 
+              <Separator />
+
+              <FormField
+                control={form.control}
+                name="auditCause"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cause of Audit</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Describe the cause of the audit finding..."
+                        className="h-24 resize-y"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormItem>
+                <FormLabel>Cause Attachments</FormLabel>
+                 {existingAuditCauseAttachments.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Existing files:
+                    </p>
+                    {existingAuditCauseAttachments.map((name, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        <span>{name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <FormControl>
+                  <Input
+                    type="file"
+                    multiple
+                    {...register('auditCauseAttachments' as any)}
+                  />
+                </FormControl>
+                {auditCauseAttachments &&
+                  Array.from(auditCauseAttachments).map(
+                    (file: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        <span>{file.name}</span>
+                      </div>
+                    )
+                  )}
+                <FormMessage />
+              </FormItem>
+
+              <Separator />
+
+              <FormField
+                control={form.control}
+                name="auditEffect"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Effect of Audit</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Describe the effect of the audit finding..."
+                        className="h-24 resize-y"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormItem>
+                <FormLabel>Effect Attachments</FormLabel>
+                 {existingAuditEffectAttachments.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Existing files:
+                    </p>
+                    {existingAuditEffectAttachments.map((name, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        <span>{name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <FormControl>
+                  <Input
+                    type="file"
+                    multiple
+                    {...register('auditEffectAttachments' as any)}
+                  />
+                </FormControl>
+                {auditEffectAttachments &&
+                  Array.from(auditEffectAttachments).map(
+                    (file: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        <span>{file.name}</span>
+                      </div>
+                    )
+                  )}
+                <FormMessage />
+              </FormItem>
+              
               <Separator />
 
               <div className="space-y-2">

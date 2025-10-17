@@ -25,4 +25,8 @@ export type AuditFinding = {
   progressUpdates?: ProgressUpdate[];
   findingAttachments?: string[];
   mitigationAttachments?: string[];
+  auditCause?: string;
+  auditCauseAttachments?: string[];
+  auditEffect?: string;
+  auditEffectAttachments?: string[];
 };

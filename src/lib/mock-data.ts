@@ -8,6 +8,8 @@ export const mockFindings: AuditFinding[] = [
       'During a surprise check, it was found that a junior teller had access codes to the main vault, which is against protocol. The access log shows they accessed the vault twice in the last month outside of business hours.',
     riskLevel: 'High',
     branchOrDepartment: 'Downtown Main',
+    auditCause: 'Weak access control policies and lack of regular access review.',
+    auditEffect: 'Potential for unauthorized withdrawal of cash or other valuables, leading to financial loss and reputational damage.',
     mitigationPlan:
       '1. Immediately revoke the unauthorized access codes.\n2. Implement a dual-control system for vault access.\n3. Conduct a full audit of vault contents.\n4. Provide mandatory security protocol retraining for all staff.',
     status: 'In Progress',

@@ -97,6 +97,8 @@ export function AuditFindingCard({
 
   const allAttachments = [
     ...(finding.findingAttachments || []),
+    ...(finding.auditCauseAttachments || []),
+    ...(finding.auditEffectAttachments || []),
     ...(finding.mitigationAttachments || []),
     ...(finding.auditeeAttachmentFilename ? [finding.auditeeAttachmentFilename] : []),
   ];

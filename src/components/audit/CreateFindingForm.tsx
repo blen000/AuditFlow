@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { AuditFinding, RiskLevel } from '@/types';
+import type { AuditFinding } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
@@ -43,6 +43,8 @@ const formSchema = z.object({
   branchOrDepartment: z.string({
     required_error: 'You need to select a branch/department.',
   }),
+  auditCause: z.string().optional(),
+  auditEffect: z.string().optional(),
   mitigationPlan: z.string().optional(),
   // We'll handle files separately, not through zod for now
 });
@@ -54,16 +56,24 @@ export function CreateFindingForm() {
     defaultValues: {
       title: '',
       details: '',
+      auditCause: '',
+      auditEffect: '',
       mitigationPlan: '',
     },
   });
 
   const { register } = form;
   const findingAttachments = form.watch('findingAttachments' as any);
+  const auditCauseAttachments = form.watch('auditCauseAttachments' as any);
+  const auditEffectAttachments = form.watch('auditEffectAttachments' as any);
   const mitigationAttachments = form.watch('mitigationAttachments' as any);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const findingAttachmentFiles = findingAttachments as FileList | undefined;
+    const auditCauseAttachmentFiles =
+      auditCauseAttachments as FileList | undefined;
+    const auditEffectAttachmentFiles =
+      auditEffectAttachments as FileList | undefined;
     const mitigationAttachmentFiles =
       mitigationAttachments as FileList | undefined;
 
@@ -76,6 +86,12 @@ export function CreateFindingForm() {
       mitigationPlan: values.mitigationPlan || '',
       findingAttachments: findingAttachmentFiles
         ? Array.from(findingAttachmentFiles).map((file) => file.name)
+        : [],
+      auditCauseAttachments: auditCauseAttachmentFiles
+        ? Array.from(auditCauseAttachmentFiles).map((file) => file.name)
+        : [],
+      auditEffectAttachments: auditEffectAttachmentFiles
+        ? Array.from(auditEffectAttachmentFiles).map((file) => file.name)
         : [],
       mitigationAttachments: mitigationAttachmentFiles
         ? Array.from(mitigationAttachmentFiles).map((file) => file.name)
@@ -129,13 +145,11 @@ export function CreateFindingForm() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {riskLevels.map(
-                            (level) => (
-                              <SelectItem key={level.name} value={level.name}>
-                                {level.name}
-                              </SelectItem>
-                            )
-                          )}
+                          {riskLevels.map((level) => (
+                            <SelectItem key={level.name} value={level.name}>
+                              {level.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -188,7 +202,6 @@ export function CreateFindingForm() {
                   </FormItem>
                 )}
               />
-
               <FormItem>
                 <FormLabel>Finding Attachments</FormLabel>
                 <FormControl>
@@ -202,24 +215,105 @@ export function CreateFindingForm() {
                   You can upload multiple files.
                 </FormDescription>
                 {findingAttachments &&
-                  Array.from(findingAttachments).map((file: any, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 text-sm text-muted-foreground"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                      <span>{file.name}</span>
-                    </div>
-                  ))}
+                  Array.from(findingAttachments).map(
+                    (file: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        <span>{file.name}</span>
+                      </div>
+                    )
+                  )}
                 <FormMessage />
               </FormItem>
-
               <Separator />
-
+              <FormField
+                control={form.control}
+                name="auditCause"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cause of Audit</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Describe the cause of the audit finding..."
+                        className="h-24 resize-y"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormItem>
+                <FormLabel>Cause Attachments</FormLabel>
+                <FormControl>
+                  <Input
+                    type="file"
+                    multiple
+                    {...register('auditCauseAttachments' as any)}
+                  />
+                </FormControl>
+                {auditCauseAttachments &&
+                  Array.from(auditCauseAttachments).map(
+                    (file: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        <span>{file.name}</span>
+                      </div>
+                    )
+                  )}
+                <FormMessage />
+              </FormItem>
+              <Separator />
+              <FormField
+                control={form.control}
+                name="auditEffect"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Effect of Audit</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Describe the effect of the audit finding..."
+                        className="h-24 resize-y"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormItem>
+                <FormLabel>Effect Attachments</FormLabel>
+                <FormControl>
+                  <Input
+                    type="file"
+                    multiple
+                    {...register('auditEffectAttachments' as any)}
+                  />
+                </FormControl>
+                {auditEffectAttachments &&
+                  Array.from(auditEffectAttachments).map(
+                    (file: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        <span>{file.name}</span>
+                      </div>
+                    )
+                  )}
+                <FormMessage />
+              </FormItem>
+              <Separator />
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold">Mitigation</h3>
               </div>
-
               <FormField
                 control={form.control}
                 name="mitigationPlan"
@@ -237,7 +331,6 @@ export function CreateFindingForm() {
                   </FormItem>
                 )}
               />
-
               <FormItem>
                 <FormLabel>Mitigation Attachments</FormLabel>
                 <FormControl>
