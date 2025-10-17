@@ -2,6 +2,13 @@ export type RiskLevel = 'High' | 'Medium' | 'Low';
 export type FindingStatus = 'Open' | 'In Progress' | 'Mitigated' | 'Closed';
 export type AuditeeAgreement = 'Pending' | 'Agreed' | 'Declined';
 
+export type ProgressUpdate = {
+  id: string;
+  date: Date;
+  details: string;
+  attachmentFilename?: string;
+};
+
 export type AuditFinding = {
   id: string;
   title: string;
@@ -15,4 +22,5 @@ export type AuditFinding = {
   mitigationDueDate?: Date;
   auditeeResponse?: string;
   auditeeAttachmentFilename?: string;
+  progressUpdates?: ProgressUpdate[];
 };

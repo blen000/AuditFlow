@@ -14,6 +14,19 @@ export const mockFindings: AuditFinding[] = [
     revalidationDate: new Date('2024-08-15T00:00:00.000Z'),
     auditeeAgreement: 'Agreed',
     mitigationDueDate: new Date('2024-07-30T00:00:00.000Z'),
+    progressUpdates: [
+      {
+        id: 'PROG-001',
+        date: new Date('2024-07-10T00:00:00.000Z'),
+        details: 'Access codes have been revoked. Dual-control system hardware has been ordered.',
+        attachmentFilename: 'order_confirmation.pdf'
+      },
+      {
+        id: 'PROG-002',
+        date: new Date('2024-07-20T00:00:00.000Z'),
+        details: 'Dual-control system installed. Staff retraining scheduled for next week.',
+      }
+    ]
   },
   {
     id: 'FIND-002',
@@ -51,7 +64,7 @@ export const mockFindings: AuditFinding[] = [
     mitigationPlan:
       'Reassign duties to ensure one person approves and another disburses the loan amounts.',
     status: 'Closed',
-    revalidationDate: new Date('2024-05-01T00:00:00.000Z'),
+    revalidationDate: new Date('2024-05-01T00:00:00.00Z'),
     auditeeAgreement: 'Agreed',
   },
   {

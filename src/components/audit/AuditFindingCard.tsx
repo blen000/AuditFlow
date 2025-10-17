@@ -1,5 +1,10 @@
 'use client';
-import type { AuditFinding, AuditeeAgreement, FindingStatus } from '@/types';
+import type {
+  AuditFinding,
+  AuditeeAgreement,
+  FindingStatus,
+  ProgressUpdate,
+} from '@/types';
 import {
   Card,
   CardContent,
@@ -27,6 +32,8 @@ import {
   Trash2,
   Handshake,
   Paperclip,
+  PlusCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
@@ -38,6 +45,8 @@ import Link from 'next/link';
 import { AgreementBadge } from './AgreementBadge';
 import { AuditeeResponseDialog } from './AuditeeResponseDialog';
 import { useState } from 'react';
+import { AddProgressUpdateDialog } from './AddProgressUpdateDialog';
+import { Separator } from '../ui/separator';
 
 type AuditFindingCardProps = {
   finding: AuditFinding;
@@ -51,6 +60,7 @@ export function AuditFindingCard({
   onUpdate,
 }: AuditFindingCardProps) {
   const [isResponseDialogOpen, setResponseDialogOpen] = useState(false);
+  const [isProgressDialogOpen, setProgressDialogOpen] = useState(false);
 
   const statuses: FindingStatus[] = [
     'Open',
@@ -82,6 +92,22 @@ export function AuditFindingCard({
     });
   };
 
+  const handleAddProgress = (update: {
+    details: string;
+    attachmentFilename?: string;
+  }) => {
+    const newProgressUpdate: ProgressUpdate = {
+      id: `PROG-${Date.now()}`,
+      date: new Date(),
+      ...update,
+    };
+    const updatedProgress = [
+      ...(finding.progressUpdates || []),
+      newProgressUpdate,
+    ];
+    onUpdate(finding.id, { progressUpdates: updatedProgress });
+  };
+
   return (
     <>
       <Card className="flex flex-col">
@@ -101,6 +127,10 @@ export function AuditFindingCard({
                 <DropdownMenuItem onClick={() => setResponseDialogOpen(true)}>
                   <Handshake className="mr-2 h-4 w-4" />
                   Auditee Response
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setProgressDialogOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Progress
                 </DropdownMenuItem>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
@@ -132,21 +162,50 @@ export function AuditFindingCard({
             {finding.branchOrDepartment} &mdash; {finding.details}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-grow flex-wrap items-center gap-x-4 gap-y-2">
-          <StatusBadge status={finding.status} />
-          <AgreementBadge agreement={finding.auditeeAgreement} />
-          {finding.mitigationDueDate && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Check className="h-3.5 w-3.5" />
-              <span>
-                Due {format(finding.mitigationDueDate, 'MMM d, yyyy')}
-              </span>
-            </div>
-          )}
-          {finding.auditeeAttachmentFilename && (
-             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Paperclip className="h-3.5 w-3.5" />
-              <span>{finding.auditeeAttachmentFilename}</span>
+        <CardContent className="flex flex-grow flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <StatusBadge status={finding.status} />
+            <AgreementBadge agreement={finding.auditeeAgreement} />
+            {finding.mitigationDueDate && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Check className="h-3.5 w-3.5" />
+                <span>
+                  Due {format(finding.mitigationDueDate, 'MMM d, yyyy')}
+                </span>
+              </div>
+            )}
+            {finding.auditeeAttachmentFilename && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Paperclip className="h-3.5 w-3.5" />
+                <span>{finding.auditeeAttachmentFilename}</span>
+              </div>
+            )}
+          </div>
+          {finding.progressUpdates && finding.progressUpdates.length > 0 && (
+            <div className="mt-2 space-y-3 pt-2">
+               <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <h4 className="text-sm font-semibold">Progress Updates</h4>
+              </div>
+              <div className="space-y-3 rounded-md border bg-muted/50 p-3">
+                {finding.progressUpdates.slice(0, 2).map((update) => (
+                  <div key={update.id} className="text-xs">
+                    <p className="font-semibold text-foreground">
+                      {format(update.date, 'MMM d, yyyy')}:{' '}
+                      <span className="font-normal text-muted-foreground">{update.details}</span>
+                    </p>
+                    {update.attachmentFilename && (
+                       <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                        <Paperclip className="h-3 w-3" />
+                        <span>{update.attachmentFilename}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {finding.progressUpdates.length > 2 && (
+                  <Button variant="link" size="sm" className="h-auto p-0 text-xs">View all updates</Button>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
@@ -196,6 +255,11 @@ export function AuditFindingCard({
         onOpenChange={setResponseDialogOpen}
         finding={finding}
         onSubmit={handleAuditeeResponse}
+      />
+      <AddProgressUpdateDialog
+        open={isProgressDialogOpen}
+        onOpenChange={setProgressDialogOpen}
+        onSubmit={handleAddProgress}
       />
     </>
   );
