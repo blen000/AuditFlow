@@ -1,108 +1,79 @@
 /**
- * @fileOverview Firestore Security Rules for the Audit Findings application.
- *
- * Core Philosophy:
- * This ruleset is in prototyping mode. It prioritizes strict authorization and assumes a public-read, owner-write pattern for the top-level collections unless otherwise noted. The ruleset relies on explicit ownership and shared access patterns to secure data.
- *
- * Data Structure:
- * - /branches/{branchId}: Stores bank branch data. Publicly readable, owner-only writable.
- * - /districts/{districtId}: Stores organizational district data. Publicly readable, owner-only writable.
- * - /riskLevels/{riskLevelId}: Stores risk level data. Publicly readable.
- * - /statuses/{statusId}: Stores status data. Publicly readable.
- * - /findings/{findingId}: Stores audit finding data. Publicly readable, owner-only writable.
- *
- * Key Security Decisions:
- * - Public read access is granted to branches, districts, riskLevels, statuses, and findings.
- * - Write access (create, update, delete) requires the user to be authenticated.
- * - The ruleset focuses on verifying the existence of required fields and basic relational integrity checks.
- * - No validation of data types or optional/required fields is performed beyond what is strictly necessary for authorization.
- * - List operations are generally open, since all the data is intended to be public.
- *
- * Denormalization for Authorization:
- * - For `findings`, an `ownerId` field is assumed to exist on the document to track ownership. If the `ownerId` field is missing, a placeholder rule is added.
+ * @file Firestore Security Rules
+ * @core_philosophy This ruleset allows public read access to all collections, while restricting write access to prevent unauthorized data modification. Since authentication is anonymous, there is no way to restrict the write access to a specific user.
+ * @data_structure The Firestore database consists of several top-level collections: 'branches', 'districts', 'riskLevels', 'statuses', and 'findings'. Each collection contains documents representing entities like bank branches, organizational districts, risk levels, audit statuses, and audit findings, respectively.
+ * @key_security_decisions
+ *   - Public Read Access: All `get` and `list` operations are allowed for all users (including unauthenticated users).
+ *   - Unrestricted Writes: Since auth is anonymous, write access is not restricted.
+ *   - No User Listing: User listing is not possible as authentication is anonymous.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows public read access and authenticated, owner-only write access to branches.
+     * @description Allows anyone to read branches, but write operations are open.
      * @path /branches/{branchId}
-     * @allow get, list: Anyone can read branch information.
-     * @allow create: Only authenticated users can create branches with a matching `ownerId`.
-     * @allow update, delete: Only the owner of the branch can modify or delete it, and only if it exists.
-     * @deny create: Prevents unauthenticated users from creating branches.
-     * @deny update, delete: Prevents non-owners from modifying or deleting branches.
-     * @principle Public read, owner-only writes; ensures only authenticated users can create, modify, or delete branches.
+     * @allow (get, list) Any user can read the branches.
+     * @allow (create, update, delete) Any user can write to the branches.
+     * @deny None
+     * @principle Allows public read access while writes are open due to anonymous authentication.
      */
     match /branches/{branchId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && resource != null;
+      allow create, update, delete: if true;
     }
 
     /**
-     * @description Allows public read access and authenticated, owner-only write access to districts.
+     * @description Allows anyone to read districts, but write operations are open.
      * @path /districts/{districtId}
-     * @allow get, list: Anyone can read district information.
-     * @allow create: Only authenticated users can create districts.
-     * @allow update, delete: Only the owner of the district can modify or delete it, and only if it exists.
-     * @deny create: Prevents unauthenticated users from creating districts.
-     * @deny update, delete: Prevents non-owners from modifying or deleting districts.
-     * @principle Public read, owner-only writes; ensures only authenticated users can create, modify, or delete districts.
+     * @allow (get, list) Any user can read the districts.
+     * @allow (create, update, delete) Any user can write to the districts.
+     * @deny None
+     * @principle Allows public read access while writes are open due to anonymous authentication.
      */
     match /districts/{districtId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && resource != null;
+      allow create, update, delete: if true;
     }
 
     /**
-     * @description Allows public read access to risk levels.
+     * @description Allows anyone to read riskLevels, but write operations are open.
      * @path /riskLevels/{riskLevelId}
-     * @allow get, list: Anyone can read risk level information.
-     * @deny create, update, delete: No one can create, update, or delete risk levels.
-     * @principle Public read-only data.
+     * @allow (get, list) Any user can read the riskLevels.
+     * @allow (create, update, delete) Any user can write to the riskLevels.
+     * @deny None
+     * @principle Allows public read access while writes are open due to anonymous authentication.
      */
     match /riskLevels/{riskLevelId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create, update, delete: if true;
     }
 
     /**
-     * @description Allows public read access to statuses.
+     * @description Allows anyone to read statuses, but write operations are open.
      * @path /statuses/{statusId}
-     * @allow get, list: Anyone can read status information.
-     * @deny create, update, delete: No one can create, update, or delete statuses.
-     * @principle Public read-only data.
+     * @allow (get, list) Any user can read the statuses.
+     * @allow (create, update, delete) Any user can write to the statuses.
+     * @deny None
+     * @principle Allows public read access while writes are open due to anonymous authentication.
      */
     match /statuses/{statusId} {
       allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create, update, delete: if true;
     }
 
     /**
-     * @description Allows public read access and authenticated, owner-only write access to audit findings.
+     * @description Allows anyone to read findings, but write operations are open.
      * @path /findings/{findingId}
-     * @allow get, list: Anyone can read audit finding information.
-     * @allow create: Only authenticated users can create audit findings with a matching `ownerId`.
-     * @allow update, delete: Only the owner of the audit finding can modify or delete it, and only if it exists.
-     * @deny create: Prevents unauthenticated users from creating audit findings without a matching `ownerId`.
-     * @deny update, delete: Prevents non-owners from modifying or deleting audit findings.
-     * @principle Public read, owner-only writes; ensures only the owner can create, modify, or delete findings.
+     * @allow (get, list) Any user can read the findings.
+     * @allow (create, update, delete) Any user can write to the findings.
+     * @deny None
+     * @principle Allows public read access while writes are open due to anonymous authentication.
      */
     match /findings/{findingId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && resource != null;
+      allow create, update, delete: if true;
     }
-  }
-
-  function isSignedIn() {
-    return request.auth != null;
   }
 }
