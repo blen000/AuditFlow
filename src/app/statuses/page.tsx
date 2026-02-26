@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -6,23 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle } from 'lucide-react';
 import { AddEditStatusDialog } from '@/components/audit/AddEditStatusDialog';
 import PageHeader from '@/components/layout/PageHeader';
-import {
-  useCollection,
-  useFirestore,
-  useMemoFirebase,
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-} from '@/firebase';
 import type { StatusData } from '@/types';
-import { collection, doc } from 'firebase/firestore';
+import { initialStatuses } from '@/lib/mock-data';
 
 export default function StatusesPage() {
-  const firestore = useFirestore();
-  const statusesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'statuses') : null),
-    [firestore]
-  );
-  const { data: statuses } = useCollection<StatusData>(statusesQuery);
+  const [statuses, setStatuses] = useState<StatusData[]>(initialStatuses);
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingStatus, setEditingStatus] = useState<StatusData | null>(null);
@@ -38,13 +27,11 @@ export default function StatusesPage() {
   };
 
   const handleSubmit = (statusData: StatusData) => {
-    if (!firestore) return;
     if (editingStatus && editingStatus.id) {
-      const statusRef = doc(firestore, 'statuses', editingStatus.id);
-      updateDocumentNonBlocking(statusRef, statusData);
+      setStatuses(prev => prev.map(s => s.id === editingStatus.id ? { ...s, ...statusData } : s));
     } else {
-      const statusesCollection = collection(firestore, 'statuses');
-      addDocumentNonBlocking(statusesCollection, statusData);
+      const newStatus = { ...statusData, id: `STAT-${Date.now()}` };
+      setStatuses(prev => [...prev, newStatus]);
     }
     setEditingStatus(null);
   };
@@ -69,7 +56,7 @@ export default function StatusesPage() {
               </CardHeader>
               <CardContent>
                 <ul className="divide-y divide-border">
-                  {statuses?.map((status) => (
+                  {statuses.map((status) => (
                     <li
                       key={status.id}
                       className="flex items-center justify-between p-4"

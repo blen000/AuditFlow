@@ -1,6 +1,7 @@
+
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { AuditeeResponseForm } from '@/components/audit/AuditeeResponseForm';
 import PageHeader from '@/components/layout/PageHeader';
 import {
@@ -11,18 +12,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { InvolvedCasesManager } from '@/components/audit/InvolvedCasesManager';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { AuditFinding } from '@/types';
-import { doc } from 'firebase/firestore';
-import { Timestamp } from 'firebase/firestore';
-
-function toDate(timestamp: Date | Timestamp | undefined): Date | undefined {
-  if (!timestamp) return undefined;
-  if (timestamp instanceof Timestamp) {
-    return timestamp.toDate();
-  }
-  return timestamp;
-}
+import { initialFindings } from '@/lib/mock-data';
 
 export default function RespondToFindingPage({
   params,
@@ -30,16 +21,7 @@ export default function RespondToFindingPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const firestore = useFirestore();
-  const findingRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'findings', id) : null),
-    [firestore, id]
-  );
-  const { data: finding, isLoading } = useDoc<AuditFinding>(findingRef);
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+  const [finding] = useState<AuditFinding | undefined>(initialFindings.find(f => f.id === id));
 
   if (!finding) {
     return <div>Finding not found</div>;

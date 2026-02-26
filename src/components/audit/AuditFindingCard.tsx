@@ -1,3 +1,4 @@
+
 'use client';
 import type { AuditFinding, FindingStatus, ProgressUpdate } from '@/types';
 import {
@@ -48,13 +49,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import {
-  useCollection,
-  useFirestore,
-  useMemoFirebase,
-} from '@/firebase';
-import { collection, Timestamp } from 'firebase/firestore';
 import type { StatusData } from '@/types';
+import { initialStatuses } from '@/lib/mock-data';
 
 type AuditFindingCardProps = {
   finding: AuditFinding;
@@ -62,26 +58,13 @@ type AuditFindingCardProps = {
   onUpdate: (id: string, updates: Partial<AuditFinding>) => void;
 };
 
-function toDate(timestamp: Date | Timestamp | undefined): Date | undefined {
-  if (!timestamp) return undefined;
-  if (timestamp instanceof Timestamp) {
-    return timestamp.toDate();
-  }
-  return timestamp;
-}
-
 export function AuditFindingCard({
   finding,
   onDelete,
   onUpdate,
 }: AuditFindingCardProps) {
   const [isProgressDialogOpen, setProgressDialogOpen] = useState(false);
-  const firestore = useFirestore();
-  const statusesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'statuses') : null),
-    [firestore]
-  );
-  const { data: allStatuses } = useCollection<StatusData>(statusesQuery);
+  const [allStatuses] = useState<StatusData[]>(initialStatuses);
 
   const handleStatusChange = (status: FindingStatus) => {
     onUpdate(finding.id, { status });
@@ -120,9 +103,8 @@ export function AuditFindingCard({
   const totalAmount =
     finding.involvedAmounts?.reduce((sum, item) => sum + item.amount, 0) || 0;
     
-  const revalidationDate = toDate(finding.revalidationDate);
-  const mitigationDueDate = toDate(finding.mitigationDueDate);
-
+  const revalidationDate = finding.revalidationDate as Date | undefined;
+  const mitigationDueDate = finding.mitigationDueDate as Date | undefined;
 
   return (
     <>
@@ -158,7 +140,7 @@ export function AuditFindingCard({
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
-                    {allStatuses?.map((status) => (
+                    {allStatuses.map((status) => (
                       <DropdownMenuItem
                         key={status.id}
                         onClick={() => handleStatusChange(status.name)}
@@ -256,11 +238,11 @@ export function AuditFindingCard({
               <CollapsibleContent>
                 <div className="mt-2 space-y-3 rounded-md border bg-muted/50 p-3">
                   {[...finding.progressUpdates]
-                    .sort((a, b) => toDate(b.date)!.getTime() - toDate(a.date)!.getTime())
+                    .sort((a, b) => new Date(b.date as Date).getTime() - new Date(a.date as Date).getTime())
                     .map((update) => (
                       <div key={update.id} className="text-xs">
                         <p className="font-semibold text-foreground">
-                          {format(toDate(update.date)!, 'MMM d, yyyy')}:{' '}
+                          {format(update.date as Date, 'MMM d, yyyy')}:{' '}
                           <span className="font-normal text-muted-foreground">
                             {update.details}
                           </span>

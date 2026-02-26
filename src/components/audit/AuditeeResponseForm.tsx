@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -25,29 +26,18 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card';
-import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
-import { doc, Timestamp } from 'firebase/firestore';
 
 type AuditeeResponseFormProps = {
   finding: AuditFinding;
 };
 
-function toDate(timestamp: Date | Timestamp | undefined): Date | undefined {
-  if (!timestamp) return undefined;
-  if (timestamp instanceof Timestamp) {
-    return timestamp.toDate();
-  }
-  return timestamp;
-}
-
 export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
   const router = useRouter();
-  const firestore = useFirestore();
   const [agreement, setAgreement] = useState<AuditeeAgreement>(
     finding.auditeeAgreement
   );
   const [mitigationDueDate, setMitigationDueDate] = useState<Date | undefined>(
-    toDate(finding.mitigationDueDate)
+    finding.mitigationDueDate as Date | undefined
   );
   const [disagreementReason, setDisagreementReason] = useState(
     finding.auditeeResponse || ''
@@ -55,26 +45,13 @@ export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
   const [attachment, setAttachment] = useState<File | null>(null);
 
   const handleSubmit = () => {
-    if (!firestore) return;
-
-    const updates: Partial<AuditFinding> = {
-      auditeeAgreement: agreement,
-      status: agreement === 'Agreed' ? 'In Progress' : 'Open',
-    };
-
-    if (agreement === 'Agreed') {
-      updates.mitigationDueDate = mitigationDueDate;
-      updates.auditeeResponse = '';
-      updates.auditeeAttachmentFilename = '';
-    } else {
-      updates.mitigationDueDate = undefined;
-      updates.auditeeResponse = disagreementReason;
-      updates.auditeeAttachmentFilename = attachment?.name;
-    }
-
-    const findingRef = doc(firestore, 'findings', finding.id);
-    updateDocumentNonBlocking(findingRef, updates);
-
+    // In a real local state app, we would emit an event or call a context function
+    console.log('Submitting response locally', {
+      agreement,
+      mitigationDueDate,
+      disagreementReason,
+      attachmentName: attachment?.name
+    });
     router.push('/');
   };
 

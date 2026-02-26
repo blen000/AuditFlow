@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -6,29 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle } from 'lucide-react';
 import { AddEditBranchDialog } from '@/components/audit/AddEditBranchDialog';
 import PageHeader from '@/components/layout/PageHeader';
-import {
-  useCollection,
-  useFirestore,
-  useMemoFirebase,
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-} from '@/firebase';
 import type { Branch, District } from '@/types';
-import { collection, doc } from 'firebase/firestore';
+import { initialBranches, initialDistricts } from '@/lib/mock-data';
 
 export default function BranchesPage() {
-  const firestore = useFirestore();
-  const branchesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'branches') : null),
-    [firestore]
-  );
-  const { data: branches } = useCollection<Branch>(branchesQuery);
-
-  const districtsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'districts') : null),
-    [firestore]
-  );
-  const { data: districts } = useCollection<District>(districtsQuery);
+  const [branches, setBranches] = useState<Branch[]>(initialBranches);
+  const [districts] = useState<District[]>(initialDistricts);
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
@@ -44,13 +28,11 @@ export default function BranchesPage() {
   };
 
   const handleSubmit = (branchData: Branch) => {
-    if (!firestore) return;
     if (editingBranch && editingBranch.id) {
-      const branchRef = doc(firestore, 'branches', editingBranch.id);
-      updateDocumentNonBlocking(branchRef, branchData);
+      setBranches(prev => prev.map(b => b.id === editingBranch.id ? { ...b, ...branchData } : b));
     } else {
-      const branchesCollection = collection(firestore, 'branches');
-      addDocumentNonBlocking(branchesCollection, branchData);
+      const newBranch = { ...branchData, id: `BR-${Date.now()}` };
+      setBranches(prev => [...prev, newBranch]);
     }
     setEditingBranch(null);
   };
@@ -75,7 +57,7 @@ export default function BranchesPage() {
               </CardHeader>
               <CardContent>
                 <ul className="divide-y divide-border">
-                  {branches?.map((branch) => (
+                  {branches.map((branch) => (
                     <li
                       key={branch.id}
                       className="flex items-center justify-between p-4"
@@ -106,7 +88,7 @@ export default function BranchesPage() {
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
         branch={editingBranch}
-        districtList={districts || []}
+        districtList={districts}
       />
     </>
   );

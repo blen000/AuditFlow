@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,18 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { AuditFinding, Branch, RiskLevelData } from '@/types';
+import type { Branch, RiskLevelData } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
 import { Paperclip, PlusCircle, Trash2 } from 'lucide-react';
-import {
-  useCollection,
-  useFirestore,
-  useMemoFirebase,
-  addDocumentNonBlocking,
-} from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useState } from 'react';
+import { initialBranches, initialRiskLevels } from '@/lib/mock-data';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -66,24 +62,12 @@ const formSchema = z.object({
       })
     )
     .optional(),
-  // We'll handle files separately, not through zod for now
 });
 
 export function CreateFindingForm() {
   const router = useRouter();
-  const firestore = useFirestore();
-
-  const branchesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'branches') : null),
-    [firestore]
-  );
-  const { data: branches } = useCollection<Branch>(branchesQuery);
-
-  const riskLevelsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'riskLevels') : null),
-    [firestore]
-  );
-  const { data: riskLevels } = useCollection<RiskLevelData>(riskLevelsQuery);
+  const [branches] = useState<Branch[]>(initialBranches);
+  const [riskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -125,45 +109,7 @@ export function CreateFindingForm() {
   );
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!firestore) return;
-
-    const findingAttachmentFiles = findingAttachments as FileList | undefined;
-    const auditCauseAttachmentFiles =
-      auditCauseAttachments as FileList | undefined;
-    const auditEffectAttachmentFiles =
-      auditEffectAttachments as FileList | undefined;
-    const recommendationAttachmentFiles =
-      recommendationAttachments as FileList | undefined;
-
-    const newFinding: Omit<AuditFinding, 'id'> = {
-      status: 'Open',
-      auditeeAgreement: 'Pending',
-      ...values,
-      riskLevel: values.riskLevel,
-      recommendation: values.recommendation || '',
-      involvedCases:
-        values.involvedCases?.map((c) => ({
-          ...c,
-          id: `CASE-${Date.now()}-${Math.random()}`,
-          status: 'Open',
-        })) || [],
-      findingAttachments: findingAttachmentFiles
-        ? Array.from(findingAttachmentFiles).map((file) => file.name)
-        : [],
-      auditCauseAttachments: auditCauseAttachmentFiles
-        ? Array.from(auditCauseAttachmentFiles).map((file) => file.name)
-        : [],
-      auditEffectAttachments: auditEffectAttachmentFiles
-        ? Array.from(auditEffectAttachmentFiles).map((file) => file.name)
-        : [],
-      recommendationAttachments: recommendationAttachmentFiles
-        ? Array.from(recommendationAttachmentFiles).map((file) => file.name)
-        : [],
-    };
-
-    const findingsCollection = collection(firestore, 'findings');
-    addDocumentNonBlocking(findingsCollection, newFinding);
-
+    console.log('Logging finding locally', values);
     router.push('/');
   }
 
@@ -210,7 +156,7 @@ export function CreateFindingForm() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {riskLevels?.map((level) => (
+                          {riskLevels.map((level) => (
                             <SelectItem key={level.id} value={level.name}>
                               {level.name}
                             </SelectItem>
@@ -237,7 +183,7 @@ export function CreateFindingForm() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {branches?.map((branch) => (
+                          {branches.map((branch) => (
                             <SelectItem key={branch.id} value={branch.name}>
                               {branch.name}
                             </SelectItem>
@@ -267,32 +213,6 @@ export function CreateFindingForm() {
                   </FormItem>
                 )}
               />
-              <FormItem>
-                <FormLabel>Finding Attachments</FormLabel>
-                <FormControl>
-                  <Input
-                    type="file"
-                    multiple
-                    {...register('findingAttachments' as any)}
-                  />
-                </FormControl>
-                <FormDescription>
-                  You can upload multiple files.
-                </FormDescription>
-                {findingAttachments &&
-                  Array.from(findingAttachments).map(
-                    (file: any, index: number) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        <span>{file.name}</span>
-                      </div>
-                    )
-                  )}
-                <FormMessage />
-              </FormItem>
               <Separator />
               <div>
                 <h3 className="text-lg font-semibold">Amounts Involved</h3>
@@ -417,29 +337,6 @@ export function CreateFindingForm() {
                   </FormItem>
                 )}
               />
-              <FormItem>
-                <FormLabel>Cause Attachments</FormLabel>
-                <FormControl>
-                  <Input
-                    type="file"
-                    multiple
-                    {...register('auditCauseAttachments' as any)}
-                  />
-                </FormControl>
-                {auditCauseAttachments &&
-                  Array.from(auditCauseAttachments).map(
-                    (file: any, index: number) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        <span>{file.name}</span>
-                      </div>
-                    )
-                  )}
-                <FormMessage />
-              </FormItem>
               <Separator />
               <FormField
                 control={form.control}
@@ -458,29 +355,6 @@ export function CreateFindingForm() {
                   </FormItem>
                 )}
               />
-              <FormItem>
-                <FormLabel>Effect Attachments</FormLabel>
-                <FormControl>
-                  <Input
-                    type="file"
-                    multiple
-                    {...register('auditEffectAttachments' as any)}
-                  />
-                </FormControl>
-                {auditEffectAttachments &&
-                  Array.from(auditEffectAttachments).map(
-                    (file: any, index: number) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        <span>{file.name}</span>
-                      </div>
-                    )
-                  )}
-                <FormMessage />
-              </FormItem>
               <Separator />
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold">Recommendation</h3>
@@ -502,32 +376,6 @@ export function CreateFindingForm() {
                   </FormItem>
                 )}
               />
-              <FormItem>
-                <FormLabel>Recommendation Attachments</FormLabel>
-                <FormControl>
-                  <Input
-                    type="file"
-                    multiple
-                    {...register('recommendationAttachments' as any)}
-                  />
-                </FormControl>
-                <FormDescription>
-                  You can upload multiple files for the recommendation.
-                </FormDescription>
-                {recommendationAttachments &&
-                  Array.from(recommendationAttachments).map(
-                    (file: any, index: number) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        <span>{file.name}</span>
-                      </div>
-                    )
-                  )}
-                <FormMessage />
-              </FormItem>
 
               <div className="flex justify-end gap-2">
                 <Button

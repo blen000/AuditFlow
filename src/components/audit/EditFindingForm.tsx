@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,13 +29,7 @@ import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
 import { useEffect, useState } from 'react';
 import { Paperclip, PlusCircle, Trash2 } from 'lucide-react';
-import {
-  useCollection,
-  useFirestore,
-  useMemoFirebase,
-  updateDocumentNonBlocking,
-} from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { initialBranches, initialRiskLevels } from '@/lib/mock-data';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -77,23 +72,22 @@ type EditFindingFormProps = {
 
 export function EditFindingForm({ finding }: EditFindingFormProps) {
   const router = useRouter();
-  const firestore = useFirestore();
-
-  const branchesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'branches') : null),
-    [firestore]
-  );
-  const { data: branches } = useCollection<Branch>(branchesQuery);
-
-  const riskLevelsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'riskLevels') : null),
-    [firestore]
-  );
-  const { data: riskLevels } = useCollection<RiskLevelData>(riskLevelsQuery);
+  const [branches] = useState<Branch[]>(initialBranches);
+  const [riskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {},
+    defaultValues: {
+      title: finding.title,
+      details: finding.details,
+      riskLevel: finding.riskLevel,
+      branchOrDepartment: finding.branchOrDepartment,
+      auditCause: finding.auditCause,
+      auditEffect: finding.auditEffect,
+      recommendation: finding.recommendation,
+      involvedAmounts: finding.involvedAmounts || [],
+      involvedCases: finding.involvedCases || [],
+    },
   });
 
   const {
@@ -114,97 +108,8 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
     name: 'involvedCases',
   });
 
-  const { register } = form;
-  const [existingFindingAttachments, setExistingFindingAttachments] = useState(
-    finding.findingAttachments || []
-  );
-  const [existingAuditCauseAttachments, setExistingAuditCauseAttachments] =
-    useState(finding.auditCauseAttachments || []);
-  const [existingAuditEffectAttachments, setExistingAuditEffectAttachments] =
-    useState(finding.auditEffectAttachments || []);
-  const [
-    existingRecommendationAttachments,
-    setExistingRecommendationAttachments,
-  ] = useState(finding.recommendationAttachments || []);
-
-  const findingAttachments = form.watch('findingAttachments' as any);
-  const auditCauseAttachments = form.watch('auditCauseAttachments' as any);
-  const auditEffectAttachments = form.watch('auditEffectAttachments' as any);
-  const recommendationAttachments = form.watch(
-    'recommendationAttachments' as any
-  );
-
-  useEffect(() => {
-    if (finding) {
-      form.reset({
-        title: finding.title,
-        details: finding.details,
-        riskLevel: finding.riskLevel,
-        branchOrDepartment: finding.branchOrDepartment,
-        auditCause: finding.auditCause,
-        auditEffect: finding.auditEffect,
-        recommendation: finding.recommendation,
-        involvedAmounts: finding.involvedAmounts || [],
-        involvedCases: finding.involvedCases || [],
-      });
-      setExistingFindingAttachments(finding.findingAttachments || []);
-      setExistingAuditCauseAttachments(finding.auditCauseAttachments || []);
-      setExistingAuditEffectAttachments(finding.auditEffectAttachments || []);
-      setExistingRecommendationAttachments(
-        finding.recommendationAttachments || []
-      );
-    }
-  }, [finding, form]);
-
   function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!firestore) return;
-
-    const findingAttachmentFiles = findingAttachments as FileList | undefined;
-    const auditCauseAttachmentFiles =
-      auditCauseAttachments as FileList | undefined;
-    const auditEffectAttachmentFiles =
-      auditEffectAttachments as FileList | undefined;
-    const recommendationAttachmentFiles =
-      recommendationAttachments as FileList | undefined;
-
-    const newFindingAttachments = findingAttachmentFiles
-      ? Array.from(findingAttachmentFiles).map((file) => file.name)
-      : [];
-    const newAuditCauseAttachments = auditCauseAttachmentFiles
-      ? Array.from(auditCauseAttachmentFiles).map((file) => file.name)
-      : [];
-    const newAuditEffectAttachments = auditEffectAttachmentFiles
-      ? Array.from(auditEffectAttachmentFiles).map((file) => file.name)
-      : [];
-    const newRecommendationAttachments = recommendationAttachmentFiles
-      ? Array.from(recommendationAttachmentFiles).map((file) => file.name)
-      : [];
-
-    const updatedFinding: Partial<AuditFinding> = {
-      ...values,
-      riskLevel: values.riskLevel,
-      recommendation: values.recommendation || '',
-      findingAttachments: [
-        ...existingFindingAttachments,
-        ...newFindingAttachments,
-      ],
-      auditCauseAttachments: [
-        ...existingAuditCauseAttachments,
-        ...newAuditCauseAttachments,
-      ],
-      auditEffectAttachments: [
-        ...existingAuditEffectAttachments,
-        ...newAuditEffectAttachments,
-      ],
-      recommendationAttachments: [
-        ...existingRecommendationAttachments,
-        ...newRecommendationAttachments,
-      ],
-    };
-
-    const findingRef = doc(firestore, 'findings', finding.id);
-    updateDocumentNonBlocking(findingRef, updatedFinding);
-
+    console.log('Saving changes locally', values);
     router.push('/');
   }
 
@@ -248,7 +153,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {riskLevels?.map((level) => (
+                          {riskLevels.map((level) => (
                             <SelectItem key={level.id} value={level.name}>
                               {level.name}
                             </SelectItem>
@@ -272,7 +177,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {branches?.map((branch) => (
+                          {branches.map((branch) => (
                             <SelectItem key={branch.id} value={branch.name}>
                               {branch.name}
                             </SelectItem>
@@ -302,50 +207,6 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   </FormItem>
                 )}
               />
-
-              <FormItem>
-                <FormLabel>Finding Attachments</FormLabel>
-                {existingFindingAttachments.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Existing files:
-                    </p>
-                    {existingFindingAttachments.map((name, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        <span>{name}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <FormControl>
-                  <Input
-                    type="file"
-                    multiple
-                    {...register('findingAttachments' as any)}
-                  />
-                </FormControl>
-                <FormDescription>
-                  You can upload new files. Existing files will be kept.
-                </FormDescription>
-                {findingAttachments &&
-                  Array.from(findingAttachments).map(
-                    (file: any, index: number) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        <span>{file.name}</span>
-                      </div>
-                    )
-                  )}
-                <FormMessage />
-              </FormItem>
-
               <Separator />
               <div>
                 <h3 className="text-lg font-semibold">Amounts Involved</h3>
@@ -409,7 +270,6 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                 </Button>
               </div>
               <Separator />
-
               <div>
                 <h3 className="text-lg font-semibold">Involved Cases</h3>
                 {caseFields.map((field, index) => (
@@ -482,7 +342,6 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                 </Button>
               </div>
               <Separator />
-
               <FormField
                 control={form.control}
                 name="auditCause"
@@ -500,49 +359,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   </FormItem>
                 )}
               />
-
-              <FormItem>
-                <FormLabel>Cause Attachments</FormLabel>
-                {existingAuditCauseAttachments.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Existing files:
-                    </p>
-                    {existingAuditCauseAttachments.map((name, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        <span>{name}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <FormControl>
-                  <Input
-                    type="file"
-                    multiple
-                    {...register('auditCauseAttachments' as any)}
-                  />
-                </FormControl>
-                {auditCauseAttachments &&
-                  Array.from(auditCauseAttachments).map(
-                    (file: any, index: number) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        <span>{file.name}</span>
-                      </div>
-                    )
-                  )}
-                <FormMessage />
-              </FormItem>
-
               <Separator />
-
               <FormField
                 control={form.control}
                 name="auditEffect"
@@ -560,53 +377,10 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   </FormItem>
                 )}
               />
-
-              <FormItem>
-                <FormLabel>Effect Attachments</FormLabel>
-                {existingAuditEffectAttachments.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Existing files:
-                    </p>
-                    {existingAuditEffectAttachments.map((name, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        <span>{name}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <FormControl>
-                  <Input
-                    type="file"
-                    multiple
-                    {...register('auditEffectAttachments' as any)}
-                  />
-                </FormControl>
-                {auditEffectAttachments &&
-                  Array.from(auditEffectAttachments).map(
-                    (file: any, index: number) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        <span>{file.name}</span>
-                      </div>
-                    )
-                  )}
-                <FormMessage />
-              </FormItem>
-
               <Separator />
-
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold">Recommendation</h3>
               </div>
-
               <FormField
                 control={form.control}
                 name="recommendation"
@@ -624,49 +398,6 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   </FormItem>
                 )}
               />
-
-              <FormItem>
-                <FormLabel>Recommendation Attachments</FormLabel>
-                {existingRecommendationAttachments.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Existing files:
-                    </p>
-                    {existingRecommendationAttachments.map((name, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        <span>{name}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <FormControl>
-                  <Input
-                    type="file"
-                    multiple
-                    {...register('recommendationAttachments' as any)}
-                  />
-                </FormControl>
-                <FormDescription>
-                  You can upload new files. Existing files will be kept.
-                </FormDescription>
-                {recommendationAttachments &&
-                  Array.from(recommendationAttachments).map(
-                    (file: any, index: number) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        <span>{file.name}</span>
-                      </div>
-                    )
-                  )}
-                <FormMessage />
-              </FormItem>
 
               <div className="flex justify-end gap-2">
                 <Button

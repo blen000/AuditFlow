@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -6,23 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle } from 'lucide-react';
 import { AddEditDistrictDialog } from '@/components/audit/AddEditDistrictDialog';
 import PageHeader from '@/components/layout/PageHeader';
-import {
-  useCollection,
-  useFirestore,
-  useMemoFirebase,
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-} from '@/firebase';
 import type { District } from '@/types';
-import { collection, doc } from 'firebase/firestore';
+import { initialDistricts } from '@/lib/mock-data';
 
 export default function DistrictsPage() {
-  const firestore = useFirestore();
-  const districtsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'districts') : null),
-    [firestore]
-  );
-  const { data: districts } = useCollection<District>(districtsQuery);
+  const [districts, setDistricts] = useState<District[]>(initialDistricts);
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingDistrict, setEditingDistrict] = useState<District | null>(null);
@@ -38,13 +27,11 @@ export default function DistrictsPage() {
   };
 
   const handleSubmit = (districtData: District) => {
-    if (!firestore) return;
     if (editingDistrict && editingDistrict.id) {
-      const districtRef = doc(firestore, 'districts', editingDistrict.id);
-      updateDocumentNonBlocking(districtRef, districtData);
+      setDistricts(prev => prev.map(d => d.id === editingDistrict.id ? { ...d, ...districtData } : d));
     } else {
-      const districtsCollection = collection(firestore, 'districts');
-      addDocumentNonBlocking(districtsCollection, districtData);
+      const newDistrict = { ...districtData, id: `DIST-${Date.now()}` };
+      setDistricts(prev => [...prev, newDistrict]);
     }
     setEditingDistrict(null);
   };
@@ -69,7 +56,7 @@ export default function DistrictsPage() {
               </CardHeader>
               <CardContent>
                 <ul className="divide-y divide-border">
-                  {districts?.map((district) => (
+                  {districts.map((district) => (
                     <li
                       key={district.id}
                       className="flex items-center justify-between p-4"

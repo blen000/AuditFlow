@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
@@ -10,36 +11,20 @@ import {
 } from '@/components/ui/select';
 import { AuditFindingCard } from '@/components/audit/AuditFindingCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import type { AuditFinding, Branch } from '@/types';
-import { collection, doc, updateDoc } from 'firebase/firestore';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { initialBranches, initialFindings } from '@/lib/mock-data';
 
 export default function AuditeeViewPage() {
-  const firestore = useFirestore();
-  const branchesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'branches') : null),
-    [firestore]
-  );
-  const { data: branches } = useCollection<Branch>(branchesQuery);
-
-  const findingsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'findings') : null),
-    [firestore]
-  );
-  const { data: findings } = useCollection<AuditFinding>(findingsQuery);
-
+  const [branches] = useState<Branch[]>(initialBranches);
+  const [findings, setFindings] = useState<AuditFinding[]>(initialFindings);
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
 
   const handleDelete = (id: string) => {
-    // This would be a call to delete a document in a real app
-    console.log(`Deleting finding ${id}`);
+    setFindings(prev => prev.filter(f => f.id !== id));
   };
 
   const handleUpdate = (id: string, updates: Partial<AuditFinding>) => {
-    if (!firestore) return;
-    const findingRef = doc(firestore, 'findings', id);
-    updateDocumentNonBlocking(findingRef, updates);
+    setFindings(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
   };
 
   const filteredFindings =
@@ -64,7 +49,7 @@ export default function AuditeeViewPage() {
                   <SelectValue placeholder="Select a branch/department" />
                 </SelectTrigger>
                 <SelectContent>
-                  {branches?.map((branch) => (
+                  {branches.map((branch) => (
                     <SelectItem key={branch.id} value={branch.name}>
                       {branch.name}
                     </SelectItem>

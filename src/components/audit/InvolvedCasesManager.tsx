@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,15 +15,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Circle } from 'lucide-react';
-import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
 
 type InvolvedCasesManagerProps = {
   finding: AuditFinding;
 };
 
 export function InvolvedCasesManager({ finding }: InvolvedCasesManagerProps) {
-  const firestore = useFirestore();
   const [cases, setCases] = useState<InvolvedCase[]>(
     finding.involvedCases || []
   );
@@ -31,12 +29,6 @@ export function InvolvedCasesManager({ finding }: InvolvedCasesManagerProps) {
     setCases(finding.involvedCases || []);
   }, [finding.involvedCases]);
 
-  const updateCasesInFirestore = (updatedCases: InvolvedCase[]) => {
-    if (!firestore) return;
-    const findingRef = doc(firestore, 'findings', finding.id);
-    updateDocumentNonBlocking(findingRef, { involvedCases: updatedCases });
-  };
-
   const handleToggleStatus = (caseId: string) => {
     const updatedCases = cases.map((c) =>
       c.id === caseId
@@ -44,7 +36,7 @@ export function InvolvedCasesManager({ finding }: InvolvedCasesManagerProps) {
         : c
     );
     setCases(updatedCases);
-    updateCasesInFirestore(updatedCases);
+    console.log('Toggling case status locally', caseId);
   };
 
   const handleCloseAll = () => {
@@ -53,7 +45,7 @@ export function InvolvedCasesManager({ finding }: InvolvedCasesManagerProps) {
       status: 'Resolved' as const,
     }));
     setCases(updatedCases);
-    updateCasesInFirestore(updatedCases);
+    console.log('Closing all cases locally');
   };
 
   const allResolved = cases.every((c) => c.status === 'Resolved');

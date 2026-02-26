@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -6,23 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle } from 'lucide-react';
 import { AddEditRiskLevelDialog } from '@/components/audit/AddEditRiskLevelDialog';
 import PageHeader from '@/components/layout/PageHeader';
-import {
-  useCollection,
-  useFirestore,
-  useMemoFirebase,
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-} from '@/firebase';
 import type { RiskLevelData } from '@/types';
-import { collection, doc } from 'firebase/firestore';
+import { initialRiskLevels } from '@/lib/mock-data';
 
 export default function RiskLevelsPage() {
-  const firestore = useFirestore();
-  const riskLevelsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'riskLevels') : null),
-    [firestore]
-  );
-  const { data: riskLevels } = useCollection<RiskLevelData>(riskLevelsQuery);
+  const [riskLevels, setRiskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingRiskLevel, setEditingRiskLevel] =
@@ -39,13 +28,11 @@ export default function RiskLevelsPage() {
   };
 
   const handleSubmit = (riskLevelData: RiskLevelData) => {
-    if (!firestore) return;
     if (editingRiskLevel && editingRiskLevel.id) {
-      const riskLevelRef = doc(firestore, 'riskLevels', editingRiskLevel.id);
-      updateDocumentNonBlocking(riskLevelRef, riskLevelData);
+      setRiskLevels(prev => prev.map(r => r.id === editingRiskLevel.id ? { ...r, ...riskLevelData } : r));
     } else {
-      const riskLevelsCollection = collection(firestore, 'riskLevels');
-      addDocumentNonBlocking(riskLevelsCollection, riskLevelData);
+      const newRiskLevel = { ...riskLevelData, id: `RISK-${Date.now()}` };
+      setRiskLevels(prev => [...prev, newRiskLevel]);
     }
     setEditingRiskLevel(null);
   };
@@ -70,7 +57,7 @@ export default function RiskLevelsPage() {
               </CardHeader>
               <CardContent>
                 <ul className="divide-y divide-border">
-                  {riskLevels?.map((riskLevel) => (
+                  {riskLevels.map((riskLevel) => (
                     <li
                       key={riskLevel.id}
                       className="flex items-center justify-between p-4"

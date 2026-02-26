@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -20,45 +21,13 @@ import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
-import {
-  useCollection,
-  useFirestore,
-  useMemoFirebase,
-  deleteDocumentNonBlocking,
-  updateDocumentNonBlocking,
-} from '@/firebase';
-import { collection, doc, Timestamp } from 'firebase/firestore';
 import type { RiskLevelData, StatusData } from '@/types';
-
-function toDate(timestamp: Date | Timestamp | undefined): Date | undefined {
-  if (!timestamp) return undefined;
-  if (timestamp instanceof Timestamp) {
-    return timestamp.toDate();
-  }
-  return timestamp;
-}
-
+import { initialFindings, initialRiskLevels, initialStatuses } from '@/lib/mock-data';
 
 export default function AuditDashboard() {
-  const firestore = useFirestore();
-
-  const findingsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'findings') : null),
-    [firestore]
-  );
-  const { data: findings } = useCollection<AuditFinding>(findingsQuery);
-
-  const riskLevelsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'riskLevels') : null),
-    [firestore]
-  );
-  const { data: allRiskLevels } = useCollection<RiskLevelData>(riskLevelsQuery);
-
-  const statusesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'statuses') : null),
-    [firestore]
-  );
-  const { data: allStatuses } = useCollection<StatusData>(statusesQuery);
+  const [findings, setFindings] = useState<AuditFinding[]>(initialFindings);
+  const [allRiskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
+  const [allStatuses] = useState<StatusData[]>(initialStatuses);
 
   const [riskFilter, setRiskFilter] = useState<RiskLevel[]>([]);
   const [statusFilter, setStatusFilter] = useState<FindingStatus[]>([]);
@@ -66,15 +35,11 @@ export default function AuditDashboard() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const handleDelete = (id: string) => {
-    if (!firestore) return;
-    const findingRef = doc(firestore, 'findings', id);
-    deleteDocumentNonBlocking(findingRef);
+    setFindings(prev => prev.filter(f => f.id !== id));
   };
 
   const handleUpdate = (id: string, updates: Partial<AuditFinding>) => {
-    if (!firestore) return;
-    const findingRef = doc(firestore, 'findings', id);
-    updateDocumentNonBlocking(findingRef, updates);
+    setFindings(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
   };
 
   const toggleFilter = <T extends string>(
@@ -89,7 +54,7 @@ export default function AuditDashboard() {
     }
   };
 
-  const filteredFindings = findings?.filter((finding) => {
+  const filteredFindings = findings.filter((finding) => {
     const riskMatch =
       riskFilter.length === 0 || riskFilter.includes(finding.riskLevel);
     const statusMatch =
@@ -100,24 +65,14 @@ export default function AuditDashboard() {
 
     const dateMatch = (() => {
       if (!dateRange || (!dateRange.from && !dateRange.to)) return true;
-
       const from = dateRange.from;
       const to = dateRange.to;
-      const targetDate = toDate(finding.revalidationDate) || toDate(finding.mitigationDueDate);
-
+      const targetDate = finding.revalidationDate || finding.mitigationDueDate;
       if (!targetDate) return false;
-      const targetDateTime = new Date(targetDate).getTime();
-
-
-      if (from && !to) {
-        return targetDateTime >= new Date(from).getTime();
-      }
-      if (!from && to) {
-        return targetDateTime <= new Date(to).getTime();
-      }
-      if (from && to) {
-        return targetDateTime >= new Date(from).getTime() && targetDateTime <= new Date(to).getTime();
-      }
+      const targetDateTime = new Date(targetDate as Date).getTime();
+      if (from && !to) return targetDateTime >= new Date(from).getTime();
+      if (!from && to) return targetDateTime <= new Date(to).getTime();
+      if (from && to) return targetDateTime >= new Date(from).getTime() && targetDateTime <= new Date(to).getTime();
       return true;
     })();
 
@@ -193,7 +148,7 @@ export default function AuditDashboard() {
                 Filter by Risk
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {allRiskLevels?.map((level) => (
+              {allRiskLevels.map((level) => (
                 <DropdownMenuCheckboxItem
                   key={level.id}
                   checked={riskFilter.includes(level.name)}
@@ -209,7 +164,7 @@ export default function AuditDashboard() {
                 Filter by Status
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {allStatuses?.map((status) => (
+              {allStatuses.map((status) => (
                 <DropdownMenuCheckboxItem
                   key={status.id}
                   checked={statusFilter.includes(status.name)}
@@ -232,7 +187,7 @@ export default function AuditDashboard() {
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredFindings?.map((finding) => (
+        {filteredFindings.map((finding) => (
           <AuditFindingCard
             key={finding.id}
             finding={finding}
