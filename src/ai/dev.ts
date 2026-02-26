@@ -1,4 +1,3 @@
-import { config } from 'dotenv';
-config();
 
-import '@/ai/flows/suggest-risk-mitigation.ts';
+// AI features have been removed from the application.
+export {};
