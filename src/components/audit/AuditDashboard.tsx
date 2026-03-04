@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
 import type { RiskLevelData, StatusData } from '@/types';
 import { initialFindings, initialRiskLevels, initialStatuses } from '@/lib/mock-data';
+import { DashboardStats } from './DashboardStats';
+import { DashboardCharts } from './DashboardCharts';
 
 export default function AuditDashboard() {
   const [findings, setFindings] = useState<AuditFinding[]>(initialFindings);
@@ -61,7 +63,8 @@ export default function AuditDashboard() {
       statusFilter.length === 0 || statusFilter.includes(finding.status);
     const searchMatch =
       searchQuery === '' ||
-      finding.id.toLowerCase().includes(searchQuery.toLowerCase());
+      finding.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      finding.title.toLowerCase().includes(searchQuery.toLowerCase());
 
     const dateMatch = (() => {
       if (!dateRange || (!dateRange.from && !dateRange.to)) return true;
@@ -80,15 +83,25 @@ export default function AuditDashboard() {
   });
 
   return (
-    <>
-      <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Audit Findings</h2>
+    <div className="space-y-8">
+      {/* 1. Statistics Row */}
+      <DashboardStats findings={findings} />
+
+      {/* 2. Charts Row */}
+      <DashboardCharts findings={findings} />
+
+      {/* 3. Filter and List Header */}
+      <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between border-t pt-8">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Finding Details</h2>
+          <p className="text-sm text-muted-foreground">Detailed list of individual audit cases.</p>
+        </div>
         <div className="flex w-full items-center gap-2 md:w-auto">
           <div className="relative flex-1 md:flex-initial">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search by Case No..."
+              placeholder="Case No or Title..."
               className="pl-8 sm:w-[200px] md:w-[250px] lg:w-[300px]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -186,16 +199,24 @@ export default function AuditDashboard() {
           </Button>
         </div>
       </div>
+
+      {/* 4. Findings Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredFindings.map((finding) => (
-          <AuditFindingCard
-            key={finding.id}
-            finding={finding}
-            onDelete={handleDelete}
-            onUpdate={handleUpdate}
-          />
-        ))}
+        {filteredFindings.length > 0 ? (
+          filteredFindings.map((finding) => (
+            <AuditFindingCard
+              key={finding.id}
+              finding={finding}
+              onDelete={handleDelete}
+              onUpdate={handleUpdate}
+            />
+          ))
+        ) : (
+          <div className="col-span-full py-12 text-center text-muted-foreground">
+            No findings match your current filters or search query.
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
