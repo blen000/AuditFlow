@@ -66,3 +66,13 @@ export type StatusData = {
   id?: string;
   name: string;
 };
+
+export type Notification = {
+  id: string;
+  title: string;
+  message: string;
+  date: Date;
+  read: boolean;
+  type: 'info' | 'warning' | 'alert';
+  findingId?: string;
+};

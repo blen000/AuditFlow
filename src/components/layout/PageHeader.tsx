@@ -1,5 +1,6 @@
 'use client';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { NotificationBell } from './NotificationBell';
 
 type PageHeaderProps = {
   title: string;
@@ -25,7 +26,10 @@ export default function PageHeader({
           )}
         </div>
       </div>
-      {children && <div className="flex items-center gap-2">{children}</div>}
+      <div className="flex items-center gap-4">
+        {children && <div className="flex items-center gap-2">{children}</div>}
+        <NotificationBell />
+      </div>
     </header>
   );
 }
