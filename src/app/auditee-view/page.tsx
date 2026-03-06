@@ -1,4 +1,3 @@
-
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -36,7 +35,7 @@ export default function AuditeeViewPage() {
   const [findings, setFindings] = useState<AuditFinding[]>(initialFindings);
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   
-  // Filtering states moved from dashboard
+  // Filtering states
   const [allRiskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
   const [allStatuses] = useState<StatusData[]>(initialStatuses);
   const [riskFilter, setRiskFilter] = useState<RiskLevel[]>([]);
@@ -65,8 +64,9 @@ export default function AuditeeViewPage() {
   };
 
   const filteredFindings = findings.filter((finding) => {
-    // 1. Mandatory Branch Filter
-    if (!selectedBranch || finding.branchOrDepartment !== selectedBranch) return false;
+    // 1. Branch Filter
+    if (!selectedBranch) return false;
+    if (selectedBranch !== 'all' && finding.branchOrDepartment !== selectedBranch) return false;
 
     // 2. Risk Filter
     const riskMatch = riskFilter.length === 0 || riskFilter.includes(finding.riskLevel);
@@ -115,6 +115,7 @@ export default function AuditeeViewPage() {
                   <SelectValue placeholder="Select a branch/department" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Branches</SelectItem>
                   {branches.map((branch) => (
                     <SelectItem key={branch.id} value={branch.name}>
                       {branch.name}
@@ -132,7 +133,7 @@ export default function AuditeeViewPage() {
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight">Finding Details</h2>
                   <p className="text-sm text-muted-foreground">
-                    Detailed list of individual audit cases for {selectedBranch}.
+                    Detailed list of individual audit cases for {selectedBranch === 'all' ? 'All Branches' : selectedBranch}.
                   </p>
                 </div>
                 <div className="flex w-full items-center gap-2 md:w-auto">
