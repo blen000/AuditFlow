@@ -37,6 +37,7 @@ import { useState } from 'react';
 import { initialBranches, initialRiskLevels, initialAuditors } from '@/lib/mock-data';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
   title: z.string().min(5, {
