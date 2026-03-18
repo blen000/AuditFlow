@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Users, UserCheck, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Search, Users, ShieldCheck, AlertCircle } from 'lucide-react';
 import { initialFindings, initialAuditors } from '@/lib/mock-data';
 import type { Auditor } from '@/types';
 
@@ -18,9 +18,8 @@ export default function AssignmentsPage() {
 
   const filteredFindings = useMemo(() => {
     return initialFindings.filter(finding => {
-      // Strict auditor filter: Must be assigned, leader, or member
+      // Logic: Auditor must be either the Team Leader OR a Team Member
       const auditorMatch = selectedAuditor === 'all' || 
-                           finding.assignedAuditor === selectedAuditor ||
                            finding.teamLeader === selectedAuditor ||
                            finding.teamMembers.includes(selectedAuditor);
       
@@ -38,9 +37,8 @@ export default function AssignmentsPage() {
     
     const ledCount = initialFindings.filter(f => f.teamLeader === selectedAuditor).length;
     const memberCount = initialFindings.filter(f => f.teamMembers.includes(selectedAuditor)).length;
-    const assignedCount = initialFindings.filter(f => f.assignedAuditor === selectedAuditor).length;
     
-    return { ledCount, memberCount, assignedCount };
+    return { ledCount, memberCount };
   }, [selectedAuditor]);
 
   return (
@@ -82,12 +80,12 @@ export default function AssignmentsPage() {
 
           {/* Performance Insights */}
           {auditorStats && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-bold uppercase text-primary">Leader Roles</p>
+                      <p className="text-xs font-bold uppercase text-primary">Team Leader Roles</p>
                       <h4 className="text-3xl font-bold">{auditorStats.ledCount}</h4>
                     </div>
                     <ShieldCheck className="h-8 w-8 text-primary opacity-50" />
@@ -98,21 +96,10 @@ export default function AssignmentsPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-bold uppercase text-muted-foreground">Member Roles</p>
+                      <p className="text-xs font-bold uppercase text-muted-foreground">Team Member Roles</p>
                       <h4 className="text-3xl font-bold">{auditorStats.memberCount}</h4>
                     </div>
                     <Users className="h-8 w-8 text-muted-foreground opacity-50" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-orange-50/50 border-orange-100">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold uppercase text-orange-600">Primary Assigned</p>
-                      <h4 className="text-3xl font-bold">{auditorStats.assignedCount}</h4>
-                    </div>
-                    <UserCheck className="h-8 w-8 text-orange-600 opacity-50" />
                   </div>
                 </CardContent>
               </Card>
@@ -158,7 +145,7 @@ export default function AssignmentsPage() {
                     <TableBody>
                       {filteredFindings.length > 0 ? (
                         filteredFindings.map((finding, index) => {
-                          const isLeader = finding.teamLeader === (selectedAuditor === 'all' ? finding.assignedAuditor : selectedAuditor);
+                          const isLeader = finding.teamLeader === (selectedAuditor === 'all' ? finding.teamLeader : selectedAuditor);
                           const dateAssigned = finding.mitigationDueDate 
                             ? new Date(new Date(finding.mitigationDueDate as any).getTime() - (7 * 24 * 60 * 60 * 1000)) 
                             : new Date();
@@ -167,7 +154,7 @@ export default function AssignmentsPage() {
                             <TableRow key={finding.id} className="hover:bg-muted/30 transition-colors">
                               <TableCell className="text-center font-mono text-xs">{index + 1}</TableCell>
                               <TableCell className="font-medium text-sm">
-                                {selectedAuditor === 'all' ? finding.assignedAuditor : selectedAuditor}
+                                {selectedAuditor === 'all' ? finding.teamLeader : selectedAuditor}
                               </TableCell>
                               <TableCell>
                                 <div className="flex flex-col">

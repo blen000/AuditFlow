@@ -12,7 +12,7 @@ import {
 import { AuditFindingCard } from '@/components/audit/AuditFindingCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, PlusCircle, Search, CalendarIcon, UserCheck } from 'lucide-react';
+import { Filter, PlusCircle, Search, CalendarIcon, ShieldCheck } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -64,9 +64,6 @@ export default function AuditeeViewPage() {
     }
   };
 
-  // Extract unique auditors for the filter
-  const uniqueAuditors = Array.from(new Set(findings.map(f => f.assignedAuditor)));
-
   const filteredFindings = findings.filter((finding) => {
     // 1. Branch Filter
     if (!selectedBranch) return false;
@@ -84,10 +81,11 @@ export default function AuditeeViewPage() {
       finding.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       finding.title.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // 5. Auditor Search
+    // 5. Auditor Search (Leader or Members)
     const auditorMatch = 
       auditorSearch === '' || 
-      finding.assignedAuditor.toLowerCase().includes(auditorSearch.toLowerCase());
+      finding.teamLeader.toLowerCase().includes(auditorSearch.toLowerCase()) ||
+      finding.teamMembers.some(m => m.toLowerCase().includes(auditorSearch.toLowerCase()));
 
     // 6. Date Match
     const dateMatch = (() => {
@@ -137,7 +135,6 @@ export default function AuditeeViewPage() {
 
           {selectedBranch ? (
             <div className="space-y-6">
-              {/* Finding Details Section Header with Actions */}
               <div className="flex flex-col items-start gap-4 border-t pt-8">
                 <div className="flex w-full flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div>
@@ -156,7 +153,6 @@ export default function AuditeeViewPage() {
                   </div>
                 </div>
 
-                {/* Advanced Search Bar */}
                 <div className="flex w-full flex-col gap-3 rounded-lg border bg-muted/30 p-4 lg:flex-row lg:items-center">
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -169,10 +165,10 @@ export default function AuditeeViewPage() {
                     />
                   </div>
                   <div className="relative flex-1">
-                    <UserCheck className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <ShieldCheck className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="search"
-                      placeholder="Filter by Designated Auditor..."
+                      placeholder="Filter by Team Leader or Member..."
                       className="pl-8 bg-background"
                       value={auditorSearch}
                       onChange={(e) => setAuditorSearch(e.target.value)}
@@ -254,7 +250,6 @@ export default function AuditeeViewPage() {
                 </div>
               </div>
 
-              {/* Grid of Cards */}
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredFindings.length > 0 ? (
                   filteredFindings.map((finding) => (
@@ -272,7 +267,7 @@ export default function AuditeeViewPage() {
                     </div>
                     <h3 className="text-lg font-semibold">No results found</h3>
                     <p className="text-muted-foreground">
-                      No findings match your current branch, auditor, or search criteria.
+                      No findings match your current criteria.
                     </p>
                     <Button 
                       variant="link" 
@@ -281,6 +276,7 @@ export default function AuditeeViewPage() {
                         setAuditorSearch('');
                         setRiskFilter([]);
                         setStatusFilter([]);
+                        setDateRange(undefined);
                       }}
                       className="mt-2"
                     >
@@ -298,7 +294,7 @@ export default function AuditeeViewPage() {
                 </div>
                 <CardTitle className="mb-2">No Branch Selected</CardTitle>
                 <p className="max-w-xs text-muted-foreground">
-                  Please select a branch or department from the dropdown above to manage and search audit assignments.
+                  Please select a branch or department from the dropdown above to manage audit assignments.
                 </p>
               </CardContent>
             </Card>

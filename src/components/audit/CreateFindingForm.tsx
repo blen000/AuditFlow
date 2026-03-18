@@ -23,13 +23,20 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import type { Branch, RiskLevelData, Auditor } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
-import { Paperclip, PlusCircle, Trash2, UserCheck, ShieldCheck, Users } from 'lucide-react';
+import { PlusCircle, Trash2, ShieldCheck, Users, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { initialBranches, initialRiskLevels, initialAuditors } from '@/lib/mock-data';
+import { Badge } from '../ui/badge';
+import { ScrollArea } from '../ui/scroll-area';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -43,9 +50,6 @@ const formSchema = z.object({
   }),
   branchOrDepartment: z.string({
     required_error: 'You need to select a branch/department.',
-  }),
-  assignedAuditor: z.string({
-    required_error: 'You need to assign a designated auditor.',
   }),
   teamLeader: z.string({
     required_error: 'You need to assign a team leader.',
@@ -82,7 +86,6 @@ export function CreateFindingForm() {
     defaultValues: {
       title: '',
       details: '',
-      assignedAuditor: '',
       teamLeader: '',
       teamMembers: [],
       auditCause: '',
@@ -102,15 +105,6 @@ export function CreateFindingForm() {
     name: 'involvedAmounts',
   });
 
-  const {
-    fields: caseFields,
-    append: appendCase,
-    remove: removeCase,
-  } = useFieldArray({
-    control: form.control,
-    name: 'involvedCases',
-  });
-
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log('Logging finding locally', values);
     router.push('/auditee-view');
@@ -128,33 +122,10 @@ export function CreateFindingForm() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="space-y-4">
                 <h3 className="text-lg font-bold flex items-center gap-2">
-                  <UserCheck className="h-5 w-5 text-primary" />
+                  <ShieldCheck className="h-5 w-5 text-primary" />
                   Audit Team Assignment
                 </h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="assignedAuditor"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Designated Auditor</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select auditor" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {auditors.map((auditor) => (
-                              <SelectItem key={auditor.id} value={auditor.fullName}>{auditor.fullName}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>The primary owner/investigator for this specific finding.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                   <FormField
                     control={form.control}
                     name="teamLeader"
@@ -181,38 +152,63 @@ export function CreateFindingForm() {
                   <FormField
                     control={form.control}
                     name="teamMembers"
-                    render={() => (
-                      <FormItem className="md:col-span-2">
-                        <div className="mb-4">
-                          <FormLabel className="text-base">Team Members</FormLabel>
-                          <FormDescription>Select all members participating in this audit.</FormDescription>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          {auditors.map((auditor) => (
-                            <FormField
-                              key={auditor.id}
-                              control={form.control}
-                              name="teamMembers"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem key={auditor.id} className="flex flex-row items-start space-x-3 space-y-0">
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(auditor.fullName)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, auditor.fullName])
-                                            : field.onChange(field.value?.filter((value) => value !== auditor.fullName));
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="font-normal">{auditor.fullName}</FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
-                        </div>
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Team Members</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full justify-between h-auto min-h-[40px] px-3 py-2",
+                                  !field.value?.length && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value?.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {field.value.map((val) => (
+                                      <Badge key={val} variant="secondary" className="font-normal text-[10px] py-0">
+                                        {val}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  "Select members..."
+                                )}
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0" align="start">
+                            <ScrollArea className="h-64 p-2">
+                              <div className="space-y-2">
+                                {auditors.map((auditor) => (
+                                  <div key={auditor.id} className="flex items-center space-x-2 p-1">
+                                    <Checkbox
+                                      id={`member-${auditor.id}`}
+                                      checked={field.value?.includes(auditor.fullName)}
+                                      onCheckedChange={(checked) => {
+                                        const newValue = checked
+                                          ? [...field.value, auditor.fullName]
+                                          : field.value?.filter((v: string) => v !== auditor.fullName);
+                                        field.onChange(newValue);
+                                      }}
+                                    />
+                                    <label
+                                      htmlFor={`member-${auditor.id}`}
+                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer w-full"
+                                    >
+                                      {auditor.fullName}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          </PopoverContent>
+                        </Popover>
+                        <FormDescription>Select all members participating in this audit.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -301,7 +297,7 @@ export function CreateFindingForm() {
               <Separator />
 
               <div>
-                <h3 className="text-lg font-semibold mb-4">Involved Amounts & Cases</h3>
+                <h3 className="text-lg font-semibold mb-4">Involved Amounts</h3>
                 <div className="space-y-4">
                   {amountFields.map((field, index) => (
                     <div key={field.id} className="flex items-end gap-2 rounded-md border p-4">

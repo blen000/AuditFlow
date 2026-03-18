@@ -22,7 +22,6 @@ import {
 import {
   Bell,
   Calendar as CalendarIcon,
-  Check,
   MoreHorizontal,
   Trash2,
   Handshake,
@@ -32,8 +31,8 @@ import {
   ChevronDown,
   CircleDollarSign,
   Users,
-  UserCheck,
   ShieldCheck,
+  CheckCircle,
 } from 'lucide-react';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
@@ -177,12 +176,8 @@ export function AuditFindingCard({
 
           <div className="mt-2 space-y-2 border-t pt-3">
             <div className="flex items-center gap-2 text-xs font-medium text-foreground">
-              <UserCheck className="h-3.5 w-3.5 text-primary" />
-              <span>Assigned: <span className="font-bold">{finding.assignedAuditor}</span></span>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-medium text-foreground">
-              <ShieldCheck className="h-3.5 w-3.5 text-orange-500" />
-              <span>Leader: <span className="font-bold">{finding.teamLeader}</span></span>
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              <span>Team Leader: <span className="font-bold">{finding.teamLeader}</span></span>
             </div>
             {finding.teamMembers && finding.teamMembers.length > 0 && (
               <div className="flex items-start gap-2 text-xs font-medium text-foreground">
@@ -197,7 +192,7 @@ export function AuditFindingCard({
             )}
             {mitigationDueDate && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Check className="h-3.5 w-3.5" />
+                <CheckCircle className="h-3.5 w-3.5 text-green-500" />
                 <span>Due {format(mitigationDueDate, 'MMM d, yyyy')}</span>
               </div>
             )}

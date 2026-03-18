@@ -44,7 +44,6 @@ export type AuditFinding = {
   auditEffectAttachments?: string[];
   involvedAmounts?: InvolvedAmount[];
   involvedCases?: InvolvedCase[];
-  assignedAuditor: string; 
   teamLeader: string;
   teamMembers: string[];
 };
