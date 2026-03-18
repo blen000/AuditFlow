@@ -132,7 +132,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
             <Button
               variant="ghost"
               size="icon"
-              className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm"
+              className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm z-10"
               onClick={() => removeEntry(setter, i)}
             >
               <X className="h-3 w-3" />
@@ -179,8 +179,8 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-2">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl">
+        <DialogHeader className="p-6 pb-2 shrink-0 border-b">
           <DialogTitle className="text-xl flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
             Audit Follow-up Management
@@ -190,9 +190,9 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6">
-          <div className="space-y-8 pb-6">
-            {/* Status & Closure */}
+        <ScrollArea className="flex-1">
+          <div className="px-6 py-6 space-y-8">
+            {/* Status & Closure Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end bg-primary/5 p-4 rounded-xl border border-primary/20">
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase text-primary">Follow-up Lifecycle Status</Label>
@@ -268,7 +268,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
                   <Label className="font-bold">Follow up Recommendations</Label>
                   <Textarea
                     placeholder="Enter detailed follow-up recommendations and next steps..."
-                    className="min-h-[200px]"
+                    className="min-h-[250px] resize-none"
                     value={recommendations}
                     onChange={(e) => setRecommendations(e.target.value)}
                   />
