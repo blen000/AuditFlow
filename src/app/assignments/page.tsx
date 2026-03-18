@@ -7,15 +7,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Users, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Search, Users, ShieldCheck, AlertCircle, Clock } from 'lucide-react';
 import { initialFindings, initialAuditors } from '@/lib/mock-data';
 import type { Auditor } from '@/types';
+import { differenceInDays, subDays } from 'date-fns';
 
 export default function AssignmentsPage() {
   const [mounted, setMounted] = useState(false);
   const [auditors] = useState<Auditor[]>(initialAuditors);
   const [selectedAuditor, setSelectedAuditor] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const STANDARD_TAT_DAYS = 15;
 
   useEffect(() => {
     setMounted(true);
@@ -149,9 +152,23 @@ export default function AssignmentsPage() {
                         filteredFindings.map((finding, index) => {
                           const isLeader = finding.teamLeader === (selectedAuditor === 'all' ? finding.teamLeader : selectedAuditor);
                           
-                          // Deterministic assignment date calculation
-                          const dateAssigned = finding.mitigationDueDate 
-                            ? new Date(new Date(finding.mitigationDueDate as any).getTime() - (7 * 24 * 60 * 60 * 1000)) 
+                          // Calculation Logic
+                          // Assigned Date: Derived from mitigationDueDate or set as a baseline
+                          const assignedDate = finding.mitigationDueDate 
+                            ? subDays(new Date(finding.mitigationDueDate as any), 14) 
+                            : subDays(new Date(), 20);
+                            
+                          // Finalization Date: Using revalidationDate or current date if closed
+                          const finalizedDate = finding.revalidationDate 
+                            ? new Date(finding.revalidationDate as any)
+                            : (finding.status === 'Closed' ? new Date() : null);
+
+                          const timeTakenDays = finalizedDate 
+                            ? differenceInDays(finalizedDate, assignedDate)
+                            : null;
+
+                          const deviation = timeTakenDays !== null 
+                            ? timeTakenDays - STANDARD_TAT_DAYS
                             : null;
                           
                           return (
@@ -172,25 +189,34 @@ export default function AssignmentsPage() {
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-[10px] font-mono whitespace-nowrap">
-                                {mounted ? (dateAssigned ? dateAssigned.toLocaleDateString() : new Date().toLocaleDateString()) : '...'}
+                                {mounted ? assignedDate.toLocaleDateString() : '...'}
                               </TableCell>
                               <TableCell className="text-[10px] font-mono whitespace-nowrap">
-                                {finding.revalidationDate ? new Date(finding.revalidationDate as any).toLocaleDateString() : 'Awaiting'}
+                                {mounted && finalizedDate ? finalizedDate.toLocaleDateString() : 'In Progress'}
                               </TableCell>
                               <TableCell className="text-center text-xs font-semibold">
-                                {finding.status === 'Closed' ? '12 Days' : '--'}
+                                {timeTakenDays !== null ? `${timeTakenDays} Days` : '--'}
                               </TableCell>
                               <TableCell className="text-center text-xs text-muted-foreground">
-                                15 Days
+                                {STANDARD_TAT_DAYS} Days
                               </TableCell>
                               <TableCell>
-                                {finding.status === 'Awaiting Response' ? (
-                                  <div className="flex items-center gap-1 text-[10px] text-orange-600 font-bold italic">
-                                    <AlertCircle className="h-3 w-3" />
-                                    Delayed Response
-                                  </div>
+                                {deviation !== null ? (
+                                  deviation > 0 ? (
+                                    <div className="flex items-center gap-1 text-[10px] text-destructive font-bold italic">
+                                      <AlertCircle className="h-3 w-3" />
+                                      +{deviation} Days Over
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1 text-[10px] text-green-600 font-bold">
+                                      {deviation < 0 ? `${Math.abs(deviation)} Days Early` : 'On Time'}
+                                    </div>
+                                  )
                                 ) : (
-                                  <span className="text-[10px] text-muted-foreground">No deviation</span>
+                                  <div className="flex items-center gap-1 text-[10px] text-orange-500 italic">
+                                    <Clock className="h-3 w-3" />
+                                    Active Cycle
+                                  </div>
                                 )}
                               </TableCell>
                             </TableRow>
