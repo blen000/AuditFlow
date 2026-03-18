@@ -7,7 +7,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
-import { Building, LayoutDashboard, PlusCircle, Users, ShieldAlert, Tags } from 'lucide-react';
+import { Building, LayoutDashboard, PlusCircle, Users, ShieldAlert, Tags, Settings, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -39,6 +39,17 @@ export function SidebarNav() {
       </SidebarMenuItem>
       <SidebarGroup>
         <SidebarGroupLabel>Management</SidebarGroupLabel>
+        <SidebarMenuItem>
+          <Link href="/assignments">
+            <SidebarMenuButton
+              isActive={pathname.startsWith('/assignments')}
+              tooltip="Audit Assignments"
+            >
+              <ClipboardList />
+              <span>Audit Assignments</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
         <SidebarMenuItem>
           <Link href="/branches">
             <SidebarMenuButton
@@ -94,6 +105,20 @@ export function SidebarNav() {
             >
               <Users />
               <span>Auditee View</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>System</SidebarGroupLabel>
+        <SidebarMenuItem>
+          <Link href="/settings">
+            <SidebarMenuButton
+              isActive={pathname.startsWith('/settings')}
+              tooltip="Settings"
+            >
+              <Settings />
+              <span>Settings</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
