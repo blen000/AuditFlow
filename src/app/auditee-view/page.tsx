@@ -12,6 +12,7 @@ import {
 import { AuditFindingCard } from '@/components/audit/AuditFindingCard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Filter, PlusCircle, Search, CalendarIcon, ShieldCheck, Layers } from 'lucide-react';
 import {
   DropdownMenu,
