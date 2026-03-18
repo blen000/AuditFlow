@@ -1,4 +1,5 @@
 import type { AuditFinding, Branch, District, RiskLevelData, StatusData, Auditor, Department } from '@/types';
+import { subDays } from 'date-fns';
 
 export const initialDistricts: District[] = [
   { id: 'DIST-1', name: 'Northern District' },
@@ -60,6 +61,8 @@ export const initialFindings: AuditFinding[] = [
     auditEffect: 'Potential unauthorized access to branch terminals.',
     teamLeader: 'Abebe Shirega',
     teamMembers: ['Fikre Tollossa', 'Ze'],
+    assignedDate: subDays(new Date(), 20),
+    tatDays: 15,
   },
   {
     id: '2.1',
@@ -86,6 +89,8 @@ export const initialFindings: AuditFinding[] = [
     auditEffect: 'High risk of internal fraud or theft.',
     teamLeader: 'Abebe Shirega',
     teamMembers: ['Fikre Tollossa'],
+    assignedDate: subDays(new Date(), 10),
+    tatDays: 15,
   },
   {
     id: '3.1',
@@ -108,6 +113,8 @@ export const initialFindings: AuditFinding[] = [
     recommendationAttachments: [],
     teamLeader: 'Fikre Tollossa',
     teamMembers: ['Ze'],
+    assignedDate: subDays(new Date(), 5),
+    tatDays: 15,
   },
   {
     id: '2.2',
@@ -128,6 +135,9 @@ export const initialFindings: AuditFinding[] = [
     progressUpdates: [],
     teamLeader: 'Abebe Shirega',
     teamMembers: ['Ze'],
+    assignedDate: subDays(new Date(), 25),
+    finalizationDate: subDays(new Date(), 2),
+    tatDays: 15,
   },
   {
     id: '4.1',
@@ -145,5 +155,8 @@ export const initialFindings: AuditFinding[] = [
     progressUpdates: [],
     teamLeader: 'Fikre Tollossa',
     teamMembers: ['Abebe Shirega', 'Ze'],
+    assignedDate: subDays(new Date(), 30),
+    finalizationDate: subDays(new Date(), 12),
+    tatDays: 20,
   }
 ];

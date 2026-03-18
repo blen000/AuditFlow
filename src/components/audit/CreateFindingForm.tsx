@@ -39,13 +39,15 @@ import type { Branch, RiskLevelData, Auditor } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
-import { PlusCircle, Trash2, ShieldCheck, ChevronDown, Layers, FileText } from 'lucide-react';
+import { PlusCircle, Trash2, ShieldCheck, ChevronDown, Layers, FileText, CalendarIcon, Timer } from 'lucide-react';
 import { useState } from 'react';
 import { initialBranches, initialRiskLevels, initialAuditors } from '@/lib/mock-data';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Calendar } from '../ui/calendar';
+import { format } from 'date-fns';
 
 const subsectionSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters.'),
@@ -61,6 +63,10 @@ const subsectionSchema = z.object({
     name: z.string().min(1, 'Name is required.'),
     amount: z.coerce.number().min(0, 'Amount must be positive.'),
   })).optional(),
+  // KPI Fields
+  assignedDate: z.date().optional(),
+  finalizationDate: z.date().optional(),
+  tatDays: z.coerce.number().min(1, 'TAT must be at least 1 day.').optional(),
 });
 
 const formSchema = z.object({
@@ -91,6 +97,7 @@ export function CreateFindingForm() {
         auditEffect: '',
         recommendation: '',
         involvedAmounts: [],
+        tatDays: 15,
       }],
     },
   });
@@ -116,7 +123,6 @@ export function CreateFindingForm() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               
-              {/* Parent Level Card */}
               <Card className="border-t-4 border-t-primary shadow-md">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -157,7 +163,6 @@ export function CreateFindingForm() {
                 </CardContent>
               </Card>
 
-              {/* Subsections Section */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold flex items-center gap-2">
@@ -179,6 +184,7 @@ export function CreateFindingForm() {
                       auditEffect: '',
                       recommendation: '',
                       involvedAmounts: [],
+                      tatDays: 15,
                     })}
                   >
                     <PlusCircle className="mr-2 h-4 w-4" />
@@ -201,7 +207,6 @@ export function CreateFindingForm() {
                       </AccordionTrigger>
                       <AccordionContent className="px-6 pb-6 pt-4 space-y-6">
                         
-                        {/* Team Assignment */}
                         <div className="space-y-4">
                           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                             <ShieldCheck className="h-4 w-4" /> Team Assignment
@@ -282,7 +287,99 @@ export function CreateFindingForm() {
 
                         <Separator />
 
-                        {/* Finding Information */}
+                        <div className="space-y-4">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                            <Timer className="h-4 w-4" /> Cycle Scheduling (KPIs)
+                          </h4>
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <FormField
+                              control={form.control}
+                              name={`subsections.${index}.assignedDate`}
+                              render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                  <FormLabel>Date Assigned</FormLabel>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <FormControl>
+                                        <Button
+                                          variant={"outline"}
+                                          className={cn(
+                                            "w-full pl-3 text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                          )}
+                                        >
+                                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                      </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                      <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                                        initialFocus
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`subsections.${index}.finalizationDate`}
+                              render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                  <FormLabel>Finalization Date</FormLabel>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <FormControl>
+                                        <Button
+                                          variant={"outline"}
+                                          className={cn(
+                                            "w-full pl-3 text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                          )}
+                                        >
+                                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                      </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                      <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                                        initialFocus
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`subsections.${index}.tatDays`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>TAT (Standard Days)</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" placeholder="e.g., 15" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+
+                        <Separator />
+
                         <div className="space-y-4">
                           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Finding Information</h4>
                           <FormField
@@ -353,7 +450,6 @@ export function CreateFindingForm() {
 
                         <Separator />
 
-                        {/* Financial/Analysis */}
                         <div className="space-y-4">
                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Analysis & Recommendations</h4>
                            <FormField

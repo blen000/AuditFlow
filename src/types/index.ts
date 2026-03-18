@@ -47,6 +47,10 @@ export type AuditFinding = {
   involvedCases?: InvolvedCase[];
   teamLeader: string;
   teamMembers: string[];
+  // KPI Fields
+  assignedDate?: Date | Timestamp;
+  finalizationDate?: Date | Timestamp;
+  tatDays?: number;
 };
 
 export type Branch = {

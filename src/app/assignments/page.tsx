@@ -10,15 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Users, ShieldCheck, AlertCircle, Clock } from 'lucide-react';
 import { initialFindings, initialAuditors } from '@/lib/mock-data';
 import type { Auditor } from '@/types';
-import { differenceInDays, subDays } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 
 export default function AssignmentsPage() {
   const [mounted, setMounted] = useState(false);
   const [auditors] = useState<Auditor[]>(initialAuditors);
   const [selectedAuditor, setSelectedAuditor] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-
-  const STANDARD_TAT_DAYS = 15;
 
   useEffect(() => {
     setMounted(true);
@@ -152,23 +150,16 @@ export default function AssignmentsPage() {
                         filteredFindings.map((finding, index) => {
                           const isLeader = finding.teamLeader === (selectedAuditor === 'all' ? finding.teamLeader : selectedAuditor);
                           
-                          // Calculation Logic
-                          // Assigned Date: Derived from mitigationDueDate or set as a baseline
-                          const assignedDate = finding.mitigationDueDate 
-                            ? subDays(new Date(finding.mitigationDueDate as any), 14) 
-                            : subDays(new Date(), 20);
-                            
-                          // Finalization Date: Using revalidationDate or current date if closed
-                          const finalizedDate = finding.revalidationDate 
-                            ? new Date(finding.revalidationDate as any)
-                            : (finding.status === 'Closed' ? new Date() : null);
+                          const assignedDate = finding.assignedDate ? new Date(finding.assignedDate as any) : null;
+                          const finalizedDate = finding.finalizationDate ? new Date(finding.finalizationDate as any) : null;
+                          const standardTAT = finding.tatDays || 0;
 
-                          const timeTakenDays = finalizedDate 
+                          const timeTakenDays = (finalizedDate && assignedDate) 
                             ? differenceInDays(finalizedDate, assignedDate)
                             : null;
 
-                          const deviation = timeTakenDays !== null 
-                            ? timeTakenDays - STANDARD_TAT_DAYS
+                          const deviation = (timeTakenDays !== null && standardTAT > 0) 
+                            ? timeTakenDays - standardTAT
                             : null;
                           
                           return (
@@ -189,7 +180,7 @@ export default function AssignmentsPage() {
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-[10px] font-mono whitespace-nowrap">
-                                {mounted ? assignedDate.toLocaleDateString() : '...'}
+                                {mounted && assignedDate ? assignedDate.toLocaleDateString() : (mounted ? 'Not Assigned' : '...')}
                               </TableCell>
                               <TableCell className="text-[10px] font-mono whitespace-nowrap">
                                 {mounted && finalizedDate ? finalizedDate.toLocaleDateString() : 'In Progress'}
@@ -198,7 +189,7 @@ export default function AssignmentsPage() {
                                 {timeTakenDays !== null ? `${timeTakenDays} Days` : '--'}
                               </TableCell>
                               <TableCell className="text-center text-xs text-muted-foreground">
-                                {STANDARD_TAT_DAYS} Days
+                                {standardTAT > 0 ? `${standardTAT} Days` : '--'}
                               </TableCell>
                               <TableCell>
                                 {deviation !== null ? (

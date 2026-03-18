@@ -33,11 +33,13 @@ import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
 import { useState } from 'react';
-import { PlusCircle, Trash2, ShieldCheck, ChevronDown } from 'lucide-react';
+import { PlusCircle, Trash2, ShieldCheck, ChevronDown, CalendarIcon, Timer } from 'lucide-react';
 import { initialBranches, initialRiskLevels, initialAuditors } from '@/lib/mock-data';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { Calendar } from '../ui/calendar';
+import { format } from 'date-fns';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -76,6 +78,10 @@ const formSchema = z.object({
       })
     )
     .optional(),
+  // KPI Fields
+  assignedDate: z.date().optional(),
+  finalizationDate: z.date().optional(),
+  tatDays: z.coerce.number().min(1).optional(),
 });
 
 type EditFindingFormProps = {
@@ -102,6 +108,9 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       recommendation: finding.recommendation,
       involvedAmounts: finding.involvedAmounts || [],
       involvedCases: finding.involvedCases || [],
+      assignedDate: finding.assignedDate ? new Date(finding.assignedDate as any) : undefined,
+      finalizationDate: finding.finalizationDate ? new Date(finding.finalizationDate as any) : undefined,
+      tatDays: finding.tatDays || 15,
     },
   });
 
@@ -219,6 +228,99 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                           </PopoverContent>
                         </Popover>
                         <FormDescription>Select all members participating in this audit.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="text-lg font-bold flex items-center gap-2">
+                  <Timer className="h-5 w-5 text-primary" /> Cycle Scheduling (KPIs)
+                </h4>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <FormField
+                    control={form.control}
+                    name="assignedDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Date Assigned</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="finalizationDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Finalization Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tatDays"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>TAT (Standard Days)</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
