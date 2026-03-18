@@ -16,7 +16,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarIcon, User, MapPin, MessageSquare, AlertTriangle, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { 
+  CalendarIcon, 
+  MessageSquare, 
+  AlertTriangle, 
+  ShieldCheck, 
+  CheckCircle2, 
+  Plus, 
+  X 
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -31,24 +39,22 @@ type FollowUpDialogProps = {
   onUpdate: (id: string, updates: Partial<AuditFinding>) => void;
 };
 
-const emptyComm = (): CommunicationEntry[] => [{}, {}, {}];
-
 export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: FollowUpDialogProps) {
   const [status, setStatus] = useState<FollowUpStatus>(finding.followUpStatus || 'Pending');
-  const [verbal, setVerbal] = useState<CommunicationEntry[]>(finding.verbalComm || emptyComm());
-  const [written, setWritten] = useState<CommunicationEntry[]>(finding.writtenComm || emptyComm());
-  const [esc1, setEsc1] = useState<CommunicationEntry[]>(finding.esc1 || emptyComm());
-  const [esc2, setEsc2] = useState<CommunicationEntry[]>(finding.esc2 || emptyComm());
+  const [verbal, setVerbal] = useState<CommunicationEntry[]>(finding.verbalComm || []);
+  const [written, setWritten] = useState<CommunicationEntry[]>(finding.writtenComm || []);
+  const [esc1, setEsc1] = useState<CommunicationEntry[]>(finding.esc1 || []);
+  const [esc2, setEsc2] = useState<CommunicationEntry[]>(finding.esc2 || []);
   const [recommendations, setRecommendations] = useState(finding.followUpRecommendations || '');
   const [isClosed, setIsClosed] = useState(finding.isClosed || false);
 
   useEffect(() => {
     if (open) {
       setStatus(finding.followUpStatus || 'Pending');
-      setVerbal(finding.verbalComm || emptyComm());
-      setWritten(finding.writtenComm || emptyComm());
-      setEsc1(finding.esc1 || emptyComm());
-      setEsc2(finding.esc2 || emptyComm());
+      setVerbal(finding.verbalComm || []);
+      setWritten(finding.writtenComm || []);
+      setEsc1(finding.esc1 || []);
+      setEsc2(finding.esc2 || []);
       setRecommendations(finding.followUpRecommendations || '');
       setIsClosed(finding.isClosed || false);
     }
@@ -80,6 +86,14 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
     });
   };
 
+  const addEntry = (setter: React.Dispatch<React.SetStateAction<CommunicationEntry[]>>) => {
+    setter((prev) => [...prev, {}]);
+  };
+
+  const removeEntry = (setter: React.Dispatch<React.SetStateAction<CommunicationEntry[]>>, index: number) => {
+    setter((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const CommSection = ({
     title,
     entries,
@@ -90,55 +104,81 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
   }: {
     title: string;
     entries: CommunicationEntry[];
-    setter: any;
+    setter: React.Dispatch<React.SetStateAction<CommunicationEntry[]>>;
     icon: any;
     metaLabel: string;
     metaPlaceholder: string;
   }) => (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 border-b pb-2">
-        <Icon className="h-4 w-4 text-primary" />
-        <h4 className="text-sm font-bold uppercase tracking-wider">{title}</h4>
+      <div className="flex items-center justify-between border-b pb-2">
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-primary" />
+          <h4 className="text-sm font-bold uppercase tracking-wider">{title}</h4>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-7 text-[10px] font-bold" 
+          onClick={() => addEntry(setter)}
+          disabled={entries.length >= 3}
+        >
+          <Plus className="mr-1 h-3 w-3" />
+          Add Instance
+        </Button>
       </div>
       <div className="space-y-4">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 rounded-lg border bg-muted/20">
-            <div className="space-y-1">
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground">{i + 1}st Instance Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full h-8 justify-start text-left font-normal px-2 text-xs",
-                      !entries[i]?.date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-3 w-3" />
-                    {entries[i]?.date ? format(entries[i].date as Date, 'PPP') : "Select date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={entries[i]?.date as Date}
-                    onSelect={(date) => updateEntry(setter, i, 'date', date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+        {entries.length > 0 ? (
+          entries.map((entry, i) => (
+            <div key={i} className="relative grid grid-cols-1 md:grid-cols-2 gap-3 p-3 rounded-lg border bg-muted/20">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm"
+                onClick={() => removeEntry(setter, i)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">{i + 1}st Instance Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-8 justify-start text-left font-normal px-2 text-xs",
+                        !entry.date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-3 w-3" />
+                      {entry.date ? format(entry.date as Date, 'PPP') : "Select date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={entry.date as Date}
+                      onSelect={(date) => updateEntry(setter, i, 'date', date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">{metaLabel}</Label>
+                <Input
+                  className="h-8 text-xs"
+                  placeholder={metaPlaceholder}
+                  value={entry.meta || ''}
+                  onChange={(e) => updateEntry(setter, i, 'meta', e.target.value)}
+                />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground">{metaLabel}</Label>
-              <Input
-                className="h-8 text-xs"
-                placeholder={metaPlaceholder}
-                value={entries[i]?.meta || ''}
-                onChange={(e) => updateEntry(setter, i, 'meta', e.target.value)}
-              />
-            </div>
+          ))
+        ) : (
+          <div className="py-6 text-center text-xs text-muted-foreground italic border border-dashed rounded-lg">
+            No instances recorded. Click "Add Instance" to begin tracking.
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
