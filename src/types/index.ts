@@ -70,6 +70,13 @@ export type StatusData = {
   name: string;
 };
 
+export type Auditor = {
+  id?: string;
+  fullName: string;
+  email: string;
+  phone: string;
+};
+
 export type Notification = {
   id: string;
   title: string;

@@ -1,4 +1,4 @@
-import type { AuditFinding, Branch, District, RiskLevelData, StatusData } from '@/types';
+import type { AuditFinding, Branch, District, RiskLevelData, StatusData, Auditor } from '@/types';
 
 export const initialDistricts: District[] = [
   { id: 'DIST-1', name: 'Northern District' },
@@ -25,6 +25,12 @@ export const initialStatuses: StatusData[] = [
   { id: 'STAT-3', name: 'Mitigated' },
   { id: 'STAT-4', name: 'Closed' },
   { id: 'STAT-5', name: 'Awaiting Response' },
+];
+
+export const initialAuditors: Auditor[] = [
+  { id: 'AUD-1', fullName: 'Abebe Shirega', email: 'abebe@bank.com', phone: '+251911000001' },
+  { id: 'AUD-2', fullName: 'Fikre Tollossa', email: 'fikre@bank.com', phone: '+251911000002' },
+  { id: 'AUD-3', fullName: 'Ze', email: 'ze@bank.com', phone: '+251911000003' },
 ];
 
 export const initialFindings: AuditFinding[] = [

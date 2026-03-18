@@ -9,13 +9,11 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Users, Calendar, Activity, CheckCircle2, Search, UserCheck, ShieldCheck } from 'lucide-react';
-import { initialFindings } from '@/lib/mock-data';
-import type { AuditFinding } from '@/types';
+import { initialFindings, initialAuditors } from '@/lib/mock-data';
+import type { AuditFinding, Auditor } from '@/types';
 
 export default function AssignmentsPage() {
-  const auditCycle = ['Planning', 'Execution', 'Reporting', 'Follow-up'];
-  const auditors = ['Abebe Shirega', 'Fikre Tollossa', 'Ze'];
-  
+  const [auditors] = useState<Auditor[]>(initialAuditors);
   const [selectedAuditor, setSelectedAuditor] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -64,7 +62,7 @@ export default function AssignmentsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Auditors</SelectItem>
-                  {auditors.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                  {auditors.map(a => <SelectItem key={a.id} value={a.fullName}>{a.fullName}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

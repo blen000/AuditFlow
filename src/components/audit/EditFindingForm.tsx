@@ -23,13 +23,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { AuditFinding, Branch, RiskLevelData } from '@/types';
+import type { AuditFinding, Branch, RiskLevelData, Auditor } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
 import { useEffect, useState } from 'react';
 import { Paperclip, PlusCircle, Trash2, UserCheck, ShieldCheck, Users } from 'lucide-react';
-import { initialBranches, initialRiskLevels } from '@/lib/mock-data';
+import { initialBranches, initialRiskLevels, initialAuditors } from '@/lib/mock-data';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -81,7 +81,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
   const router = useRouter();
   const [branches] = useState<Branch[]>(initialBranches);
   const [riskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
-  const auditors = ['Abebe Shirega', 'Fikre Tollossa', 'Ze'];
+  const [auditors] = useState<Auditor[]>(initialAuditors);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -155,7 +155,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                           </FormControl>
                           <SelectContent>
                             {auditors.map((auditor) => (
-                              <SelectItem key={auditor} value={auditor}>{auditor}</SelectItem>
+                              <SelectItem key={auditor.id} value={auditor.fullName}>{auditor.fullName}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -177,7 +177,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                           </FormControl>
                           <SelectContent>
                             {auditors.map((auditor) => (
-                              <SelectItem key={auditor} value={auditor}>{auditor}</SelectItem>
+                              <SelectItem key={auditor.id} value={auditor.fullName}>{auditor.fullName}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -197,23 +197,23 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                         <div className="grid grid-cols-2 gap-4">
                           {auditors.map((auditor) => (
                             <FormField
-                              key={auditor}
+                              key={auditor.id}
                               control={form.control}
                               name="teamMembers"
                               render={({ field }) => {
                                 return (
-                                  <FormItem key={auditor} className="flex flex-row items-start space-x-3 space-y-0">
+                                  <FormItem key={auditor.id} className="flex flex-row items-start space-x-3 space-y-0">
                                     <FormControl>
                                       <Checkbox
-                                        checked={field.value?.includes(auditor)}
+                                        checked={field.value?.includes(auditor.fullName)}
                                         onCheckedChange={(checked) => {
                                           return checked
-                                            ? field.onChange([...field.value, auditor])
-                                            : field.onChange(field.value?.filter((value) => value !== auditor));
+                                            ? field.onChange([...field.value, auditor.fullName])
+                                            : field.onChange(field.value?.filter((value) => value !== auditor.fullName));
                                         }}
                                       />
                                     </FormControl>
-                                    <FormLabel className="font-normal">{auditor}</FormLabel>
+                                    <FormLabel className="font-normal">{auditor.fullName}</FormLabel>
                                   </FormItem>
                                 );
                               }}
