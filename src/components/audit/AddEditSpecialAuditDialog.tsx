@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, UserPlus, FileText, MapPin, CircleDollarSign, ShieldAlert } from 'lucide-react';
+import { Plus, Trash2, UserPlus, FileText, CircleDollarSign, ShieldAlert } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { SpecialAudit } from '@/types';
@@ -129,19 +129,19 @@ export function AddEditSpecialAuditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="px-6 py-4 border-b">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+        <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
           <DialogTitle>{audit ? 'Edit Special Audit' : 'New Special Audit Report'}</DialogTitle>
           <DialogDescription>Fill out the pertinent details for the special audit report.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="flex-1 flex flex-col overflow-hidden">
-            <ScrollArea className="flex-1 px-6 py-6">
-              <div className="space-y-8">
+            <ScrollArea className="flex-1">
+              <div className="px-6 py-6 space-y-8">
                 {/* Basic Info */}
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-wider">
+                  <div className="flex items-center gap-2 text-primary font-bold uppercase text-[10px] tracking-widest">
                     <FileText className="h-4 w-4" /> Report Overview
                   </div>
                   <FormField
@@ -194,7 +194,7 @@ export function AddEditSpecialAuditDialog({
 
                 {/* Monetary Values */}
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-wider">
+                  <div className="flex items-center gap-2 text-primary font-bold uppercase text-[10px] tracking-widest">
                     <CircleDollarSign className="h-4 w-4" /> Monetary Value tracking
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -239,7 +239,7 @@ export function AddEditSpecialAuditDialog({
                 {/* Involved Individuals */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-wider">
+                    <div className="flex items-center gap-2 text-primary font-bold uppercase text-[10px] tracking-widest">
                       <UserPlus className="h-4 w-4" /> Involved Individuals
                     </div>
                     <Button type="button" variant="outline" size="sm" onClick={() => append({ name: '', position: '', tenure: '', age: 0, sex: 'Male' })}>
@@ -336,7 +336,7 @@ export function AddEditSpecialAuditDialog({
 
                 {/* Analysis */}
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-wider">
+                  <div className="flex items-center gap-2 text-primary font-bold uppercase text-[10px] tracking-widest">
                     <ShieldAlert className="h-4 w-4" /> Analysis & Actions
                   </div>
                   <FormField
@@ -376,7 +376,7 @@ export function AddEditSpecialAuditDialog({
               </div>
             </ScrollArea>
 
-            <DialogFooter className="px-6 py-4 border-t bg-muted/10">
+            <DialogFooter className="px-6 py-4 border-t bg-muted/10 shrink-0">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button type="submit">{audit ? 'Update Report' : 'Create Special Audit'}</Button>
             </DialogFooter>

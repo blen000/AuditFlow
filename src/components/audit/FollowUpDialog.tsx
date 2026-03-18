@@ -116,6 +116,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
           <h4 className="text-sm font-bold uppercase tracking-wider">{title}</h4>
         </div>
         <Button 
+          type="button"
           variant="outline" 
           size="sm" 
           className="h-7 text-[10px] font-bold" 
@@ -130,6 +131,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
         {entries.map((entry, i) => (
           <div key={i} className="relative grid grid-cols-1 md:grid-cols-2 gap-3 p-3 rounded-lg border bg-muted/20">
             <Button
+              type="button"
               variant="ghost"
               size="icon"
               className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm z-10"
@@ -179,8 +181,8 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl">
-        <DialogHeader className="p-6 pb-2 shrink-0 border-b">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+        <DialogHeader className="p-6 pb-2 shrink-0 border-b bg-background">
           <DialogTitle className="text-xl flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
             Audit Follow-up Management
@@ -195,7 +197,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
             {/* Status & Closure Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end bg-primary/5 p-4 rounded-xl border border-primary/20">
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase text-primary">Follow-up Lifecycle Status</Label>
+                <Label className="text-[10px] font-bold uppercase text-primary tracking-widest">Follow-up Lifecycle Status</Label>
                 <Select value={status} onValueChange={(v) => setStatus(v as FollowUpStatus)}>
                   <SelectTrigger className="bg-background">
                     <SelectValue placeholder="Select Status" />
@@ -279,8 +281,8 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
         </ScrollArea>
 
         <DialogFooter className="p-6 border-t bg-muted/30 shrink-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave}>Save Follow-up Data</Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="button" onClick={handleSave}>Save Follow-up Data</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
