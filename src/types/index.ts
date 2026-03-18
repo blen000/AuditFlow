@@ -79,6 +79,21 @@ export type Department = {
   name: string;
 };
 
+export type Chief = {
+  id?: string;
+  name: string;
+};
+
+export type CEO = {
+  id?: string;
+  name: string;
+};
+
+export type Board = {
+  id?: string;
+  name: string;
+};
+
 export type District = {
   id?: string;
   name: string;

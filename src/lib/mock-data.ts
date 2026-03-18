@@ -1,4 +1,4 @@
-import type { AuditFinding, Branch, District, RiskLevelData, StatusData, Auditor, Department } from '@/types';
+import type { AuditFinding, Branch, District, RiskLevelData, StatusData, Auditor, Department, Chief, CEO, Board } from '@/types';
 import { subDays } from 'date-fns';
 
 export const initialDistricts: District[] = [
@@ -18,6 +18,23 @@ export const initialDepartments: Department[] = [
   { id: 'DEPT-2', name: 'Risk Management' },
   { id: 'DEPT-3', name: 'Operations Department' },
   { id: 'DEPT-4', name: 'IT Security' },
+];
+
+export const initialChiefs: Chief[] = [
+  { id: 'CHIEF-1', name: 'Chief Audit Executive' },
+  { id: 'CHIEF-2', name: 'Chief Risk Officer' },
+  { id: 'CHIEF-3', name: 'Chief Operations Officer' },
+];
+
+export const initialCEOs: CEO[] = [
+  { id: 'CEO-1', name: 'Group CEO' },
+  { id: 'CEO-2', name: 'Acting CEO' },
+];
+
+export const initialBoards: Board[] = [
+  { id: 'BOARD-1', name: 'Board Audit Committee' },
+  { id: 'BOARD-2', name: 'Board of Directors' },
+  { id: 'BOARD-3', name: 'Risk Oversight Committee' },
 ];
 
 export const initialRiskLevels: RiskLevelData[] = [
