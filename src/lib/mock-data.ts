@@ -45,6 +45,8 @@ export const initialFindings: AuditFinding[] = [
     auditCause: 'Configuration oversight during last system update.',
     auditEffect: 'Potential unauthorized access to branch terminals.',
     assignedAuditor: 'Abebe Shirega',
+    teamLeader: 'Abebe Shirega',
+    teamMembers: ['Fikre Tollossa', 'Ze'],
   },
   {
     id: 'CASE-002',
@@ -68,6 +70,8 @@ export const initialFindings: AuditFinding[] = [
     auditCause: 'Staff shortage leading to operational shortcuts.',
     auditEffect: 'High risk of internal fraud or theft.',
     assignedAuditor: 'Fikre Tollossa',
+    teamLeader: 'Abebe Shirega',
+    teamMembers: ['Fikre Tollossa'],
   },
   {
     id: 'CASE-003',
@@ -87,6 +91,8 @@ export const initialFindings: AuditFinding[] = [
     findingAttachments: [],
     recommendationAttachments: [],
     assignedAuditor: 'Ze',
+    teamLeader: 'Fikre Tollossa',
+    teamMembers: ['Ze'],
   },
   {
     id: 'CASE-004',
@@ -104,6 +110,8 @@ export const initialFindings: AuditFinding[] = [
     ],
     progressUpdates: [],
     assignedAuditor: 'Abebe Shirega',
+    teamLeader: 'Abebe Shirega',
+    teamMembers: ['Ze'],
   },
   {
     id: 'CASE-005',
@@ -118,5 +126,7 @@ export const initialFindings: AuditFinding[] = [
     involvedAmounts: [],
     progressUpdates: [],
     assignedAuditor: 'Fikre Tollossa',
+    teamLeader: 'Fikre Tollossa',
+    teamMembers: ['Abebe Shirega', 'Ze'],
   }
 ];

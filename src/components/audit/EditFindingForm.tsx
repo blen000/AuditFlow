@@ -22,12 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { AuditFinding, Branch, RiskLevelData } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
 import { useEffect, useState } from 'react';
-import { Paperclip, PlusCircle, Trash2, UserCheck } from 'lucide-react';
+import { Paperclip, PlusCircle, Trash2, UserCheck, ShieldCheck, Users } from 'lucide-react';
 import { initialBranches, initialRiskLevels } from '@/lib/mock-data';
 
 const formSchema = z.object({
@@ -46,6 +47,10 @@ const formSchema = z.object({
   assignedAuditor: z.string({
     required_error: 'You need to assign a designated auditor.',
   }),
+  teamLeader: z.string({
+    required_error: 'You need to assign a team leader.',
+  }),
+  teamMembers: z.array(z.string()).min(1, 'Select at least one team member.'),
   auditCause: z.string().optional(),
   auditEffect: z.string().optional(),
   recommendation: z.string().optional(),
@@ -86,6 +91,8 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       riskLevel: finding.riskLevel,
       branchOrDepartment: finding.branchOrDepartment,
       assignedAuditor: finding.assignedAuditor || '',
+      teamLeader: finding.teamLeader || '',
+      teamMembers: finding.teamMembers || [],
       auditCause: finding.auditCause,
       auditEffect: finding.auditEffect,
       recommendation: finding.recommendation,
@@ -121,323 +128,261 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader
         title="Edit Audit Finding"
-        description="Update the designated auditor and details for this finding."
+        description="Update team structure and finding details."
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
-        <div className="mx-auto max-w-2xl">
+        <div className="mx-auto max-w-3xl">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., Unauthorized Access"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="assignedAuditor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <UserCheck className="h-4 w-4 text-primary" />
-                        Designated Auditor
-                      </UserCheck>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Assign auditor" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <UserCheck className="h-5 w-5 text-primary" />
+                  Audit Team Assignment
+                </h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="assignedAuditor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Designated Auditor</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select auditor" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {auditors.map((auditor) => (
+                              <SelectItem key={auditor} value={auditor}>{auditor}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="teamLeader"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Team Leader</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select leader" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {auditors.map((auditor) => (
+                              <SelectItem key={auditor} value={auditor}>{auditor}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="teamMembers"
+                    render={() => (
+                      <FormItem className="md:col-span-2">
+                        <div className="mb-4">
+                          <FormLabel className="text-base">Team Members</FormLabel>
+                          <FormDescription>Select all members participating in this audit.</FormDescription>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
                           {auditors.map((auditor) => (
-                            <SelectItem key={auditor} value={auditor}>
-                              {auditor}
-                            </SelectItem>
+                            <FormField
+                              key={auditor}
+                              control={form.control}
+                              name="teamMembers"
+                              render={({ field }) => {
+                                return (
+                                  <FormItem key={auditor} className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value?.includes(auditor)}
+                                        onCheckedChange={(checked) => {
+                                          return checked
+                                            ? field.onChange([...field.value, auditor])
+                                            : field.onChange(field.value?.filter((value) => value !== auditor));
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">{auditor}</FormLabel>
+                                  </FormItem>
+                                );
+                              }}
+                            />
                           ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold">Finding Details</h3>
                 <FormField
                   control={form.control}
-                  name="riskLevel"
+                  name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Risk Level</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a risk level" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {riskLevels.map((level) => (
-                            <SelectItem key={level.id} value={level.name}>
-                              {level.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Unauthorized Access" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="riskLevel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Risk Level</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a risk level" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {riskLevels.map((level) => (
+                              <SelectItem key={level.id} value={level.name}>{level.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="branchOrDepartment"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Branch / Department Audited</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select branch" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {branches.map((branch) => (
+                              <SelectItem key={branch.id} value={branch.name}>{branch.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
-                  name="branchOrDepartment"
+                  name="details"
                   render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>Branch / Department Audited</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a branch or department" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {branches.map((branch) => (
-                            <SelectItem key={branch.id} value={branch.name}>
-                              {branch.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <FormItem>
+                      <FormLabel>Finding Details</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Describe the audit finding..." className="h-24" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="details"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Finding Details</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Describe the audit finding in detail..."
-                        className="h-24 resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <Separator />
+
               <div>
-                <h3 className="text-lg font-semibold">Amounts Involved</h3>
-                {amountFields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="mt-2 flex items-end gap-2 rounded-md border p-4"
-                  >
-                    <FormField
-                      control={form.control}
-                      name={`involvedAmounts.${index}.name`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormLabel>Name</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="e.g., Initial Shortage"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`involvedAmounts.${index}.amount`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormLabel>Amount</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="e.g., 150.00"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => removeAmount(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => appendAmount({ name: '', amount: 0 })}
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Amount
-                </Button>
-              </div>
-              <Separator />
-              <div>
-                <h3 className="text-lg font-semibold">Involved Cases</h3>
-                {caseFields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="mt-2 flex items-end gap-2 rounded-md border p-4"
-                  >
-                    <FormField
-                      control={form.control}
-                      name={`involvedCases.${index}.ownerName`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormLabel>Case Owner / Customer</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., John Doe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`involvedCases.${index}.status`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Open">Open</SelectItem>
-                              <SelectItem value="Resolved">Resolved</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => removeCase(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() =>
-                    appendCase({
-                      id: `CASE-${Date.now()}`,
-                      ownerName: '',
-                      status: 'Open',
-                    })
-                  }
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Case
-                </Button>
-              </div>
-              <Separator />
-              <FormField
-                control={form.control}
-                name="auditCause"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cause of Audit</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Describe the cause of the audit finding..."
-                        className="h-24 resize-y"
-                        {...field}
+                <h3 className="text-lg font-semibold mb-4">Involved Amounts & Cases</h3>
+                <div className="space-y-4">
+                  {amountFields.map((field, index) => (
+                    <div key={field.id} className="flex items-end gap-2 rounded-md border p-4">
+                      <FormField
+                        control={form.control}
+                        name={`involvedAmounts.${index}.name`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormLabel>Name</FormLabel>
+                            <FormControl><Input {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Separator />
-              <FormField
-                control={form.control}
-                name="auditEffect"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Effect of Audit</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Describe the effect of the audit finding..."
-                        className="h-24 resize-y"
-                        {...field}
+                      <FormField
+                        control={form.control}
+                        name={`involvedAmounts.${index}.amount`}
+                        render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <FormLabel>Amount</FormLabel>
+                            <FormControl><Input type="number" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Separator />
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Recommendation</h3>
+                      <Button type="button" variant="destructive" size="icon" onClick={() => removeAmount(index)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={() => appendAmount({ name: '', amount: 0 })}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Amount
+                  </Button>
+                </div>
               </div>
-              <FormField
-                control={form.control}
-                name="recommendation"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Proposed Recommendation</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Outline the steps to mitigate this risk..."
-                        className="h-32 resize-y"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Recommendations & Root Cause</h3>
+                <FormField
+                  control={form.control}
+                  name="auditCause"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cause of Audit</FormLabel>
+                      <FormControl><Textarea className="h-20" {...field} /></FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="auditEffect"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Effect of Audit</FormLabel>
+                      <FormControl><Textarea className="h-20" {...field} /></FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="recommendation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Proposed Recommendation</FormLabel>
+                      <FormControl><Textarea className="h-24" {...field} /></FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push('/auditee-view')}
-                >
-                  Cancel
-                </Button>
+                <Button type="button" variant="outline" onClick={() => router.push('/auditee-view')}>Cancel</Button>
                 <Button type="submit">Save Changes</Button>
               </div>
             </form>

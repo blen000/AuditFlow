@@ -33,6 +33,7 @@ import {
   CircleDollarSign,
   Users,
   UserCheck,
+  ShieldCheck,
 } from 'lucide-react';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
@@ -49,6 +50,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Badge } from '../ui/badge';
 import type { StatusData } from '@/types';
 import { initialStatuses } from '@/lib/mock-data';
 
@@ -173,11 +175,26 @@ export function AuditFindingCard({
             <AgreementBadge agreement={finding.auditeeAgreement} />
           </div>
 
-          <div className="mt-2 space-y-1.5 border-t pt-3">
+          <div className="mt-2 space-y-2 border-t pt-3">
             <div className="flex items-center gap-2 text-xs font-medium text-foreground">
               <UserCheck className="h-3.5 w-3.5 text-primary" />
-              <span>Auditor: <span className="font-bold">{finding.assignedAuditor}</span></span>
+              <span>Assigned: <span className="font-bold">{finding.assignedAuditor}</span></span>
             </div>
+            <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+              <ShieldCheck className="h-3.5 w-3.5 text-orange-500" />
+              <span>Leader: <span className="font-bold">{finding.teamLeader}</span></span>
+            </div>
+            {finding.teamMembers && finding.teamMembers.length > 0 && (
+              <div className="flex items-start gap-2 text-xs font-medium text-foreground">
+                <Users className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
+                <div className="flex flex-wrap gap-1">
+                  <span className="text-muted-foreground">Members:</span>
+                  {finding.teamMembers.map(member => (
+                    <Badge key={member} variant="outline" className="text-[9px] h-4 py-0 px-1">{member}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
             {mitigationDueDate && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Check className="h-3.5 w-3.5" />
