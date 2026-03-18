@@ -159,6 +159,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormDescription>The primary owner/investigator for this specific finding.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -181,6 +182,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormDescription>The supervisor overseeing the overall audit mission quality.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
