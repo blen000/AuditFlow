@@ -23,7 +23,9 @@ export type InvolvedCase = {
 };
 
 export type AuditFinding = {
-  id: string;
+  id: string; // Subsection ID, e.g., "1.1"
+  parentCaseNumber: string; // Main Audit ID, e.g., "1"
+  parentSummary: string; // Summary of the Main Audit
   title: string;
   details: string;
   riskLevel: RiskLevel;
@@ -34,7 +36,6 @@ export type AuditFinding = {
   auditeeAgreement: AuditeeAgreement;
   mitigationDueDate?: Date | Timestamp;
   auditeeResponse?: string;
-  auditeeAttachmentFilename?: string;
   progressUpdates?: ProgressUpdate[];
   findingAttachments?: string[];
   recommendationAttachments?: string[];

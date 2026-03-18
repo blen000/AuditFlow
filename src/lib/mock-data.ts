@@ -35,7 +35,9 @@ export const initialAuditors: Auditor[] = [
 
 export const initialFindings: AuditFinding[] = [
   {
-    id: 'CASE-001',
+    id: '1.1',
+    parentCaseNumber: '1',
+    parentSummary: 'IT Policy Review 2024',
     title: 'Weak Password Policy',
     details: 'The branch password policy does not enforce complexity requirements.',
     riskLevel: 'Medium',
@@ -54,7 +56,9 @@ export const initialFindings: AuditFinding[] = [
     teamMembers: ['Fikre Tollossa', 'Ze'],
   },
   {
-    id: 'CASE-002',
+    id: '2.1',
+    parentCaseNumber: '2',
+    parentSummary: 'Operational Compliance Audit',
     title: 'Dual Control Violation',
     details: 'The vault was opened by a single employee on three separate occasions.',
     riskLevel: 'High',
@@ -78,7 +82,9 @@ export const initialFindings: AuditFinding[] = [
     teamMembers: ['Fikre Tollossa'],
   },
   {
-    id: 'CASE-003',
+    id: '3.1',
+    parentCaseNumber: '3',
+    parentSummary: 'KYC & AML Review',
     title: 'Missing KYC Documentation',
     details: 'Several high-value accounts were opened without complete KYC documentation.',
     riskLevel: 'High',
@@ -98,7 +104,9 @@ export const initialFindings: AuditFinding[] = [
     teamMembers: ['Ze'],
   },
   {
-    id: 'CASE-004',
+    id: '2.2',
+    parentCaseNumber: '2',
+    parentSummary: 'Operational Compliance Audit',
     title: 'Excessive Cash Limits',
     details: 'Tellers were found holding cash in excess of their authorized limits.',
     riskLevel: 'Low',
@@ -116,7 +124,9 @@ export const initialFindings: AuditFinding[] = [
     teamMembers: ['Ze'],
   },
   {
-    id: 'CASE-005',
+    id: '4.1',
+    parentCaseNumber: '4',
+    parentSummary: 'Data Protection Mission',
     title: 'Unsecured Customer Records',
     details: 'Customer loan files were found left unsecured in an open cabinet.',
     riskLevel: 'Medium',
