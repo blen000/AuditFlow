@@ -2,9 +2,9 @@
 import { Badge } from '@/components/ui/badge';
 import type { AuditeeAgreement } from '@/types';
 import { cn } from '@/lib/utils';
-import { ThumbsUp, ThumbsDown, HelpCircle } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, HelpCircle, MessageSquareWarning } from 'lucide-react';
 
-const agreementConfig = {
+const agreementConfig: Record<string, { label: string; icon: any; className: string }> = {
   Pending: {
     label: 'Pending',
     icon: HelpCircle,
@@ -17,6 +17,12 @@ const agreementConfig = {
     className:
       'border-green-500/50 bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:border-green-500/40',
   },
+  'Partially Agreed': {
+    label: 'Partially Agreed',
+    icon: MessageSquareWarning,
+    className:
+      'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:border-amber-500/40',
+  },
   Declined: {
     label: 'Declined',
     icon: ThumbsDown,
@@ -26,7 +32,7 @@ const agreementConfig = {
 };
 
 export function AgreementBadge({ agreement }: { agreement: AuditeeAgreement }) {
-  const config = agreementConfig[agreement];
+  const config = agreementConfig[agreement] || agreementConfig.Pending;
   const Icon = config.icon;
 
   return (

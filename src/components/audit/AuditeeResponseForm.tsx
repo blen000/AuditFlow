@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -70,28 +69,33 @@ export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 py-4">
-        <div className="space-y-2">
-          <Label>Do you agree with this finding?</Label>
+        <div className="space-y-3">
+          <Label className="text-sm font-semibold">Do you agree with this finding?</Label>
           <RadioGroup
             value={agreement}
             onValueChange={(value: string) =>
               setAgreement(value as AuditeeAgreement)
             }
-            className="flex gap-4"
+            className="flex flex-wrap gap-4"
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="Agreed" id="agreed" />
-              <Label htmlFor="agreed">Agree</Label>
+              <Label htmlFor="agreed" className="font-normal">Agree</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="Partially Agreed" id="partially" />
+              <Label htmlFor="partially" className="font-normal">Partially Agree</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="Declined" id="declined" />
-              <Label htmlFor="declined">Decline</Label>
+              <Label htmlFor="declined" className="font-normal">Decline</Label>
             </div>
           </RadioGroup>
         </div>
-        {agreement === 'Agreed' && (
-          <div className="space-y-2">
-            <Label htmlFor="mitigation-date">
+
+        {(agreement === 'Agreed' || agreement === 'Partially Agreed') && (
+          <div className="space-y-2 pt-2">
+            <Label htmlFor="mitigation-date" className="text-sm font-semibold">
               Proposed Mitigation Due Date
             </Label>
             <Popover>
@@ -123,22 +127,23 @@ export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
             </Popover>
           </div>
         )}
-        {agreement === 'Declined' && (
-          <div className="grid gap-4">
+
+        {(agreement === 'Declined' || agreement === 'Partially Agreed') && (
+          <div className="grid gap-4 pt-2">
             <div className="space-y-2">
-              <Label htmlFor="disagreement-reason">
-                Reason for Disagreement
+              <Label htmlFor="disagreement-reason" className="text-sm font-semibold">
+                {agreement === 'Partially Agreed' ? 'Reason for Partial Disagreement' : 'Reason for Disagreement'}
               </Label>
               <Textarea
                 id="disagreement-reason"
-                placeholder="Clearly describe why you disagree with the finding..."
+                placeholder="Clearly describe the basis of your response..."
                 value={disagreementReason}
                 onChange={(e) => setDisagreementReason(e.target.value)}
                 className="h-24"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="attachment">Attach Supporting File</Label>
+              <Label htmlFor="attachment" className="text-sm font-semibold">Attach Supporting File</Label>
               <Input id="attachment" type="file" onChange={handleFileChange} />
               {attachment && (
                 <p className="text-xs text-muted-foreground">

@@ -2,7 +2,7 @@ import { Timestamp } from 'firebase/firestore';
 
 export type RiskLevel = 'High' | 'Medium' | 'Low' | string;
 export type FindingStatus = string;
-export type AuditeeAgreement = 'Pending' | 'Agreed' | 'Declined';
+export type AuditeeAgreement = 'Pending' | 'Agreed' | 'Declined' | 'Partially Agreed';
 
 export type ProgressUpdate = {
   id: string;

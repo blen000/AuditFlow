@@ -49,7 +49,7 @@ export function AuditeeResponseDialog({
     finding.auditeeAgreement
   );
   const [mitigationDueDate, setMitigationDueDate] = useState<Date | undefined>(
-    finding.mitigationDueDate
+    finding.mitigationDueDate as Date | undefined
   );
   const [disagreementReason, setDisagreementReason] = useState(
     finding.auditeeResponse || ''
@@ -67,6 +67,10 @@ export function AuditeeResponseDialog({
       updates.mitigationDueDate = mitigationDueDate;
       updates.auditeeResponse = '';
       updates.auditeeAttachmentFilename = '';
+    } else if (agreement === 'Partially Agreed') {
+      updates.mitigationDueDate = mitigationDueDate;
+      updates.auditeeResponse = disagreementReason;
+      updates.auditeeAttachmentFilename = attachment?.name;
     } else {
       updates.mitigationDueDate = undefined;
       updates.auditeeResponse = disagreementReason;
@@ -96,34 +100,38 @@ export function AuditeeResponseDialog({
             <h4 className="font-medium">{finding.title}</h4>
             <p className="text-sm text-muted-foreground">{finding.details}</p>
           </div>
-          <div className="space-y-2">
-            <Label>Do you agree with this finding?</Label>
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold">Do you agree with this finding?</Label>
             <RadioGroup
               value={agreement}
               onValueChange={(value: string) =>
                 setAgreement(value as AuditeeAgreement)
               }
-              className="flex gap-4"
+              className="flex flex-wrap gap-4"
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Agreed" id="agreed" />
-                <Label htmlFor="agreed">Agree</Label>
+                <RadioGroupItem value="Agreed" id="agreed-dialog" />
+                <Label htmlFor="agreed-dialog" className="font-normal">Agree</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Declined" id="declined" />
-                <Label htmlFor="declined">Decline</Label>
+                <RadioGroupItem value="Partially Agreed" id="partially-dialog" />
+                <Label htmlFor="partially-dialog" className="font-normal">Partially Agree</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Declined" id="declined-dialog" />
+                <Label htmlFor="declined-dialog" className="font-normal">Decline</Label>
               </div>
             </RadioGroup>
           </div>
-          {agreement === 'Agreed' && (
+          {(agreement === 'Agreed' || agreement === 'Partially Agreed') && (
             <div className="space-y-2">
-              <Label htmlFor="mitigation-date">
+              <Label htmlFor="mitigation-date-dialog" className="text-sm font-semibold">
                 Proposed Mitigation Due Date
               </Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    id="mitigation-date"
+                    id="mitigation-date-dialog"
                     variant={'outline'}
                     className={cn(
                       'w-full justify-start text-left font-normal',
@@ -149,24 +157,24 @@ export function AuditeeResponseDialog({
               </Popover>
             </div>
           )}
-          {agreement === 'Declined' && (
+          {(agreement === 'Declined' || agreement === 'Partially Agreed') && (
             <div className="grid gap-4">
               <div className="space-y-2">
-                <Label htmlFor="disagreement-reason">
-                  Reason for Disagreement
+                <Label htmlFor="disagreement-reason-dialog" className="text-sm font-semibold">
+                  {agreement === 'Partially Agreed' ? 'Reason for Partial Disagreement' : 'Reason for Disagreement'}
                 </Label>
                 <Textarea
-                  id="disagreement-reason"
-                  placeholder="Clearly describe why you disagree with the finding..."
+                  id="disagreement-reason-dialog"
+                  placeholder="Clearly describe the basis of your response..."
                   value={disagreementReason}
                   onChange={(e) => setDisagreementReason(e.target.value)}
                   className="h-24"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="attachment">Attach Supporting File</Label>
+                <Label htmlFor="attachment-dialog" className="text-sm font-semibold">Attach Supporting File</Label>
                 <Input
-                  id="attachment"
+                  id="attachment-dialog"
                   type="file"
                   onChange={handleFileChange}
                 />
