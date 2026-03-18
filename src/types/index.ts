@@ -68,6 +68,29 @@ export type AuditFinding = {
   isClosed?: boolean;
 };
 
+export type SpecialAuditIndividual = {
+  name: string;
+  position: string;
+  tenure: string;
+  age: number;
+  sex: 'Male' | 'Female' | 'Other';
+};
+
+export type SpecialAudit = {
+  id: string;
+  shortSummary: string;
+  placement: 'Branch' | 'District' | 'H.O';
+  placementValue: string; // Name of the branch, district or HO
+  amountInvolved: number;
+  recovered: number;
+  pending: number;
+  individuals: SpecialAuditIndividual[];
+  actionDisciplinary: string;
+  gapWitnessed: string;
+  correctiveActionTaken: string;
+  dateCreated: Date | string;
+};
+
 export type Branch = {
   id?: string;
   name: string;

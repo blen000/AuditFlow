@@ -1,4 +1,4 @@
-import type { AuditFinding, Branch, District, RiskLevelData, StatusData, Auditor, Department, Chief, CEO, Board } from '@/types';
+import type { AuditFinding, Branch, District, RiskLevelData, StatusData, Auditor, Department, Chief, CEO, Board, SpecialAudit } from '@/types';
 import { subDays } from 'date-fns';
 
 export const initialDistricts: District[] = [
@@ -55,6 +55,25 @@ export const initialAuditors: Auditor[] = [
   { id: 'AUD-1', fullName: 'Abebe Shirega', email: 'abebe@bank.com', phone: '+251911000001' },
   { id: 'AUD-2', fullName: 'Fikre Tollossa', email: 'fikre@bank.com', phone: '+251911000002' },
   { id: 'AUD-3', fullName: 'Ze', email: 'ze@bank.com', phone: '+251911000003' },
+];
+
+export const initialSpecialAudits: SpecialAudit[] = [
+  {
+    id: 'SA-1',
+    shortSummary: 'Financial Discrepancy in Cash Handling',
+    placement: 'Branch',
+    placementValue: 'Downtown Main',
+    amountInvolved: 50000,
+    recovered: 30000,
+    pending: 20000,
+    individuals: [
+      { name: 'John Doe', position: 'Cashier', tenure: '2 years', age: 28, sex: 'Male' }
+    ],
+    actionDisciplinary: 'Suspension pending further investigation',
+    gapWitnessed: 'Lack of daily vault reconciliation',
+    correctiveActionTaken: 'Mandatory daily reconciliation policy implemented',
+    dateCreated: subDays(new Date(), 5).toISOString(),
+  }
 ];
 
 export const initialFindings: AuditFinding[] = [

@@ -7,7 +7,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
-import { Building, LayoutDashboard, PlusCircle, Users, ShieldAlert, Tags, Settings, ClipboardList, UserRoundSearch, Briefcase, UserRound, UserCog, ShieldCheck } from 'lucide-react';
+import { Building, LayoutDashboard, PlusCircle, Users, ShieldAlert, Tags, Settings, ClipboardList, UserRoundSearch, Briefcase, UserRound, UserCog, ShieldCheck, FileWarning } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -39,6 +39,17 @@ export function SidebarNav() {
       </SidebarMenuItem>
       <SidebarGroup>
         <SidebarGroupLabel>Management</SidebarGroupLabel>
+        <SidebarMenuItem>
+          <Link href="/special-audits">
+            <SidebarMenuButton
+              isActive={pathname.startsWith('/special-audits')}
+              tooltip="Special Audit"
+            >
+              <FileWarning />
+              <span>Special Audit</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
         <SidebarMenuItem>
           <Link href="/assignments">
             <SidebarMenuButton
