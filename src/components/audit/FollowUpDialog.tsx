@@ -127,66 +127,60 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
         </Button>
       </div>
       <div className="space-y-4">
-        {entries.length > 0 ? (
-          entries.map((entry, i) => (
-            <div key={i} className="relative grid grid-cols-1 md:grid-cols-2 gap-3 p-3 rounded-lg border bg-muted/20">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm"
-                onClick={() => removeEntry(setter, i)}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-              <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">{i + 1}st Instance Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full h-8 justify-start text-left font-normal px-2 text-xs",
-                        !entry.date && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-3 w-3" />
-                      {entry.date ? format(entry.date as Date, 'PPP') : "Select date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={entry.date as Date}
-                      onSelect={(date) => updateEntry(setter, i, 'date', date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">{metaLabel}</Label>
-                <Input
-                  className="h-8 text-xs"
-                  placeholder={metaPlaceholder}
-                  value={entry.meta || ''}
-                  onChange={(e) => updateEntry(setter, i, 'meta', e.target.value)}
-                />
-              </div>
+        {entries.map((entry, i) => (
+          <div key={i} className="relative grid grid-cols-1 md:grid-cols-2 gap-3 p-3 rounded-lg border bg-muted/20">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm"
+              onClick={() => removeEntry(setter, i)}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground">{i + 1}st Instance Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full h-8 justify-start text-left font-normal px-2 text-xs",
+                      !entry.date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-3 w-3" />
+                    {entry.date ? format(entry.date as Date, 'PPP') : "Select date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={entry.date as Date}
+                    onSelect={(date) => updateEntry(setter, i, 'date', date)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-          ))
-        ) : (
-          <div className="py-6 text-center text-xs text-muted-foreground italic border border-dashed rounded-lg">
-            No instances recorded. Click "Add Instance" to begin tracking.
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground">{metaLabel}</Label>
+              <Input
+                className="h-8 text-xs"
+                placeholder={metaPlaceholder}
+                value={entry.meta || ''}
+                onChange={(e) => updateEntry(setter, i, 'meta', e.target.value)}
+              />
+            </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-0">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2">
           <DialogTitle className="text-xl flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
             Audit Follow-up Management
@@ -196,8 +190,8 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 p-6">
-          <div className="space-y-8 pb-4">
+        <ScrollArea className="flex-1 px-6">
+          <div className="space-y-8 pb-6">
             {/* Status & Closure */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end bg-primary/5 p-4 rounded-xl border border-primary/20">
               <div className="space-y-2">
@@ -284,7 +278,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
           </div>
         </ScrollArea>
 
-        <DialogFooter className="p-6 border-t bg-muted/30">
+        <DialogFooter className="p-6 border-t bg-muted/30 shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSave}>Save Follow-up Data</Button>
         </DialogFooter>
