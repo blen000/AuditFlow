@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -41,6 +40,7 @@ export default function RootLayout({
       </head>
       <body
         className={cn('font-body antialiased', 'min-h-screen bg-background')}
+        suppressHydrationWarning
       >
         <SidebarProvider>
           <Sidebar>

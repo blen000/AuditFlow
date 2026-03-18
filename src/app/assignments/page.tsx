@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,13 +12,17 @@ import { initialFindings, initialAuditors } from '@/lib/mock-data';
 import type { Auditor } from '@/types';
 
 export default function AssignmentsPage() {
+  const [mounted, setMounted] = useState(false);
   const [auditors] = useState<Auditor[]>(initialAuditors);
   const [selectedAuditor, setSelectedAuditor] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const filteredFindings = useMemo(() => {
     return initialFindings.filter(finding => {
-      // Logic: Auditor must be either the Team Leader OR a Team Member
       const auditorMatch = selectedAuditor === 'all' || 
                            finding.teamLeader === selectedAuditor ||
                            finding.teamMembers.includes(selectedAuditor);
@@ -50,7 +54,6 @@ export default function AssignmentsPage() {
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-7xl space-y-6">
           
-          {/* Filtering Section */}
           <div className="flex flex-col md:flex-row gap-4 mb-6 bg-card p-6 rounded-xl border shadow-sm">
             <div className="flex-1 space-y-2">
               <label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Filter by Auditor</label>
@@ -78,7 +81,6 @@ export default function AssignmentsPage() {
             </div>
           </div>
 
-          {/* Performance Insights */}
           {auditorStats && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <Card className="bg-primary/5 border-primary/20">
@@ -106,26 +108,26 @@ export default function AssignmentsPage() {
             </div>
           )}
 
-          {/* Formal Memo Container */}
           <Card className="border-t-4 border-t-primary shadow-xl overflow-hidden">
             <CardHeader className="text-center pb-6 bg-muted/30">
               <CardTitle className="text-2xl font-bold uppercase tracking-widest text-primary">Internal Audit Department</CardTitle>
               <CardDescription className="font-semibold text-lg italic mt-2">Assignment Schedule & Performance Tracking Memo</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8 p-8">
-              {/* Memo Meta Data */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-medium border-b pb-4">
                 <div className="space-y-2">
                   <p><span className="text-muted-foreground uppercase text-[10px] block">To:</span> {selectedAuditor === 'all' ? 'Assigned Audit Staff' : selectedAuditor}</p>
                   <p><span className="text-muted-foreground uppercase text-[10px] block">From:</span> Audit Management Office</p>
                 </div>
                 <div className="space-y-2 md:text-right">
-                  <p><span className="text-muted-foreground uppercase text-[10px] block">Date:</span> {new Date().toLocaleDateString()}</p>
+                  <p>
+                    <span className="text-muted-foreground uppercase text-[10px] block">Date:</span> 
+                    {mounted ? new Date().toLocaleDateString() : '--/--/----'}
+                  </p>
                   <p><span className="text-muted-foreground uppercase text-[10px] block">Subject:</span> Role Finalization & Cycle Efficiency Tracking</p>
                 </div>
               </div>
 
-              {/* Assignment Table */}
               <div className="space-y-4">
                 <div className="rounded-xl border shadow-sm overflow-hidden">
                   <Table>
@@ -146,9 +148,11 @@ export default function AssignmentsPage() {
                       {filteredFindings.length > 0 ? (
                         filteredFindings.map((finding, index) => {
                           const isLeader = finding.teamLeader === (selectedAuditor === 'all' ? finding.teamLeader : selectedAuditor);
+                          
+                          // Deterministic assignment date calculation
                           const dateAssigned = finding.mitigationDueDate 
                             ? new Date(new Date(finding.mitigationDueDate as any).getTime() - (7 * 24 * 60 * 60 * 1000)) 
-                            : new Date();
+                            : null;
                           
                           return (
                             <TableRow key={finding.id} className="hover:bg-muted/30 transition-colors">
@@ -168,7 +172,7 @@ export default function AssignmentsPage() {
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-[10px] font-mono whitespace-nowrap">
-                                {dateAssigned.toLocaleDateString()}
+                                {mounted ? (dateAssigned ? dateAssigned.toLocaleDateString() : new Date().toLocaleDateString()) : '...'}
                               </TableCell>
                               <TableCell className="text-[10px] font-mono whitespace-nowrap">
                                 {finding.revalidationDate ? new Date(finding.revalidationDate as any).toLocaleDateString() : 'Awaiting'}
@@ -204,7 +208,6 @@ export default function AssignmentsPage() {
                 </div>
               </div>
 
-              {/* Managerial Footer */}
               <div className="mt-8 p-6 bg-muted/20 border-l-4 border-primary rounded-r-lg">
                 <p className="text-sm leading-relaxed text-foreground">
                   <strong>Standard Operating Note:</strong> Turnaround Time (TAT) metrics are computed from the date of field-work assignment to the final report submission. All deviations must be justified in writing to the Audit Management Office within 24 hours of cycle expiry.
