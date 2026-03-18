@@ -13,10 +13,10 @@ export const initialBranches: Branch[] = [
 ];
 
 export const initialDepartments: Department[] = [
-  { id: 'DEPT-1', name: 'Internal Audit', district: 'Northern District' },
-  { id: 'DEPT-2', name: 'Risk Management', district: 'Northern District' },
-  { id: 'DEPT-3', name: 'Operations Department', district: 'Southern District' },
-  { id: 'DEPT-4', name: 'IT Security', district: 'Eastern District' },
+  { id: 'DEPT-1', name: 'Internal Audit' },
+  { id: 'DEPT-2', name: 'Risk Management' },
+  { id: 'DEPT-3', name: 'Operations Department' },
+  { id: 'DEPT-4', name: 'IT Security' },
 ];
 
 export const initialRiskLevels: RiskLevelData[] = [

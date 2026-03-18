@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, Building2, Trash2, Edit } from 'lucide-react';
 import { AddEditDepartmentDialog } from '@/components/audit/AddEditDepartmentDialog';
 import PageHeader from '@/components/layout/PageHeader';
-import type { Department, District } from '@/types';
-import { initialDepartments, initialDistricts } from '@/lib/mock-data';
+import type { Department } from '@/types';
+import { initialDepartments } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -20,7 +20,6 @@ import { MoreHorizontal } from 'lucide-react';
 export default function DepartmentsPage() {
   const { toast } = useToast();
   const [departments, setDepartments] = useState<Department[]>(initialDepartments);
-  const [districts] = useState<District[]>(initialDistricts);
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
@@ -92,9 +91,6 @@ export default function DepartmentsPage() {
                       >
                         <div>
                           <span className="font-bold text-foreground">{department.name}</span>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                            {department.district}
-                          </p>
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -134,7 +130,6 @@ export default function DepartmentsPage() {
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
         department={editingDepartment}
-        districtList={districts}
       />
     </>
   );
