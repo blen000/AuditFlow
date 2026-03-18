@@ -44,6 +44,7 @@ export type AuditFinding = {
   auditEffectAttachments?: string[];
   involvedAmounts?: InvolvedAmount[];
   involvedCases?: InvolvedCase[];
+  assignedAuditor: string; // New field for designated auditor
 };
 
 export type Branch = {

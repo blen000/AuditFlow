@@ -1,4 +1,3 @@
-
 'use client';
 import type { AuditFinding, FindingStatus, ProgressUpdate } from '@/types';
 import {
@@ -33,6 +32,7 @@ import {
   ChevronDown,
   CircleDollarSign,
   Users,
+  UserCheck,
 } from 'lucide-react';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
@@ -171,6 +171,13 @@ export function AuditFindingCard({
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <StatusBadge status={finding.status} />
             <AgreementBadge agreement={finding.auditeeAgreement} />
+          </div>
+
+          <div className="mt-2 space-y-1.5 border-t pt-3">
+            <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+              <UserCheck className="h-3.5 w-3.5 text-primary" />
+              <span>Auditor: <span className="font-bold">{finding.assignedAuditor}</span></span>
+            </div>
             {mitigationDueDate && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Check className="h-3.5 w-3.5" />
@@ -260,7 +267,7 @@ export function AuditFindingCard({
             </Collapsible>
           )}
         </CardContent>
-        <CardFooter className="flex items-center justify-between text-sm text-muted-foreground">
+        <CardFooter className="flex items-center justify-between text-sm text-muted-foreground border-t bg-muted/20 px-6 py-3">
           <div className="flex shrink-0 items-center gap-2">
             <Bell className="h-4 w-4" />
             <span className="whitespace-nowrap">
@@ -278,19 +285,19 @@ export function AuditFindingCard({
                 variant="outline"
                 size="sm"
                 className={cn(
-                  'justify-start text-left font-normal',
+                  'h-8 justify-start text-left font-normal',
                   !revalidationDate && 'text-muted-foreground'
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {revalidationDate ? (
-                  format(revalidationDate, 'PPP')
+                  format(revalidationDate, 'MMM d, yyyy')
                 ) : (
                   <span>Set Date</span>
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" align="end">
               <Calendar
                 mode="single"
                 selected={revalidationDate}

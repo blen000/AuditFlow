@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,7 +26,7 @@ import type { Branch, RiskLevelData } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
-import { Paperclip, PlusCircle, Trash2 } from 'lucide-react';
+import { Paperclip, PlusCircle, Trash2, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import { initialBranches, initialRiskLevels } from '@/lib/mock-data';
 
@@ -43,6 +42,9 @@ const formSchema = z.object({
   }),
   branchOrDepartment: z.string({
     required_error: 'You need to select a branch/department.',
+  }),
+  assignedAuditor: z.string({
+    required_error: 'You need to assign a designated auditor.',
   }),
   auditCause: z.string().optional(),
   auditEffect: z.string().optional(),
@@ -68,12 +70,14 @@ export function CreateFindingForm() {
   const router = useRouter();
   const [branches] = useState<Branch[]>(initialBranches);
   const [riskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
+  const auditors = ['Abebe Shirega', 'Fikre Tollossa', 'Ze'];
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
       details: '',
+      assignedAuditor: '',
       auditCause: '',
       auditEffect: '',
       recommendation: '',
@@ -100,24 +104,16 @@ export function CreateFindingForm() {
     name: 'involvedCases',
   });
 
-  const { register } = form;
-  const findingAttachments = form.watch('findingAttachments' as any);
-  const auditCauseAttachments = form.watch('auditCauseAttachments' as any);
-  const auditEffectAttachments = form.watch('auditEffectAttachments' as any);
-  const recommendationAttachments = form.watch(
-    'recommendationAttachments' as any
-  );
-
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log('Logging finding locally', values);
-    router.push('/');
+    router.push('/auditee-view');
   }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader
         title="Log New Audit Finding"
-        description="Log a new audit finding for your team to address."
+        description="Assign a designated auditor and record the audit finding details."
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-2xl">
@@ -140,6 +136,36 @@ export function CreateFindingForm() {
                 )}
               />
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="assignedAuditor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <UserCheck className="h-4 w-4 text-primary" />
+                        Designated Auditor
+                      </FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Assign auditor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {auditors.map((auditor) => (
+                            <SelectItem key={auditor} value={auditor}>
+                              {auditor}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="riskLevel"
@@ -171,7 +197,7 @@ export function CreateFindingForm() {
                   control={form.control}
                   name="branchOrDepartment"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="md:col-span-2">
                       <FormLabel>Branch / Department Audited</FormLabel>
                       <Select
                         onValueChange={field.onChange}

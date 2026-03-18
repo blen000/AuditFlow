@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,7 +27,7 @@ import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
 import { useEffect, useState } from 'react';
-import { Paperclip, PlusCircle, Trash2 } from 'lucide-react';
+import { Paperclip, PlusCircle, Trash2, UserCheck } from 'lucide-react';
 import { initialBranches, initialRiskLevels } from '@/lib/mock-data';
 
 const formSchema = z.object({
@@ -43,6 +42,9 @@ const formSchema = z.object({
   }),
   branchOrDepartment: z.string({
     required_error: 'You need to select a branch/department.',
+  }),
+  assignedAuditor: z.string({
+    required_error: 'You need to assign a designated auditor.',
   }),
   auditCause: z.string().optional(),
   auditEffect: z.string().optional(),
@@ -74,6 +76,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
   const router = useRouter();
   const [branches] = useState<Branch[]>(initialBranches);
   const [riskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
+  const auditors = ['Abebe Shirega', 'Fikre Tollossa', 'Ze'];
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,6 +85,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       details: finding.details,
       riskLevel: finding.riskLevel,
       branchOrDepartment: finding.branchOrDepartment,
+      assignedAuditor: finding.assignedAuditor || '',
       auditCause: finding.auditCause,
       auditEffect: finding.auditEffect,
       recommendation: finding.recommendation,
@@ -110,14 +114,14 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log('Saving changes locally', values);
-    router.push('/');
+    router.push('/auditee-view');
   }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader
         title="Edit Audit Finding"
-        description="Update the details for this audit finding."
+        description="Update the designated auditor and details for this finding."
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-2xl">
@@ -140,6 +144,33 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                 )}
               />
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="assignedAuditor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <UserCheck className="h-4 w-4 text-primary" />
+                        Designated Auditor
+                      </UserCheck>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Assign auditor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {auditors.map((auditor) => (
+                            <SelectItem key={auditor} value={auditor}>
+                              {auditor}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="riskLevel"
@@ -168,7 +199,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                   control={form.control}
                   name="branchOrDepartment"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="md:col-span-2">
                       <FormLabel>Branch / Department Audited</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
@@ -403,7 +434,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => router.push('/')}
+                  onClick={() => router.push('/auditee-view')}
                 >
                   Cancel
                 </Button>

@@ -12,7 +12,7 @@ import {
 import { AuditFindingCard } from '@/components/audit/AuditFindingCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Filter, PlusCircle, Search, CalendarIcon } from 'lucide-react';
+import { Filter, PlusCircle, Search, CalendarIcon, UserCheck } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -41,6 +41,7 @@ export default function AuditeeViewPage() {
   const [riskFilter, setRiskFilter] = useState<RiskLevel[]>([]);
   const [statusFilter, setStatusFilter] = useState<FindingStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [auditorSearch, setAuditorSearch] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const handleDelete = (id: string) => {
@@ -63,6 +64,9 @@ export default function AuditeeViewPage() {
     }
   };
 
+  // Extract unique auditors for the filter
+  const uniqueAuditors = Array.from(new Set(findings.map(f => f.assignedAuditor)));
+
   const filteredFindings = findings.filter((finding) => {
     // 1. Branch Filter
     if (!selectedBranch) return false;
@@ -74,13 +78,18 @@ export default function AuditeeViewPage() {
     // 3. Status Filter
     const statusMatch = statusFilter.length === 0 || statusFilter.includes(finding.status);
     
-    // 4. Search Match
+    // 4. Search Match (Direct Case Search)
     const searchMatch =
       searchQuery === '' ||
       finding.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       finding.title.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // 5. Date Match
+    // 5. Auditor Search
+    const auditorMatch = 
+      auditorSearch === '' || 
+      finding.assignedAuditor.toLowerCase().includes(auditorSearch.toLowerCase());
+
+    // 6. Date Match
     const dateMatch = (() => {
       if (!dateRange || (!dateRange.from && !dateRange.to)) return true;
       const from = dateRange.from;
@@ -94,7 +103,7 @@ export default function AuditeeViewPage() {
       return true;
     })();
 
-    return riskMatch && statusMatch && searchMatch && dateMatch;
+    return riskMatch && statusMatch && searchMatch && auditorMatch && dateMatch;
   });
 
   return (
@@ -107,7 +116,7 @@ export default function AuditeeViewPage() {
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
             <div className="w-full md:w-80">
-              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
+              <label className="mb-1.5 block text-sm font-medium text-muted-foreground uppercase tracking-tight text-[10px]">
                 Current Branch/Department
               </label>
               <Select onValueChange={setSelectedBranch}>
@@ -129,29 +138,51 @@ export default function AuditeeViewPage() {
           {selectedBranch ? (
             <div className="space-y-6">
               {/* Finding Details Section Header with Actions */}
-              <div className="flex flex-col items-start gap-4 border-t pt-8 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight">Finding Details</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Detailed list of individual audit cases for {selectedBranch === 'all' ? 'All Branches' : selectedBranch}.
-                  </p>
+              <div className="flex flex-col items-start gap-4 border-t pt-8">
+                <div className="flex w-full flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold tracking-tight">Finding Details</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Detailed list of individual audit cases for {selectedBranch === 'all' ? 'All Branches' : selectedBranch}.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button asChild>
+                      <Link href="/findings/new">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Log New
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex w-full items-center gap-2 md:w-auto">
-                  <div className="relative flex-1 md:flex-initial">
+
+                {/* Advanced Search Bar */}
+                <div className="flex w-full flex-col gap-3 rounded-lg border bg-muted/30 p-4 lg:flex-row lg:items-center">
+                  <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="search"
-                      placeholder="Case No or Title..."
-                      className="pl-8 sm:w-[200px] md:w-[250px] lg:w-[300px]"
+                      placeholder="Search Case ID or Title..."
+                      className="pl-8 bg-background"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
+                  <div className="relative flex-1">
+                    <UserCheck className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Filter by Designated Auditor..."
+                      className="pl-8 bg-background"
+                      value={auditorSearch}
+                      onChange={(e) => setAuditorSearch(e.target.value)}
+                    />
+                  </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="shrink-0">
+                      <Button variant="outline" className="shrink-0 bg-background">
                         <Filter className="mr-2 h-4 w-4" />
-                        Filter
+                        Detailed Filters
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-64">
@@ -171,16 +202,14 @@ export default function AuditeeViewPage() {
                               {dateRange?.from ? (
                                 dateRange.to ? (
                                   <>
-                                    {format(dateRange.from, 'LLL dd, y')} -{' '}
-                                    {format(dateRange.to, 'LLL dd, y')}
+                                    {format(dateRange.from, 'LLL dd')} -{' '}
+                                    {format(dateRange.to, 'LLL dd')}
                                   </>
                                 ) : (
-                                  format(dateRange.from, 'LLL dd, y')
+                                  format(dateRange.from, 'LLL dd')
                                 )
-                              ) : dateRange?.to ? (
-                                `Before ${format(dateRange.to, 'LLL dd, y')}`
                               ) : (
-                                <span>Pick a date range</span>
+                                <span>Date Range</span>
                               )}
                             </Button>
                           </PopoverTrigger>
@@ -197,7 +226,7 @@ export default function AuditeeViewPage() {
                         </Popover>
                       </div>
 
-                      <DropdownMenuLabel className="pt-2">Filter by Risk</DropdownMenuLabel>
+                      <DropdownMenuLabel className="pt-2">Risk Severity</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       {allRiskLevels.map((level) => (
                         <DropdownMenuCheckboxItem
@@ -209,7 +238,7 @@ export default function AuditeeViewPage() {
                         </DropdownMenuCheckboxItem>
                       ))}
 
-                      <DropdownMenuLabel className="pt-2">Filter by Status</DropdownMenuLabel>
+                      <DropdownMenuLabel className="pt-2">Workflow Status</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       {allStatuses.map((status) => (
                         <DropdownMenuCheckboxItem
@@ -222,13 +251,6 @@ export default function AuditeeViewPage() {
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
-
-                  <Button asChild>
-                    <Link href="/findings/new">
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Log New
-                    </Link>
-                  </Button>
                 </div>
               </div>
 
@@ -244,21 +266,39 @@ export default function AuditeeViewPage() {
                     />
                   ))
                 ) : (
-                  <div className="col-span-full py-12 text-center text-muted-foreground">
-                    No findings match your current branch and filters.
+                  <div className="col-span-full py-12 text-center">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                      <Search className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold">No results found</h3>
+                    <p className="text-muted-foreground">
+                      No findings match your current branch, auditor, or search criteria.
+                    </p>
+                    <Button 
+                      variant="link" 
+                      onClick={() => {
+                        setSearchQuery('');
+                        setAuditorSearch('');
+                        setRiskFilter([]);
+                        setStatusFilter([]);
+                      }}
+                      className="mt-2"
+                    >
+                      Clear all filters
+                    </Button>
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            <Card className="border-dashed">
+            <Card className="border-dashed bg-muted/10">
               <CardContent className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="mb-4 rounded-full bg-muted p-4">
                   <Search className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <CardTitle className="mb-2">No Branch Selected</CardTitle>
                 <p className="max-w-xs text-muted-foreground">
-                  Please select a branch or department from the dropdown above to view associated audit findings.
+                  Please select a branch or department from the dropdown above to manage and search audit assignments.
                 </p>
               </CardContent>
             </Card>

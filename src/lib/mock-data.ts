@@ -1,4 +1,3 @@
-
 import type { AuditFinding, Branch, District, RiskLevelData, StatusData } from '@/types';
 
 export const initialDistricts: District[] = [
@@ -45,6 +44,7 @@ export const initialFindings: AuditFinding[] = [
     recommendationAttachments: [],
     auditCause: 'Configuration oversight during last system update.',
     auditEffect: 'Potential unauthorized access to branch terminals.',
+    assignedAuditor: 'Abebe Shirega',
   },
   {
     id: 'CASE-002',
@@ -67,6 +67,7 @@ export const initialFindings: AuditFinding[] = [
     recommendationAttachments: [],
     auditCause: 'Staff shortage leading to operational shortcuts.',
     auditEffect: 'High risk of internal fraud or theft.',
+    assignedAuditor: 'Fikre Tollossa',
   },
   {
     id: 'CASE-003',
@@ -85,6 +86,7 @@ export const initialFindings: AuditFinding[] = [
     progressUpdates: [],
     findingAttachments: [],
     recommendationAttachments: [],
+    assignedAuditor: 'Ze',
   },
   {
     id: 'CASE-004',
@@ -101,6 +103,7 @@ export const initialFindings: AuditFinding[] = [
       { name: 'Excess Cash Found', amount: 5400 }
     ],
     progressUpdates: [],
+    assignedAuditor: 'Abebe Shirega',
   },
   {
     id: 'CASE-005',
@@ -114,5 +117,6 @@ export const initialFindings: AuditFinding[] = [
     involvedCases: [],
     involvedAmounts: [],
     progressUpdates: [],
+    assignedAuditor: 'Fikre Tollossa',
   }
 ];
