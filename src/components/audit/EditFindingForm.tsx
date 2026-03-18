@@ -33,7 +33,7 @@ import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
 import { useState } from 'react';
-import { PlusCircle, Trash2, ShieldCheck, ChevronDown, CalendarIcon, Timer } from 'lucide-react';
+import { PlusCircle, Trash2, ShieldCheck, ChevronDown, CalendarIcon, Timer, Lock } from 'lucide-react';
 import { initialBranches, initialRiskLevels, initialAuditors } from '@/lib/mock-data';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
@@ -127,6 +127,8 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
     console.log('Saving changes locally', values);
     router.push('/auditee-view');
   }
+
+  const isAssignedDateLocked = !!finding.assignedDate;
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -247,15 +249,20 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                     name="assignedDate"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Date Assigned</FormLabel>
+                        <FormLabel className="flex items-center gap-2">
+                          Date Assigned
+                          {isAssignedDateLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                        </FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
                                 variant={"outline"}
+                                disabled={isAssignedDateLocked}
                                 className={cn(
                                   "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
+                                  !field.value && "text-muted-foreground",
+                                  isAssignedDateLocked && "bg-muted cursor-not-allowed opacity-100"
                                 )}
                               >
                                 {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
@@ -273,6 +280,11 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                             />
                           </PopoverContent>
                         </Popover>
+                        {isAssignedDateLocked && (
+                          <FormDescription className="text-[10px] italic">
+                            Assignment date is locked once established.
+                          </FormDescription>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
