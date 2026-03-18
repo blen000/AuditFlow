@@ -33,6 +33,8 @@ import {
   Users,
   ShieldCheck,
   CheckCircle,
+  Repeat,
+  Lock,
 } from 'lucide-react';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
@@ -44,6 +46,7 @@ import Link from 'next/link';
 import { AgreementBadge } from './AgreementBadge';
 import { useState } from 'react';
 import { AddProgressUpdateDialog } from './AddProgressUpdateDialog';
+import { FollowUpDialog } from './FollowUpDialog';
 import {
   Collapsible,
   CollapsibleContent,
@@ -65,6 +68,7 @@ export function AuditFindingCard({
   onUpdate,
 }: AuditFindingCardProps) {
   const [isProgressDialogOpen, setProgressDialogOpen] = useState(false);
+  const [isFollowUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const [allStatuses] = useState<StatusData[]>(initialStatuses);
 
   const handleStatusChange = (status: FindingStatus) => {
@@ -109,7 +113,15 @@ export function AuditFindingCard({
 
   return (
     <>
-      <Card className="flex flex-col">
+      <Card className={cn("flex flex-col relative", finding.isClosed && "bg-muted/30 border-dashed")}>
+        {finding.isClosed && (
+          <div className="absolute top-2 right-12 z-10">
+            <Badge variant="secondary" className="gap-1.5 py-1 px-2.5 bg-green-100 text-green-800 border-green-200">
+              <Lock className="h-3 w-3" />
+              CLOSED
+            </Badge>
+          </div>
+        )}
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex flex-col gap-2">
@@ -127,6 +139,10 @@ export function AuditFindingCard({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
                   <Link href={`/findings/edit/${finding.id}`}>Edit</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFollowUpDialogOpen(true)}>
+                  <Repeat className="mr-2 h-4 w-4" />
+                  Follow-up
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href={`/findings/respond/${finding.id}`}>
@@ -172,6 +188,11 @@ export function AuditFindingCard({
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <StatusBadge status={finding.status} />
             <AgreementBadge agreement={finding.auditeeAgreement} />
+            {finding.followUpStatus && (
+              <Badge variant="outline" className="text-[10px] uppercase font-bold border-primary/30 text-primary">
+                FU: {finding.followUpStatus}
+              </Badge>
+            )}
           </div>
 
           <div className="mt-2 space-y-2 border-t pt-3">
@@ -324,6 +345,12 @@ export function AuditFindingCard({
         open={isProgressDialogOpen}
         onOpenChange={setProgressDialogOpen}
         onSubmit={handleAddProgress}
+      />
+      <FollowUpDialog
+        open={isFollowUpDialogOpen}
+        onOpenChange={setFollowUpDialogOpen}
+        finding={finding}
+        onUpdate={onUpdate}
       />
     </>
   );
