@@ -55,6 +55,12 @@ export type Branch = {
   district: string;
 };
 
+export type Department = {
+  id?: string;
+  name: string;
+  district: string;
+};
+
 export type District = {
   id?: string;
   name: string;

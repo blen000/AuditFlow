@@ -1,4 +1,4 @@
-import type { AuditFinding, Branch, District, RiskLevelData, StatusData, Auditor } from '@/types';
+import type { AuditFinding, Branch, District, RiskLevelData, StatusData, Auditor, Department } from '@/types';
 
 export const initialDistricts: District[] = [
   { id: 'DIST-1', name: 'Northern District' },
@@ -10,7 +10,13 @@ export const initialBranches: Branch[] = [
   { id: 'BR-1', name: 'Main Street Branch', district: 'Northern District' },
   { id: 'BR-2', name: 'Park Avenue Branch', district: 'Southern District' },
   { id: 'BR-3', name: 'East Side Hub', district: 'Eastern District' },
-  { id: 'BR-4', name: 'Central Department', district: 'Northern District' },
+];
+
+export const initialDepartments: Department[] = [
+  { id: 'DEPT-1', name: 'Internal Audit', district: 'Northern District' },
+  { id: 'DEPT-2', name: 'Risk Management', district: 'Northern District' },
+  { id: 'DEPT-3', name: 'Operations Department', district: 'Southern District' },
+  { id: 'DEPT-4', name: 'IT Security', district: 'Eastern District' },
 ];
 
 export const initialRiskLevels: RiskLevelData[] = [
@@ -130,7 +136,7 @@ export const initialFindings: AuditFinding[] = [
     title: 'Unsecured Customer Records',
     details: 'Customer loan files were found left unsecured in an open cabinet.',
     riskLevel: 'Medium',
-    branchOrDepartment: 'Central Department',
+    branchOrDepartment: 'Internal Audit',
     recommendation: 'Implement clean desk policy and lockable storage.',
     status: 'Closed',
     auditeeAgreement: 'Agreed',

@@ -7,7 +7,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
-import { Building, LayoutDashboard, PlusCircle, Users, ShieldAlert, Tags, Settings, ClipboardList, UserRoundSearch } from 'lucide-react';
+import { Building, LayoutDashboard, PlusCircle, Users, ShieldAlert, Tags, Settings, ClipboardList, UserRoundSearch, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -69,6 +69,17 @@ export function SidebarNav() {
             >
               <Building />
               <span>Branches</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <Link href="/departments">
+            <SidebarMenuButton
+              isActive={pathname.startsWith('/departments')}
+              tooltip="Departments"
+            >
+              <Briefcase />
+              <span>Departments</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
