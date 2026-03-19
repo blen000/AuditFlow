@@ -13,7 +13,7 @@ import { AuditFindingCard } from '@/components/audit/AuditFindingCard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Filter, PlusCircle, Search, CalendarIcon, ShieldCheck, Layers } from 'lucide-react';
+import { Filter, PlusCircle, Search, CalendarIcon, ShieldCheck, Layers, ChevronRight } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -42,7 +42,6 @@ export default function AuditeeViewPage() {
   const [statusFilter, setStatusFilter] = useState<FindingStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [auditorSearch, setAuditorSearch] = useState('');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const handleDelete = (id: string) => {
     setFindings(prev => prev.filter(f => f.id !== id));
@@ -79,36 +78,36 @@ export default function AuditeeViewPage() {
       finding.teamLeader.toLowerCase().includes(auditorSearch.toLowerCase()) ||
       finding.teamMembers.some(m => m.toLowerCase().includes(auditorSearch.toLowerCase()));
 
-    const dateMatch = (() => {
-      if (!dateRange || (!dateRange.from && !dateRange.to)) return true;
-      const targetDate = finding.revalidationDate || finding.mitigationDueDate;
-      if (!targetDate) return false;
-      const targetDateTime = new Date(targetDate as Date).getTime();
-      const fromTime = dateRange.from ? new Date(dateRange.from).getTime() : -Infinity;
-      const toTime = dateRange.to ? new Date(dateRange.to).getTime() : Infinity;
-      return targetDateTime >= fromTime && targetDateTime <= toTime;
-    })();
-
-    return riskMatch && statusMatch && searchMatch && auditorMatch && dateMatch;
+    return riskMatch && statusMatch && searchMatch && auditorMatch;
   });
 
-  // Group filtered findings by Parent Case Number
-  const groupedFindings = useMemo(() => {
-    const groups: Record<string, { summary: string, findings: AuditFinding[] }> = {};
+  // Grouped Rendering: Case -> Subsection -> Findings
+  const hierarchicalData = useMemo(() => {
+    const cases: Record<string, { summary: string, subsections: Record<string, { title: string, findings: AuditFinding[] }> }> = {};
+    
     filteredFindings.forEach(f => {
-      if (!groups[f.parentCaseNumber]) {
-        groups[f.parentCaseNumber] = { summary: f.parentSummary, findings: [] };
+      if (!cases[f.parentCaseNumber]) {
+        cases[f.parentCaseNumber] = { summary: f.parentSummary, subsections: {} };
       }
-      groups[f.parentCaseNumber].findings.push(f);
+      
+      const subKey = f.subsectionId || 'default';
+      const subTitle = f.subsectionTitle || 'General Subsection';
+      
+      if (!cases[f.parentCaseNumber].subsections[subKey]) {
+        cases[f.parentCaseNumber].subsections[subKey] = { title: subTitle, findings: [] };
+      }
+      
+      cases[f.parentCaseNumber].subsections[subKey].findings.push(f);
     });
-    return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+    
+    return Object.entries(cases).sort((a, b) => a[0].localeCompare(b[0]));
   }, [filteredFindings]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader
-        title="Auditee Response View"
-        description="Select your branch to manage audit findings."
+        title="Auditee Mission Control"
+        description="Select your branch to manage hierarchical audit findings."
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-7xl">
@@ -132,19 +131,19 @@ export default function AuditeeViewPage() {
           </div>
 
           {selectedBranch ? (
-            <div className="space-y-8">
+            <div className="space-y-12">
               <div className="flex flex-col items-start gap-4 border-t pt-8">
                 <div className="flex w-full flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Audit Mission Control</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">Mission Oversight</h2>
                     <p className="text-sm text-muted-foreground">
-                      Manage hierarchical findings for {selectedBranch === 'all' ? 'All Branches' : selectedBranch}.
+                      Hierarchical management for {selectedBranch === 'all' ? 'All Branches' : selectedBranch}.
                     </p>
                   </div>
                   <Button asChild>
                     <Link href="/findings/new">
                       <PlusCircle className="mr-2 h-4 w-4" />
-                      Log New Hierarchical Audit
+                      Log Hierarchical Audit
                     </Link>
                   </Button>
                 </div>
@@ -174,7 +173,7 @@ export default function AuditeeViewPage() {
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="shrink-0 bg-background">
                         <Filter className="mr-2 h-4 w-4" />
-                        Detailed Filters
+                        Filters
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-64">
@@ -206,27 +205,47 @@ export default function AuditeeViewPage() {
               </div>
 
               {/* Grouped Rendering */}
-              <div className="space-y-12">
-                {groupedFindings.length > 0 ? (
-                  groupedFindings.map(([caseNum, group]) => (
-                    <div key={caseNum} className="space-y-4">
-                      <div className="flex items-center gap-3 border-b pb-2">
-                        <Badge className="h-8 w-8 rounded-full flex items-center justify-center text-lg font-bold bg-primary/20 text-primary border-primary/20">
+              <div className="space-y-16">
+                {hierarchicalData.length > 0 ? (
+                  hierarchicalData.map(([caseNum, caseGroup]) => (
+                    <div key={caseNum} className="space-y-8">
+                      {/* Case Level (L1) */}
+                      <div className="flex items-center gap-4 bg-primary/5 p-4 rounded-xl border border-primary/20">
+                        <Badge className="h-10 w-12 rounded-lg flex items-center justify-center text-xl font-bold bg-primary text-primary-foreground">
                           {caseNum}
                         </Badge>
                         <div className="flex flex-col">
-                          <h3 className="text-xl font-bold tracking-tight text-foreground">{group.summary}</h3>
-                          <p className="text-xs text-muted-foreground uppercase font-bold">Main Audit Case #{caseNum}</p>
+                          <h3 className="text-2xl font-black tracking-tight text-foreground uppercase">{caseGroup.summary}</h3>
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Main Audit Mission #{caseNum}</p>
                         </div>
                       </div>
-                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {group.findings.map(finding => (
-                          <AuditFindingCard
-                            key={finding.id}
-                            finding={finding}
-                            onDelete={handleDelete}
-                            onUpdate={handleUpdate}
-                          />
+
+                      {/* Subsection Level (L2) */}
+                      <div className="space-y-10 pl-4 border-l-2 border-dashed border-muted ml-6">
+                        {Object.entries(caseGroup.subsections).map(([subId, subGroup]) => (
+                          <div key={subId} className="space-y-4">
+                            <div className="flex items-center gap-3">
+                              <Badge variant="secondary" className="px-2 py-0.5 text-xs font-bold">
+                                {subId === 'default' ? `${caseNum}.X` : subId}
+                              </Badge>
+                              <h4 className="text-lg font-bold text-muted-foreground flex items-center gap-2">
+                                {subGroup.title}
+                                <ChevronRight className="h-4 w-4 opacity-50" />
+                              </h4>
+                            </div>
+                            
+                            {/* Finding/Leaf Level (L3) */}
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                              {subGroup.findings.map(finding => (
+                                <AuditFindingCard
+                                  key={finding.id}
+                                  finding={finding}
+                                  onDelete={handleDelete}
+                                  onUpdate={handleUpdate}
+                                />
+                              ))}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -236,8 +255,8 @@ export default function AuditeeViewPage() {
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
                       <Search className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-bold">No findings found</h3>
-                    <p className="text-muted-foreground">Adjust your filters or search to view hierarchical audit results.</p>
+                    <h3 className="text-xl font-bold">No missions found</h3>
+                    <p className="text-muted-foreground">Adjust your filters to view hierarchical audit results.</p>
                   </div>
                 )}
               </div>
@@ -248,7 +267,7 @@ export default function AuditeeViewPage() {
                 <Layers className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
                 <CardTitle className="mb-2">Awaiting Selection</CardTitle>
                 <p className="max-w-xs text-muted-foreground text-sm">
-                  Please select a branch or department from the top selector to view organized audit missions and subsections.
+                  Please select a branch or department from the top selector to view organized audit missions and nested sub-findings.
                 </p>
               </CardContent>
             </Card>

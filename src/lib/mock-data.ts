@@ -78,9 +78,11 @@ export const initialSpecialAudits: SpecialAudit[] = [
 
 export const initialFindings: AuditFinding[] = [
   {
-    id: '1.1',
+    id: '1.1.1',
     parentCaseNumber: '1',
     parentSummary: 'IT Policy Review 2024',
+    subsectionId: '1.1',
+    subsectionTitle: 'Authentication Controls',
     title: 'Weak Password Policy',
     details: 'The branch password policy does not enforce complexity requirements.',
     riskLevel: 'Medium',

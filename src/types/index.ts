@@ -30,10 +30,12 @@ export type InvolvedCase = {
 };
 
 export type AuditFinding = {
-  id: string; // Subsection ID, e.g., "1.1"
-  parentCaseNumber: string; // Main Audit ID, e.g., "1"
-  parentSummary: string; // Summary of the Main Audit
-  title: string;
+  id: string; // Subsection ID, e.g., "1.1" or "1.1.1"
+  parentCaseNumber: string; // Level 1: Main Audit ID, e.g., "1"
+  parentSummary: string; // Level 1: Summary of the Main Audit mission
+  subsectionId?: string; // Level 2: Subsection ID if this is a sub-subsection, e.g., "1.1"
+  subsectionTitle?: string; // Level 2: Title of the Subsection
+  title: string; // Level 3 (or Level 2 if no Level 3 exists)
   details: string;
   riskLevel: RiskLevel;
   branchOrDepartment: string;
