@@ -45,10 +45,10 @@ export default function RootLayout({
         <SidebarProvider>
           <Sidebar>
             <SidebarHeader>
-              <Button variant="ghost" className="h-fit w-full justify-start p-0">
-                <Link href="/" className="flex items-center gap-3 p-2">
-                  <ShieldCheck className="h-7 w-7 text-primary" />
-                  <span className="text-2xl font-bold tracking-tight text-foreground">
+              <Button variant="ghost" className="h-fit w-full justify-start p-0 hover:bg-transparent">
+                <Link href="/" className="flex items-center gap-3 p-2 group">
+                  <ShieldCheck className="h-7 w-7 text-accent transition-colors group-hover:text-accent/80" />
+                  <span className="text-2xl font-bold tracking-tight text-accent transition-colors group-hover:text-accent/80">
                     AuditFlow
                   </span>
                 </Link>
