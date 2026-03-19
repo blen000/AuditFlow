@@ -7,7 +7,15 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, PlusCircle, Settings, FileWarning } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  PlusCircle, 
+  Settings, 
+  FileWarning, 
+  ClipboardList,
+  BarChart3,
+  FileText
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -16,41 +24,71 @@ export function SidebarNav() {
   
   return (
     <SidebarMenu>
-      <SidebarMenuItem>
-        <Link href="/">
-          <SidebarMenuButton
-            isActive={pathname === '/'}
-            tooltip="Dashboard"
-          >
-            <LayoutDashboard />
-            <span>Dashboard</span>
-          </SidebarMenuButton>
-        </Link>
-      </SidebarMenuItem>
-      
-      <SidebarMenuItem>
-        <Link href="/findings/new">
-          <SidebarMenuButton
-            isActive={pathname.startsWith('/findings/new')}
-            tooltip="Log New Finding"
-          >
-            <PlusCircle />
-            <span>Log New Finding</span>
-          </SidebarMenuButton>
-        </Link>
-      </SidebarMenuItem>
+      <SidebarGroup>
+        <SidebarGroupLabel>Core Actions</SidebarGroupLabel>
+        <SidebarMenuItem>
+          <Link href="/">
+            <SidebarMenuButton
+              isActive={pathname === '/'}
+              tooltip="Dashboard"
+            >
+              <LayoutDashboard />
+              <span>Dashboard</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+        
+        <SidebarMenuItem>
+          <Link href="/findings/new">
+            <SidebarMenuButton
+              isActive={pathname.startsWith('/findings/new')}
+              tooltip="Log New Finding"
+            >
+              <PlusCircle />
+              <span>Log New Finding</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
 
-      <SidebarMenuItem>
-        <Link href="/special-audits">
-          <SidebarMenuButton
-            isActive={pathname.startsWith('/special-audits')}
-            tooltip="Log Special Audit"
-          >
-            <FileWarning />
-            <span>Log Special Audit</span>
-          </SidebarMenuButton>
-        </Link>
-      </SidebarMenuItem>
+        <SidebarMenuItem>
+          <Link href="/special-audits/new">
+            <SidebarMenuButton
+              isActive={pathname === '/special-audits/new'}
+              tooltip="Log Special Audit"
+            >
+              <FileWarning />
+              <span>Log Special Audit</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+      </SidebarGroup>
+
+      <SidebarGroup>
+        <SidebarGroupLabel>Reports</SidebarGroupLabel>
+        <SidebarMenuItem>
+          <Link href="/assignments">
+            <SidebarMenuButton
+              isActive={pathname === '/assignments'}
+              tooltip="Audit Assignments"
+            >
+              <ClipboardList />
+              <span>Audit Assignments</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+        
+        <SidebarMenuItem>
+          <Link href="/special-audits">
+            <SidebarMenuButton
+              isActive={pathname === '/special-audits'}
+              tooltip="Special Audit Reports"
+            >
+              <FileText />
+              <span>Special Audit Reports</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+      </SidebarGroup>
 
       <SidebarGroup className="mt-auto">
         <SidebarGroupLabel>System</SidebarGroupLabel>

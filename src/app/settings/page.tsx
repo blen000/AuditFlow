@@ -14,9 +14,7 @@ import {
   Tags,
   ArrowRight,
   Users,
-  ClipboardList,
-  UserRoundSearch,
-  FileWarning
+  UserRoundSearch
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -29,25 +27,11 @@ const settingsModules = [
     buttonText: 'Open Auditee View'
   },
   {
-    title: 'Audit Assignments',
-    description: 'Track team roles, cycle durations, and KPI deviations across all active and finalized audit missions.',
-    icon: ClipboardList,
-    href: '/assignments',
-    buttonText: 'View Assignments'
-  },
-  {
     title: 'Auditor Directory',
     description: 'Manage the pool of authorized audit personnel, including contact details and specialized skills.',
     icon: UserRoundSearch,
     href: '/auditors',
     buttonText: 'Manage Auditors'
-  },
-  {
-    title: 'Special Audit Reports',
-    description: 'Access the list of pertinent findings from specialized missions, including monetary reconciliations.',
-    icon: FileWarning,
-    href: '/special-audits',
-    buttonText: 'Special Audit List'
   },
   {
     title: 'Branch Registration',
