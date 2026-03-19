@@ -7,12 +7,13 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, PlusCircle, Users, Settings, ClipboardList, UserRoundSearch, FileWarning } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Settings, FileWarning } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 export function SidebarNav() {
   const pathname = usePathname();
+  
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -26,7 +27,8 @@ export function SidebarNav() {
           </SidebarMenuButton>
         </Link>
       </SidebarMenuItem>
-       <SidebarMenuItem>
+      
+      <SidebarMenuItem>
         <Link href="/findings/new">
           <SidebarMenuButton
             isActive={pathname.startsWith('/findings/new')}
@@ -37,57 +39,20 @@ export function SidebarNav() {
           </SidebarMenuButton>
         </Link>
       </SidebarMenuItem>
-      <SidebarGroup>
-        <SidebarGroupLabel>Management</SidebarGroupLabel>
-        <SidebarMenuItem>
-          <Link href="/special-audits">
-            <SidebarMenuButton
-              isActive={pathname.startsWith('/special-audits')}
-              tooltip="Special Audit"
-            >
-              <FileWarning />
-              <span>Special Audit</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <Link href="/assignments">
-            <SidebarMenuButton
-              isActive={pathname.startsWith('/assignments')}
-              tooltip="Audit Assignments"
-            >
-              <ClipboardList />
-              <span>Audit Assignments</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <Link href="/auditors">
-            <SidebarMenuButton
-              isActive={pathname.startsWith('/auditors')}
-              tooltip="Auditors"
-            >
-              <UserRoundSearch />
-              <span>Auditors</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-      </SidebarGroup>
-      <SidebarGroup>
-        <SidebarGroupLabel>Views</SidebarGroupLabel>
-        <SidebarMenuItem>
-          <Link href="/auditee-view">
-            <SidebarMenuButton
-              isActive={pathname.startsWith('/auditee-view')}
-              tooltip="Auditee View"
-            >
-              <Users />
-              <span>Auditee View</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-      </SidebarGroup>
-      <SidebarGroup>
+
+      <SidebarMenuItem>
+        <Link href="/special-audits">
+          <SidebarMenuButton
+            isActive={pathname.startsWith('/special-audits')}
+            tooltip="Log Special Audit"
+          >
+            <FileWarning />
+            <span>Log Special Audit</span>
+          </SidebarMenuButton>
+        </Link>
+      </SidebarMenuItem>
+
+      <SidebarGroup className="mt-auto">
         <SidebarGroupLabel>System</SidebarGroupLabel>
         <SidebarMenuItem>
           <Link href="/settings">
