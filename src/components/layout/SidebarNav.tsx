@@ -12,7 +12,6 @@ import {
   PlusCircle, 
   Settings, 
   FileWarning, 
-  ClipboardList,
   FileText,
   Users
 } from 'lucide-react';
@@ -76,27 +75,15 @@ export function SidebarNav() {
       </SidebarGroup>
 
       <SidebarGroup>
-        <SidebarGroupLabel>Reports</SidebarGroupLabel>
+        <SidebarGroupLabel>Reporting</SidebarGroupLabel>
         <SidebarMenuItem>
-          <Link href="/assignments">
+          <Link href="/reports">
             <SidebarMenuButton
-              isActive={pathname === '/assignments'}
-              tooltip="Audit Assignments"
-            >
-              <ClipboardList />
-              <span>Audit Assignments</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-        
-        <SidebarMenuItem>
-          <Link href="/special-audits">
-            <SidebarMenuButton
-              isActive={pathname === '/special-audits'}
-              tooltip="Special Audit Reports"
+              isActive={pathname.startsWith('/reports')}
+              tooltip="Audit Reports"
             >
               <FileText />
-              <span>Special Audit Reports</span>
+              <span>Audit Reports</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
