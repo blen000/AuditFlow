@@ -13,19 +13,11 @@ import {
   ShieldAlert, 
   Tags,
   ArrowRight,
-  Users,
   UserRoundSearch
 } from 'lucide-react';
 import Link from 'next/link';
 
 const settingsModules = [
-  {
-    title: 'Auditee View',
-    description: 'Branch-specific portal for viewing findings, responding to recommendations, and uploading mitigation evidence.',
-    icon: Users,
-    href: '/auditee-view',
-    buttonText: 'Open Auditee View'
-  },
   {
     title: 'Auditor Directory',
     description: 'Manage the pool of authorized audit personnel, including contact details and specialized skills.',

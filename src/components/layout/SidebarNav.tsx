@@ -13,8 +13,8 @@ import {
   Settings, 
   FileWarning, 
   ClipboardList,
-  BarChart3,
-  FileText
+  FileText,
+  Users
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -34,6 +34,18 @@ export function SidebarNav() {
             >
               <LayoutDashboard />
               <span>Dashboard</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+
+        <SidebarMenuItem>
+          <Link href="/auditee-view">
+            <SidebarMenuButton
+              isActive={pathname === '/auditee-view'}
+              tooltip="Auditee View"
+            >
+              <Users />
+              <span>Auditee View</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
