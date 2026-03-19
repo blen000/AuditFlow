@@ -97,7 +97,7 @@ export function AuditeeResponseDialog({
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="grid gap-6 p-6">
             <div className="space-y-2">
               <h4 className="font-bold text-primary">{finding.title}</h4>

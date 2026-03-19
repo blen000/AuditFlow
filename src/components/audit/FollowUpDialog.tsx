@@ -192,7 +192,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="px-6 py-6 space-y-8">
             {/* Status & Closure Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end bg-primary/5 p-4 rounded-xl border border-primary/20">
