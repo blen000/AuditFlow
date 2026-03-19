@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { FileText, Printer, ShieldCheck, Users, Info, Scale } from 'lucide-react';
+import { FileText, Printer, ShieldCheck, Users, Info, Scale, ListOrdered } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -28,12 +28,14 @@ export function CaseReportDialog({ caseNum, caseSummary, findings }: CaseReportD
     const groups: Record<string, { title: string; findings: AuditFinding[] }> = {};
     findings.forEach((f) => {
       const subKey = f.subsectionId || 'default';
-      const subTitle = f.subsectionTitle || 'General Findings';
+      // Syncing with AuditeeView naming: "General Subsection"
+      const subTitle = f.subsectionTitle || 'General Subsection';
       if (!groups[subKey]) {
         groups[subKey] = { title: subTitle, findings: [] };
       }
       groups[subKey].findings.push(f);
     });
+    // Sort subsections by ID
     return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
   }, [findings]);
 
@@ -84,9 +86,24 @@ export function CaseReportDialog({ caseNum, caseSummary, findings }: CaseReportD
                 <div className="bg-muted/30 p-4 rounded-lg border">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase">Resolution Rate</p>
                   <p className="text-2xl font-bold">
-                    {Math.round((findings.filter(f => f.status === 'Closed' || f.status === 'Mitigated').length / findings.length) * 100)}%
+                    {findings.length > 0 ? Math.round((findings.filter(f => f.status === 'Closed' || f.status === 'Mitigated').length / findings.length) * 100) : 0}%
                   </p>
                 </div>
+              </div>
+            </section>
+
+            {/* Finding Index */}
+            <section className="space-y-4">
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary border-b pb-2 flex items-center gap-2">
+                <ListOrdered className="h-3 w-3" /> Executive Finding Index
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {findings.map((f, i) => (
+                  <div key={f.id} className="flex items-center gap-3 text-xs bg-muted/20 p-2 rounded border border-dashed">
+                    <span className="font-mono font-bold text-primary">{f.id}</span>
+                    <span className="truncate font-medium">{f.title}</span>
+                  </div>
+                ))}
               </div>
             </section>
 
