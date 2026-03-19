@@ -13,7 +13,7 @@ import { AuditFindingCard } from '@/components/audit/AuditFindingCard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Filter, PlusCircle, Search, CalendarIcon, ShieldCheck, Layers, ChevronRight } from 'lucide-react';
+import { Filter, PlusCircle, Search, CalendarIcon, ShieldCheck, Layers, ChevronRight, FileText } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
 import type { AuditFinding, Branch, RiskLevelData, StatusData, RiskLevel, FindingStatus } from '@/types';
 import { initialBranches, initialFindings, initialRiskLevels, initialStatuses } from '@/lib/mock-data';
+import { CaseReportDialog } from '@/components/audit/CaseReportDialog';
 
 export default function AuditeeViewPage() {
   const [branches] = useState<Branch[]>(initialBranches);
@@ -83,12 +84,14 @@ export default function AuditeeViewPage() {
 
   // Grouped Rendering: Case -> Subsection -> Findings
   const hierarchicalData = useMemo(() => {
-    const cases: Record<string, { summary: string, subsections: Record<string, { title: string, findings: AuditFinding[] }> }> = {};
+    const cases: Record<string, { summary: string, allFindings: AuditFinding[], subsections: Record<string, { title: string, findings: AuditFinding[] }> }> = {};
     
     filteredFindings.forEach(f => {
       if (!cases[f.parentCaseNumber]) {
-        cases[f.parentCaseNumber] = { summary: f.parentSummary, subsections: {} };
+        cases[f.parentCaseNumber] = { summary: f.parentSummary, allFindings: [], subsections: {} };
       }
+      
+      cases[f.parentCaseNumber].allFindings.push(f);
       
       const subKey = f.subsectionId || 'default';
       const subTitle = f.subsectionTitle || 'General Subsection';
@@ -210,14 +213,21 @@ export default function AuditeeViewPage() {
                   hierarchicalData.map(([caseNum, caseGroup]) => (
                     <div key={caseNum} className="space-y-8">
                       {/* Case Level (L1) */}
-                      <div className="flex items-center gap-4 bg-primary/5 p-4 rounded-xl border border-primary/20">
-                        <Badge className="h-10 w-12 rounded-lg flex items-center justify-center text-xl font-bold bg-primary text-primary-foreground">
-                          {caseNum}
-                        </Badge>
-                        <div className="flex flex-col">
-                          <h3 className="text-2xl font-black tracking-tight text-foreground uppercase">{caseGroup.summary}</h3>
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Main Audit Mission #{caseNum}</p>
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl border border-primary/20">
+                        <div className="flex items-center gap-4">
+                          <Badge className="h-10 w-12 rounded-lg flex items-center justify-center text-xl font-bold bg-primary text-primary-foreground">
+                            {caseNum}
+                          </Badge>
+                          <div className="flex flex-col">
+                            <h3 className="text-2xl font-black tracking-tight text-foreground uppercase">{caseGroup.summary}</h3>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Main Audit Mission #{caseNum}</p>
+                          </div>
                         </div>
+                        <CaseReportDialog 
+                          caseNum={caseNum} 
+                          caseSummary={caseGroup.summary} 
+                          findings={caseGroup.allFindings} 
+                        />
                       </div>
 
                       {/* Subsection Level (L2) */}
