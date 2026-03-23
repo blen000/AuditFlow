@@ -12,34 +12,11 @@ import {
   ShieldCheck, 
   ShieldAlert, 
   Tags,
-  ArrowRight,
-  UserPlus,
-  Users
+  ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
 
 const settingsModules = [
-  {
-    title: 'User Registration',
-    description: 'Register new users with any role.',
-    icon: UserPlus,
-    href: '/register',
-    buttonText: 'Go to Registration'
-  },
-  {
-    title: 'User Management',
-    description: 'Manage users, roles, and status.',
-    icon: Users,
-    href: '/users',
-    buttonText: 'Manage Users'
-  },
-  {
-    title: 'Role Management',
-    description: 'Create and manage roles and permissions.',
-    icon: ShieldCheck,
-    href: '/roles',
-    buttonText: 'Manage Roles'
-  },
   {
     title: 'Branch Registration',
     description: 'Add and manage physical bank branch information. Configure locations and regional mapping.',
