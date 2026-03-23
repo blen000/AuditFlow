@@ -12,7 +12,8 @@ import {
   Trash2, 
   CheckCircle2, 
   Info,
-  Lock
+  Lock,
+  Edit
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -23,6 +24,7 @@ import {
 import { initialRoles } from '@/lib/mock-data';
 import type { Role, Permission } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { AddEditRoleDialog } from '@/components/audit/AddEditRoleDialog';
 
 const permissionLabels: Record<Permission, { label: string, color: string }> = {
   audit_read: { label: 'Read Audits', color: 'bg-blue-100 text-blue-800' },
@@ -34,6 +36,18 @@ const permissionLabels: Record<Permission, { label: string, color: string }> = {
 export default function RoleManagementPage() {
   const { toast } = useToast();
   const [roles, setRoles] = useState<Role[]>(initialRoles);
+  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+
+  const handleAddNew = () => {
+    setEditingRole(null);
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (role: Role) => {
+    setEditingRole(role);
+    setDialogOpen(true);
+  };
 
   const handleDelete = (id: string) => {
     // Prevent deleting admin role for safety in mock
@@ -52,6 +66,23 @@ export default function RoleManagementPage() {
     });
   };
 
+  const handleSubmit = (roleData: Omit<Role, 'id'>) => {
+    if (editingRole) {
+      setRoles(prev => prev.map(r => r.id === editingRole.id ? { ...r, ...roleData } : r));
+      toast({
+        title: "Role Updated",
+        description: `${roleData.name} permissions have been updated.`,
+      });
+    } else {
+      const newRole = { ...roleData, id: `ROL-${Date.now()}` };
+      setRoles(prev => [...prev, newRole]);
+      toast({
+        title: "Role Created",
+        description: `${roleData.name} is now available for user assignment.`,
+      });
+    }
+  };
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader 
@@ -59,7 +90,7 @@ export default function RoleManagementPage() {
         description="Define and configure system permission profiles."
         backHref="/settings"
       >
-        <Button onClick={() => toast({ title: "Module Development", description: "Role creation form is under construction." })}>
+        <Button onClick={handleAddNew}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Create Role
         </Button>
@@ -86,8 +117,8 @@ export default function RoleManagementPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => toast({ title: "Edit Role", description: "Edit functionality coming soon." })}>
-                        Edit Permissions
+                      <DropdownMenuItem onClick={() => handleEdit(role)}>
+                        <Edit className="mr-2 h-4 w-4" /> Edit Role
                       </DropdownMenuItem>
                       <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(role.id)}>
                         <Trash2 className="mr-2 h-4 w-4" /> Delete Role
@@ -129,6 +160,13 @@ export default function RoleManagementPage() {
           </div>
         </div>
       </main>
+
+      <AddEditRoleDialog
+        open={isDialogOpen}
+        onOpenChange={setDialogOpen}
+        onSubmit={handleSubmit}
+        role={editingRole}
+      />
     </div>
   );
 }
