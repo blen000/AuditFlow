@@ -83,8 +83,8 @@ export function AddEditRoleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 overflow-hidden gap-0">
-        <DialogHeader className="px-6 py-4 border-b shrink-0">
+      <DialogContent className="sm:max-w-lg h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none gap-0">
+        <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
           <DialogTitle>
             {role ? 'Edit Organizational Role' : 'Create New Role'}
           </DialogTitle>
@@ -128,7 +128,7 @@ export function AddEditRoleDialog({
                 />
                 
                 <div className="space-y-4">
-                  <FormLabel>Assigned Permissions</FormLabel>
+                  <FormLabel className="text-xs font-bold uppercase tracking-widest text-primary">Assigned System Capabilities</FormLabel>
                   <div className="grid gap-4">
                     {permissionOptions.map((option) => (
                       <FormField
@@ -136,7 +136,7 @@ export function AddEditRoleDialog({
                         control={form.control}
                         name="permissions"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-muted/30 transition-colors cursor-pointer">
                             <FormControl>
                               <Checkbox
                                 checked={field.value?.includes(option.value)}
@@ -152,7 +152,7 @@ export function AddEditRoleDialog({
                               />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel className="text-sm font-bold">
+                              <FormLabel className="text-sm font-bold cursor-pointer">
                                 {option.label}
                               </FormLabel>
                               <p className="text-xs text-muted-foreground">
@@ -168,7 +168,7 @@ export function AddEditRoleDialog({
                 </div>
               </div>
             </ScrollArea>
-            <DialogFooter className="p-6 border-t shrink-0">
+            <DialogFooter className="p-6 border-t bg-muted/10 shrink-0">
               <Button
                 variant="outline"
                 onClick={() => onOpenChange(false)}

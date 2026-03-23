@@ -10,7 +10,7 @@ import {
   PlusCircle, 
   MoreHorizontal, 
   Trash2, 
-  CircleCheck, 
+  CheckCircle, 
   Info,
   Lock,
   Pencil
@@ -26,7 +26,7 @@ import type { Role, Permission } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { AddEditRoleDialog } from '@/components/audit/AddEditRoleDialog';
 
-const permissionLabels: Record<Permission, { label: string, color: string }> = {
+const permissionLabels: Record<string, { label: string, color: string }> = {
   audit_read: { label: 'Read Audits', color: 'bg-blue-100 text-blue-800' },
   audit_write: { label: 'Manage Audits', color: 'bg-purple-100 text-purple-800' },
   reports_read: { label: 'Access Reports', color: 'bg-green-100 text-green-800' },
@@ -80,6 +80,7 @@ export default function RoleManagementPage() {
         description: `${roleData.name} is now available for user assignment.`,
       });
     }
+    setEditingRole(null);
   };
 
   return (
@@ -99,54 +100,62 @@ export default function RoleManagementPage() {
         <div className="mx-auto max-w-5xl space-y-8">
           
           <div className="grid grid-cols-1 gap-6">
-            {roles.map((role) => (
-              <Card key={role.id} className="shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-start justify-between pb-2 bg-muted/10 border-b">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-xl font-bold">{role.name}</CardTitle>
-                      {role.name === 'Admin' && <Lock className="h-4 w-4 text-primary opacity-50" />}
+            {roles.length > 0 ? (
+              roles.map((role) => (
+                <Card key={role.id} className="shadow-sm hover:shadow-md transition-shadow">
+                  <CardHeader className="flex flex-row items-start justify-between pb-2 bg-muted/10 border-b">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-xl font-bold">{role.name}</CardTitle>
+                        {role.name === 'Admin' && <Lock className="h-4 w-4 text-primary opacity-50" />}
+                      </div>
+                      <CardDescription>{role.description}</CardDescription>
                     </div>
-                    <CardDescription>{role.description}</CardDescription>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(role)}>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit Role
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(role.id)}>
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete Role
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                      <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                      Assigned System Capabilities
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {role.permissions.map((perm) => (
-                        <Badge 
-                          key={perm} 
-                          variant="outline" 
-                          className={`flex items-center gap-1.5 py-1 px-2.5 font-semibold text-xs border-none ${permissionLabels[perm]?.color || 'bg-gray-100'}`}
-                        >
-                          <CircleCheck className="h-3.5 w-3.5" />
-                          {permissionLabels[perm]?.label || perm}
-                        </Badge>
-                      ))}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(role)}>
+                          <Pencil className="mr-2 h-4 w-4" /> Edit Role
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(role.id)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete Role
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                        <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                        Assigned System Capabilities
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {role.permissions.map((perm) => (
+                          <Badge 
+                            key={perm} 
+                            variant="outline" 
+                            className={`flex items-center gap-1.5 py-1 px-2.5 font-semibold text-xs border-none ${permissionLabels[perm]?.color || 'bg-gray-100'}`}
+                          >
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            {permissionLabels[perm]?.label || perm}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/10">
+                <ShieldCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+                <h3 className="text-lg font-bold">No Roles Defined</h3>
+                <p className="text-muted-foreground">Click "Create Role" to establish your organizational access hierarchy.</p>
+              </div>
+            )}
           </div>
 
           <div className="p-6 bg-muted/20 border-l-4 border-primary rounded-r-lg">
