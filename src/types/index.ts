@@ -150,3 +150,25 @@ export type Notification = {
   type: 'info' | 'warning' | 'alert';
   findingId?: string;
 };
+
+export type UserRole = 'Admin' | 'Auditor' | 'Auditee' | 'Management' | string;
+
+export type UserStatus = 'Active' | 'Inactive';
+
+export type User = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  dateJoined: string;
+};
+
+export type Permission = 'audit_read' | 'audit_write' | 'reports_read' | 'settings_manage';
+
+export type Role = {
+  id: string;
+  name: string;
+  description: string;
+  permissions: Permission[];
+};

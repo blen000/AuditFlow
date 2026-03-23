@@ -1,4 +1,18 @@
-import type { AuditFinding, Branch, District, RiskLevelData, StatusData, Auditor, Department, Chief, CEO, Board, SpecialAudit } from '@/types';
+import type { 
+  AuditFinding, 
+  Branch, 
+  District, 
+  RiskLevelData, 
+  StatusData, 
+  Auditor, 
+  Department, 
+  Chief, 
+  CEO, 
+  Board, 
+  SpecialAudit,
+  User,
+  Role
+} from '@/types';
 import { subDays } from 'date-fns';
 
 export const initialDistricts: District[] = [
@@ -74,6 +88,20 @@ export const initialSpecialAudits: SpecialAudit[] = [
     correctiveActionTaken: 'Mandatory daily reconciliation policy implemented',
     dateCreated: subDays(new Date(), 5).toISOString(),
   }
+];
+
+export const initialUsers: User[] = [
+  { id: 'USR-1', fullName: 'Admin User', email: 'admin@auditflow.com', role: 'Admin', status: 'Active', dateJoined: '2024-01-01' },
+  { id: 'USR-2', fullName: 'Abebe Shirega', email: 'abebe@bank.com', role: 'Auditor', status: 'Active', dateJoined: '2024-02-15' },
+  { id: 'USR-3', fullName: 'Branch Manager', email: 'manager@mainstreet.com', role: 'Auditee', status: 'Active', dateJoined: '2024-03-10' },
+  { id: 'USR-4', fullName: 'InActive Auditor', email: 'inactive@bank.com', role: 'Auditor', status: 'Inactive', dateJoined: '2024-01-20' },
+];
+
+export const initialRoles: Role[] = [
+  { id: 'ROL-1', name: 'Admin', description: 'Full system access including user and settings management.', permissions: ['audit_read', 'audit_write', 'reports_read', 'settings_manage'] },
+  { id: 'ROL-2', name: 'Auditor', description: 'Can create and manage audit findings and view reports.', permissions: ['audit_read', 'audit_write', 'reports_read'] },
+  { id: 'ROL-3', name: 'Auditee', description: 'Can view findings related to their branch and provide responses.', permissions: ['audit_read'] },
+  { id: 'ROL-4', name: 'Management', description: 'View-only access to all audit reports and high-level dashboards.', permissions: ['audit_read', 'reports_read'] },
 ];
 
 export const initialFindings: AuditFinding[] = [
