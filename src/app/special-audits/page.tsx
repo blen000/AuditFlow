@@ -39,11 +39,13 @@ import {
   Briefcase, 
   Clock, 
   Hash, 
-  Users 
+  Users,
+  Eye
 } from 'lucide-react';
 import { initialSpecialAudits } from '@/lib/mock-data';
 import type { SpecialAudit } from '@/types';
 import { AddEditSpecialAuditDialog } from '@/components/audit/AddEditSpecialAuditDialog';
+import { ViewSpecialAuditDialog } from '@/components/audit/ViewSpecialAuditDialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -52,7 +54,9 @@ export default function SpecialAuditsPage() {
   const { toast } = useToast();
   const [audits, setAudits] = useState<SpecialAudit[]>(initialSpecialAudits);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingAudit, setEditingAudit] = useState<SpecialAudit | null>(null);
+  const [viewingAudit, setViewingAudit] = useState<SpecialAudit | null>(null);
 
   // Filter States
   const [filterName, setFilterName] = useState('');
@@ -69,6 +73,11 @@ export default function SpecialAuditsPage() {
   const handleEdit = (audit: SpecialAudit) => {
     setEditingAudit(audit);
     setIsDialogOpen(true);
+  };
+
+  const handleView = (audit: SpecialAudit) => {
+    setViewingAudit(audit);
+    setIsViewDialogOpen(true);
   };
 
   const handleDelete = (id: string) => {
@@ -187,7 +196,7 @@ export default function SpecialAuditsPage() {
                   <Input 
                     placeholder="e.g., 5 years" 
                     className="pl-9 h-9 text-sm"
-                    value={filterTenure}
+                    value={filterName}
                     onChange={(e) => setFilterTenure(e.target.value)}
                   />
                 </div>
@@ -323,6 +332,9 @@ export default function SpecialAuditsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleView(audit)}>
+                                <Eye className="mr-2 h-4 w-4" /> View
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleEdit(audit)}>
                                 <Edit className="mr-2 h-4 w-4" /> Edit
                               </DropdownMenuItem>
@@ -357,6 +369,12 @@ export default function SpecialAuditsPage() {
         onOpenChange={setIsDialogOpen}
         onSubmit={handleSubmit}
         audit={editingAudit}
+      />
+
+      <ViewSpecialAuditDialog
+        open={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+        audit={viewingAudit}
       />
     </div>
   );
