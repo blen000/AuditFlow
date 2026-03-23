@@ -4,6 +4,8 @@ export type RiskLevel = 'High' | 'Medium' | 'Low' | string;
 export type FindingStatus = string;
 export type AuditeeAgreement = 'Pending' | 'Agreed' | 'Declined' | 'Partially Agreed';
 
+export type AuditTypeCategory = 'Branch' | 'District' | 'Division' | 'Department' | 'Chief' | 'CEO' | 'Board';
+
 export type CommunicationEntry = {
   date?: Date | Timestamp;
   meta?: string; // Individuals for verbal, Address for others
@@ -39,6 +41,7 @@ export type AuditFinding = {
   details: string;
   riskLevel: RiskLevel;
   branchOrDepartment: string;
+  auditType: AuditTypeCategory; // Category from hierarchical levels
   recommendation: string;
   status: FindingStatus;
   revalidationDate?: Date | Timestamp;
@@ -58,6 +61,7 @@ export type AuditFinding = {
   teamMembers: string[];
   // KPI Fields
   assignedDate?: Date | Timestamp;
+  dateCommunicated?: Date | Timestamp;
   finalizationDate?: Date | Timestamp;
   tatDays?: number;
   // Follow-up Fields

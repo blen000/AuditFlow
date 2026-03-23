@@ -13,7 +13,7 @@ import type {
   User,
   Role
 } from '@/types';
-import { subDays } from 'date-fns';
+import { subDays, addDays } from 'date-fns';
 
 export const initialDistricts: District[] = [
   { id: 'DIST-1', name: 'Northern District' },
@@ -115,6 +115,7 @@ export const initialFindings: AuditFinding[] = [
     details: 'The branch password policy does not enforce complexity requirements.',
     riskLevel: 'Medium',
     branchOrDepartment: 'Main Street Branch',
+    auditType: 'Branch',
     recommendation: 'Update password policy to require characters, numbers, and symbols.',
     status: 'Open',
     auditeeAgreement: 'Pending',
@@ -128,6 +129,7 @@ export const initialFindings: AuditFinding[] = [
     teamLeader: 'Abebe Shirega',
     teamMembers: ['Fikre Tollossa', 'Ze'],
     assignedDate: subDays(new Date(), 20),
+    dateCommunicated: subDays(new Date(), 18),
     tatDays: 15,
   },
   {
@@ -138,16 +140,17 @@ export const initialFindings: AuditFinding[] = [
     details: 'The vault was opened by a single employee on three separate occasions.',
     riskLevel: 'High',
     branchOrDepartment: 'Park Avenue Branch',
+    auditType: 'Branch',
     recommendation: 'Reinforce dual control training and audit vault logs weekly.',
     status: 'In Progress',
     auditeeAgreement: 'Agreed',
-    mitigationDueDate: new Date('2024-12-30'),
+    mitigationDueDate: addDays(new Date(), 30),
     involvedCases: [
       { id: 'C-01', ownerName: 'Vault A', status: 'Open' }
     ],
     involvedAmounts: [],
     progressUpdates: [
-      { id: 'P-01', date: new Date('2024-11-20'), details: 'Training session scheduled for staff.' }
+      { id: 'P-01', date: subDays(new Date(), 5), details: 'Training session scheduled for staff.' }
     ],
     findingAttachments: [],
     recommendationAttachments: [],
@@ -156,6 +159,7 @@ export const initialFindings: AuditFinding[] = [
     teamLeader: 'Abebe Shirega',
     teamMembers: ['Fikre Tollossa'],
     assignedDate: subDays(new Date(), 10),
+    dateCommunicated: subDays(new Date(), 9),
     tatDays: 15,
   },
   {
@@ -166,6 +170,7 @@ export const initialFindings: AuditFinding[] = [
     details: 'Several high-value accounts were opened without complete KYC documentation.',
     riskLevel: 'High',
     branchOrDepartment: 'Main Street Branch',
+    auditType: 'Branch',
     recommendation: 'Freeze accounts until documentation is provided.',
     status: 'Awaiting Response',
     auditeeAgreement: 'Declined',
@@ -180,49 +185,32 @@ export const initialFindings: AuditFinding[] = [
     teamLeader: 'Fikre Tollossa',
     teamMembers: ['Ze'],
     assignedDate: subDays(new Date(), 5),
-    tatDays: 15,
-  },
-  {
-    id: '2.2',
-    parentCaseNumber: '2',
-    parentSummary: 'Operational Compliance Audit',
-    title: 'Excessive Cash Limits',
-    details: 'Tellers were found holding cash in excess of their authorized limits.',
-    riskLevel: 'Low',
-    branchOrDepartment: 'East Side Hub',
-    recommendation: 'Adhere to daily cash transfer protocols to the vault.',
-    status: 'Mitigated',
-    auditeeAgreement: 'Agreed',
-    revalidationDate: new Date('2025-01-15'),
-    involvedCases: [],
-    involvedAmounts: [
-      { name: 'Excess Cash Found', amount: 5400 }
-    ],
-    progressUpdates: [],
-    teamLeader: 'Abebe Shirega',
-    teamMembers: ['Ze'],
-    assignedDate: subDays(new Date(), 25),
-    finalizationDate: subDays(new Date(), 2),
+    dateCommunicated: subDays(new Date(), 4),
     tatDays: 15,
   },
   {
     id: '4.1',
     parentCaseNumber: '4',
-    parentSummary: 'Data Protection Mission',
-    title: 'Unsecured Customer Records',
-    details: 'Customer loan files were found left unsecured in an open cabinet.',
+    parentSummary: 'Management Oversight Review',
+    title: 'Executive Travel Expenses',
+    details: 'Travel expenses were approved without corresponding boarding passes.',
     riskLevel: 'Medium',
-    branchOrDepartment: 'Internal Audit',
-    recommendation: 'Implement clean desk policy and lockable storage.',
-    status: 'Closed',
-    auditeeAgreement: 'Agreed',
+    branchOrDepartment: 'CEO Office',
+    auditType: 'CEO',
+    recommendation: 'Enforce strict documentation requirements for all expense claims.',
+    status: 'Open',
+    auditeeAgreement: 'Partially Agreed',
+    auditeeResponse: 'Boarding passes are being collected from the travel agency.',
+    mitigationDueDate: addDays(new Date(), 14),
     involvedCases: [],
-    involvedAmounts: [],
+    involvedAmounts: [
+      { name: 'Unverified Expenses', amount: 12500 }
+    ],
     progressUpdates: [],
-    teamLeader: 'Fikre Tollossa',
-    teamMembers: ['Abebe Shirega', 'Ze'],
-    assignedDate: subDays(new Date(), 30),
-    finalizationDate: subDays(new Date(), 12),
-    tatDays: 20,
+    teamLeader: 'Abebe Shirega',
+    teamMembers: ['Fikre Tollossa'],
+    assignedDate: subDays(new Date(), 12),
+    dateCommunicated: subDays(new Date(), 11),
+    tatDays: 15,
   }
 ];

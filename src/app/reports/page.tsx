@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { 
   ClipboardList, 
   FileText,
-  ArrowRight
+  ArrowRight,
+  MessageSquare
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -17,6 +18,13 @@ const reportModules = [
     icon: ClipboardList,
     href: '/assignments',
     buttonText: 'View Assignments'
+  },
+  {
+    title: 'Audit Communications',
+    description: 'Track responses, interactions, and rectification agreements across Branches, Districts, Departments, and Executive Offices.',
+    icon: MessageSquare,
+    href: '/communications',
+    buttonText: 'View Communications'
   },
   {
     title: 'Special Audit Reports',

@@ -15,7 +15,8 @@ import {
   FileText,
   Users,
   ShieldCheck,
-  UserPlus
+  UserPlus,
+  MessageSquare
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -114,7 +115,18 @@ export function SidebarNav() {
       </SidebarGroup>
 
       <SidebarGroup>
-        <SidebarGroupLabel>Reporting</SidebarGroupLabel>
+        <SidebarGroupLabel>Reporting & Tracking</SidebarGroupLabel>
+        <SidebarMenuItem>
+          <Link href="/communications">
+            <SidebarMenuButton
+              isActive={pathname === '/communications'}
+              tooltip="Audit Communications"
+            >
+              <MessageSquare />
+              <span>Communications</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
         <SidebarMenuItem>
           <Link href="/reports">
             <SidebarMenuButton
@@ -122,7 +134,7 @@ export function SidebarNav() {
               tooltip="Audit Reports"
             >
               <FileText />
-              <span>Audit Reports</span>
+              <span>Audit Reports Hub</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
