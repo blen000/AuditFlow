@@ -50,7 +50,8 @@ export default function AssignmentsPage() {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader 
         title="Audit Assignments" 
-        description="Official roles, team structures, and KPI performance tracking." 
+        description="Official roles, team structures, and KPI performance tracking."
+        backHref="/reports"
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-7xl space-y-6">

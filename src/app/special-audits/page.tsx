@@ -69,6 +69,7 @@ export default function SpecialAuditsPage() {
       <PageHeader
         title="Special Audit Reports"
         description="Pertinent findings included in specialized internal audit missions."
+        backHref="/reports"
       >
         <Button onClick={handleAddNew}>
           <PlusCircle className="mr-2 h-4 w-4" />
