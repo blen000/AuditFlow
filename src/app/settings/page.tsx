@@ -13,7 +13,6 @@ import {
   ShieldAlert, 
   Tags,
   ArrowRight,
-  UserRoundSearch,
   UserPlus,
   Users
 } from 'lucide-react';
@@ -40,13 +39,6 @@ const settingsModules = [
     icon: ShieldCheck,
     href: '/roles',
     buttonText: 'Manage Roles'
-  },
-  {
-    title: 'Auditor Directory',
-    description: 'Manage the pool of authorized audit personnel, including contact details and specialized skills.',
-    icon: UserRoundSearch,
-    href: '/auditors',
-    buttonText: 'Manage Auditors'
   },
   {
     title: 'Branch Registration',
