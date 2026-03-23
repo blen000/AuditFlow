@@ -129,7 +129,7 @@ export function AddEditSpecialAuditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl gap-0">
+      <DialogContent className="sm:max-w-[800px] h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl gap-0">
         <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
           <DialogTitle>{audit ? 'Edit Special Audit' : 'New Special Audit Report'}</DialogTitle>
           <DialogDescription>Fill out the pertinent details for the special audit report.</DialogDescription>
