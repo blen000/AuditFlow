@@ -45,7 +45,7 @@ export function CaseReportDialog({ caseNum, caseSummary, findings }: CaseReportD
           Case Report
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 border-none shadow-2xl overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 border-none shadow-2xl overflow-hidden gap-0">
         <DialogHeader className="p-8 border-b shrink-0 bg-primary text-primary-foreground rounded-t-lg">
           <div className="flex items-center gap-4">
             <Badge variant="outline" className="h-12 w-16 flex justify-center text-2xl font-bold border-primary-foreground/30 text-primary-foreground">

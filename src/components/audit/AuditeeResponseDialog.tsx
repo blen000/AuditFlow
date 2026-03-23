@@ -89,7 +89,7 @@ export function AuditeeResponseDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none gap-0">
         <DialogHeader className="p-6 pb-2 shrink-0 border-b bg-background">
           <DialogTitle>Auditee Response</DialogTitle>
           <DialogDescription>

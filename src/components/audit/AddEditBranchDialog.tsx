@@ -22,6 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Branch, District } from '@/types';
 import {
   Select,
@@ -78,8 +79,8 @@ export function AddEditBranchDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0 overflow-hidden gap-0">
+        <DialogHeader className="px-6 py-4 border-b shrink-0">
           <DialogTitle>{branch ? 'Edit Branch' : 'Add New Branch'}</DialogTitle>
           <DialogDescription>
             {branch
@@ -90,49 +91,53 @@ export function AddEditBranchDialog({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleFormSubmit)}
-            className="space-y-4 py-4"
+            className="flex-1 flex flex-col min-h-0"
           >
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Branch / Department Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Downtown Main" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="district"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>District</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a district" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {districtList.map((district) => (
-                        <SelectItem key={district.id} value={district.name}>
-                          {district.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
+            <ScrollArea className="flex-1">
+              <div className="p-6 space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Branch / Department Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Downtown Main" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="district"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>District</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a district" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {districtList.map((district) => (
+                            <SelectItem key={district.id} value={district.name}>
+                              {district.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </ScrollArea>
+            <DialogFooter className="p-6 border-t shrink-0">
               <Button
                 variant="outline"
                 onClick={() => onOpenChange(false)}
