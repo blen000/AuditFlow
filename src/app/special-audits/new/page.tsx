@@ -33,7 +33,7 @@ const individualSchema = z.object({
   position: z.string().min(2, 'Position is required'),
   tenure: z.string().min(1, 'Tenure is required'),
   age: z.coerce.number().min(18, 'Must be at least 18'),
-  sex: z.enum(['Male', 'Female', 'Other']),
+  sex: z.enum(['Male', 'Female']),
 });
 
 const formSchema = z.object({
@@ -275,7 +275,6 @@ export default function NewSpecialAuditPage() {
                                 <SelectContent>
                                   <SelectItem value="Male">Male</SelectItem>
                                   <SelectItem value="Female">Female</SelectItem>
-                                  <SelectItem value="Other">Other</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />

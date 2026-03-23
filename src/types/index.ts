@@ -75,7 +75,7 @@ export type SpecialAuditIndividual = {
   position: string;
   tenure: string;
   age: number;
-  sex: 'Male' | 'Female' | 'Other';
+  sex: 'Male' | 'Female';
 };
 
 export type SpecialAudit = {
