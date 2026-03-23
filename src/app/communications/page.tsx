@@ -7,13 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MessageSquare, Calendar, Link as LinkIcon, History, FilterX } from 'lucide-react';
+import { Search, MessageSquare, Calendar, Link as LinkIcon, History, FilterX, Info } from 'lucide-react';
 import { initialFindings } from '@/lib/mock-data';
-import type { AuditFinding, AuditTypeCategory } from '@/types';
+import type { AuditTypeCategory } from '@/types';
 import { format } from 'date-fns';
 import { AgreementBadge } from '@/components/audit/AgreementBadge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const auditTypes: AuditTypeCategory[] = ['Branch', 'District', 'Division', 'Department', 'Chief', 'CEO', 'Board'];
 
@@ -98,33 +97,33 @@ export default function CommunicationsPage() {
                       <TableHead className="font-bold text-[10px] uppercase tracking-widest">Reference</TableHead>
                       <TableHead className="font-bold text-[10px] uppercase tracking-widest">Date of Report</TableHead>
                       <TableHead className="font-bold text-[10px] uppercase tracking-widest">Date Communicated</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase tracking-widest">Time set for rectification</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase tracking-widest">Response Status</TableHead>
+                      <TableHead className="font-bold text-[10px] uppercase tracking-widest">Rectification Timeline</TableHead>
+                      <TableHead className="font-bold text-[10px] uppercase tracking-widest">Response Status & Justification</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredFindings.length > 0 ? (
                       filteredFindings.map((finding, index) => (
-                        <TableRow key={finding.id} className="hover:bg-muted/20 transition-colors">
-                          <TableCell className="text-center font-mono text-xs text-muted-foreground">{index + 1}</TableCell>
-                          <TableCell>
+                        <TableRow key={finding.id} className="hover:bg-muted/20 transition-colors align-top">
+                          <TableCell className="text-center font-mono text-xs text-muted-foreground pt-4">{index + 1}</TableCell>
+                          <TableCell className="pt-4">
                             <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[10px] font-bold">
                               {finding.auditType}
                             </Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="pt-4">
                             <div className="flex flex-col">
                               <span className="font-bold text-sm">{finding.branchOrDepartment}</span>
                               <span className="text-[10px] text-muted-foreground uppercase font-mono">Ref: {finding.id}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-xs font-medium">
+                          <TableCell className="text-xs font-medium pt-4">
                             {mounted && finding.assignedDate ? format(finding.assignedDate as Date, 'MMM d, yyyy') : '--'}
                           </TableCell>
-                          <TableCell className="text-xs font-medium text-muted-foreground">
-                            {mounted && finding.dateCommunicated ? format(finding.dateCommunicated as Date, 'MMM d, yyyy') : 'Pending Dispatch'}
+                          <TableCell className="text-xs font-medium text-muted-foreground pt-4">
+                            {mounted && finding.dateCommunicated ? format(finding.dateCommunicated as Date, 'MMM d, yyyy') : 'Pending Response'}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="pt-4">
                             {mounted && finding.mitigationDueDate ? (
                               <div className="flex items-center gap-2 text-xs font-bold text-foreground">
                                 <Calendar className="h-3 w-3 text-accent" />
@@ -134,8 +133,16 @@ export default function CommunicationsPage() {
                               <span className="text-xs text-muted-foreground italic">Not established</span>
                             )}
                           </TableCell>
-                          <TableCell>
-                            <AgreementBadge agreement={finding.auditeeAgreement} />
+                          <TableCell className="pt-4 pb-4">
+                            <div className="space-y-2 max-w-[250px]">
+                              <AgreementBadge agreement={finding.auditeeAgreement} />
+                              {(finding.auditeeAgreement === 'Declined' || finding.auditeeAgreement === 'Partially Agreed') && finding.auditeeResponse && (
+                                <div className="p-2 rounded-md bg-muted/50 border border-muted text-[11px] leading-relaxed text-muted-foreground flex gap-2">
+                                  <Info className="h-3 w-3 shrink-0 mt-0.5 opacity-50" />
+                                  <span>{finding.auditeeResponse}</span>
+                                </div>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
@@ -159,7 +166,7 @@ export default function CommunicationsPage() {
             <div className="flex gap-3">
               <LinkIcon className="h-5 w-5 text-accent shrink-0 mt-0.5" />
               <p className="text-sm leading-relaxed text-foreground">
-                <strong>Tracking Protocol:</strong> Communication timelines are monitored against established Service Level Agreements (SLAs). Rectification dates are binding commitments once agreed upon by the auditee.
+                <strong>Tracking Protocol:</strong> Report dates represent the initial audit entry. Communication dates represent when the auditee response was recorded. Rectification dates are binding commitments once agreed upon.
               </p>
             </div>
           </div>
