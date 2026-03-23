@@ -6,6 +6,17 @@ export type AuditeeAgreement = 'Pending' | 'Agreed' | 'Declined' | 'Partially Ag
 
 export type AuditTypeCategory = 'Branch' | 'District' | 'Division' | 'Department' | 'Chief' | 'CEO' | 'Board';
 
+export type FindingCategory = 
+  | 'Cash' 
+  | 'Accounts' 
+  | 'Negotiable Instruments' 
+  | 'Loans' 
+  | 'Deposits' 
+  | 'Fixed Assets' 
+  | 'Card Banking' 
+  | 'Security' 
+  | 'Others';
+
 export type CommunicationEntry = {
   date?: Date | Timestamp;
   meta?: string; // Individuals for verbal, Address for others
@@ -38,6 +49,7 @@ export type AuditFinding = {
   subsectionId?: string; // Level 2: Subsection ID if this is a sub-subsection, e.g., "1.1"
   subsectionTitle?: string; // Level 2: Title of the Subsection
   title: string; // Level 3 (or Level 2 if no Level 3 exists)
+  category: FindingCategory;
   details: string;
   riskLevel: RiskLevel;
   branchOrDepartment: string;
