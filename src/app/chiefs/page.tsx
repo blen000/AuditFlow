@@ -66,6 +66,7 @@ export default function ChiefsPage() {
         <PageHeader
           title="Chiefs Management"
           description="Register and manage organizational Chief roles and offices."
+          backHref="/settings"
         >
           <Button onClick={handleAddNew}>
             <PlusCircle className="mr-2 h-4 w-4" />

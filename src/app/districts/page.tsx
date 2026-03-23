@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -42,6 +41,7 @@ export default function DistrictsPage() {
         <PageHeader
           title="Districts"
           description="View and manage your organization's districts."
+          backHref="/settings"
         >
           <Button onClick={handleAddNew}>
             <PlusCircle className="mr-2 h-4 w-4" />

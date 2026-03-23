@@ -67,6 +67,7 @@ export default function BranchesPage() {
         <PageHeader
           title="Branches Management"
           description="View and manage your organization's physical bank branches."
+          backHref="/settings"
         >
           <Button onClick={handleAddNew}>
             <PlusCircle className="mr-2 h-4 w-4" />

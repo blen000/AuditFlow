@@ -66,6 +66,7 @@ export default function DepartmentsPage() {
         <PageHeader
           title="Departments Management"
           description="Register and manage organizational headquarters and support departments."
+          backHref="/settings"
         >
           <Button onClick={handleAddNew}>
             <PlusCircle className="mr-2 h-4 w-4" />

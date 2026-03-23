@@ -79,6 +79,7 @@ export default function AuditorsPage() {
         <PageHeader
           title="Auditor Management"
           description="Register and manage authorized audit personnel."
+          backHref="/settings"
         >
           <Button onClick={handleAddNew}>
             <UserPlus className="mr-2 h-4 w-4" />

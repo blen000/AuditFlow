@@ -66,6 +66,7 @@ export default function CEOsPage() {
         <PageHeader
           title="CEOs Management"
           description="Register and manage organizational CEO offices."
+          backHref="/settings"
         >
           <Button onClick={handleAddNew}>
             <PlusCircle className="mr-2 h-4 w-4" />

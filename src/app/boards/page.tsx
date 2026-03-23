@@ -66,6 +66,7 @@ export default function BoardsPage() {
         <PageHeader
           title="Board Management"
           description="Register and manage Board of Directors and specialized Committees."
+          backHref="/settings"
         >
           <Button onClick={handleAddNew}>
             <PlusCircle className="mr-2 h-4 w-4" />

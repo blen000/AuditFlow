@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -43,6 +42,7 @@ export default function RiskLevelsPage() {
         <PageHeader
           title="Risk Levels"
           description="View and manage your organization's risk levels."
+          backHref="/settings"
         >
           <Button onClick={handleAddNew}>
             <PlusCircle className="mr-2 h-4 w-4" />

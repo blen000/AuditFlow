@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -42,6 +41,7 @@ export default function StatusesPage() {
         <PageHeader
           title="Statuses"
           description="View and manage your organization's finding statuses."
+          backHref="/settings"
         >
           <Button onClick={handleAddNew}>
             <PlusCircle className="mr-2 h-4 w-4" />
