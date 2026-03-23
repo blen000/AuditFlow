@@ -181,7 +181,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+      <DialogContent className="sm:max-w-[700px] h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none gap-0">
         <DialogHeader className="p-6 pb-2 shrink-0 border-b bg-background">
           <DialogTitle className="text-xl flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
@@ -192,7 +192,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollArea className="flex-1 min-h-0 bg-background">
           <div className="px-6 py-6 space-y-8">
             {/* Status & Closure Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end bg-primary/5 p-4 rounded-xl border border-primary/20">
@@ -277,6 +277,8 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
                 </div>
               </TabsContent>
             </Tabs>
+            {/* Added extra padding at the bottom to ensure last items aren't obscured by shadow/footer */}
+            <div className="h-10" />
           </div>
         </ScrollArea>
 
