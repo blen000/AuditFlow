@@ -13,7 +13,9 @@ import {
   Settings, 
   FileWarning, 
   FileText,
-  Users
+  Users,
+  ShieldCheck,
+  UserPlus
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -69,6 +71,43 @@ export function SidebarNav() {
             >
               <FileWarning />
               <span>Log Special Audit</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+      </SidebarGroup>
+
+      <SidebarGroup>
+        <SidebarGroupLabel>Administration</SidebarGroupLabel>
+        <SidebarMenuItem>
+          <Link href="/users">
+            <SidebarMenuButton
+              isActive={pathname === '/users'}
+              tooltip="User Management"
+            >
+              <Users />
+              <span>User Management</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <Link href="/roles">
+            <SidebarMenuButton
+              isActive={pathname === '/roles'}
+              tooltip="Role Management"
+            >
+              <ShieldCheck />
+              <span>Role Management</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <Link href="/register">
+            <SidebarMenuButton
+              isActive={pathname === '/register'}
+              tooltip="Register User"
+            >
+              <UserPlus />
+              <span>Register User</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>

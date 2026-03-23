@@ -10,10 +10,10 @@ import {
   PlusCircle, 
   MoreHorizontal, 
   Trash2, 
-  CheckCircle2, 
+  CircleCheck, 
   Info,
   Lock,
-  Edit
+  Pencil
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,7 +50,6 @@ export default function RoleManagementPage() {
   };
 
   const handleDelete = (id: string) => {
-    // Prevent deleting admin role for safety in mock
     if (id === 'ROL-1') {
       toast({
         variant: "destructive",
@@ -118,7 +117,7 @@ export default function RoleManagementPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleEdit(role)}>
-                        <Edit className="mr-2 h-4 w-4" /> Edit Role
+                        <Pencil className="mr-2 h-4 w-4" /> Edit Role
                       </DropdownMenuItem>
                       <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(role.id)}>
                         <Trash2 className="mr-2 h-4 w-4" /> Delete Role
@@ -137,10 +136,10 @@ export default function RoleManagementPage() {
                         <Badge 
                           key={perm} 
                           variant="outline" 
-                          className={`flex items-center gap-1.5 py-1 px-2.5 font-semibold text-xs border-none ${permissionLabels[perm].color}`}
+                          className={`flex items-center gap-1.5 py-1 px-2.5 font-semibold text-xs border-none ${permissionLabels[perm]?.color || 'bg-gray-100'}`}
                         >
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          {permissionLabels[perm].label}
+                          <CircleCheck className="h-3.5 w-3.5" />
+                          {permissionLabels[perm]?.label || perm}
                         </Badge>
                       ))}
                     </div>
