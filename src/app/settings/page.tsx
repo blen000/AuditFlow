@@ -13,11 +13,34 @@ import {
   ShieldAlert, 
   Tags,
   ArrowRight,
-  UserRoundSearch
+  UserRoundSearch,
+  UserPlus,
+  Users
 } from 'lucide-react';
 import Link from 'next/link';
 
 const settingsModules = [
+  {
+    title: 'User Registration',
+    description: 'Register new users with any role.',
+    icon: UserPlus,
+    href: '/register',
+    buttonText: 'Go to Registration'
+  },
+  {
+    title: 'User Management',
+    description: 'Manage users, roles, and status.',
+    icon: Users,
+    href: '/users',
+    buttonText: 'Manage Users'
+  },
+  {
+    title: 'Role Management',
+    description: 'Create and manage roles and permissions.',
+    icon: ShieldCheck,
+    href: '/roles',
+    buttonText: 'Manage Roles'
+  },
   {
     title: 'Auditor Directory',
     description: 'Manage the pool of authorized audit personnel, including contact details and specialized skills.',
