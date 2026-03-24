@@ -22,13 +22,22 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { User } from '@/types';
-import { UserCheck, Mail } from 'lucide-react';
+import { UserCheck, Mail, ShieldCheck } from 'lucide-react';
+import { initialRoles } from '@/lib/mock-data';
 
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name is required.'),
   email: z.string().email('Invalid email address.'),
+  role: z.string().min(1, 'Role assignment is required.'),
 });
 
 type EditUserDialogProps = {
@@ -49,6 +58,7 @@ export function EditUserDialog({
     defaultValues: {
       fullName: '',
       email: '',
+      role: '',
     },
   });
 
@@ -57,6 +67,7 @@ export function EditUserDialog({
       form.reset({
         fullName: user.fullName,
         email: user.email,
+        role: user.role,
       });
     }
   }, [user, form, open]);
@@ -72,7 +83,7 @@ export function EditUserDialog({
         <DialogHeader>
           <DialogTitle>Edit User Profile</DialogTitle>
           <DialogDescription>
-            Update the identity details for this personnel record.
+            Update the identity and access privileges for this personnel record.
           </DialogDescription>
         </DialogHeader>
         
@@ -113,6 +124,35 @@ export function EditUserDialog({
                 </FormItem>
               )}
             />
+            
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                    Assigned Role
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {initialRoles.map((role) => (
+                        <SelectItem key={role.id} value={role.name}>
+                          {role.name} {role.isSpecial ? '(Executive)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <DialogFooter className="pt-4">
               <Button
                 variant="outline"
@@ -122,7 +162,7 @@ export function EditUserDialog({
                 Cancel
               </Button>
               <Button type="submit">
-                Save Changes
+                Save Profile Changes
               </Button>
             </DialogFooter>
           </form>
