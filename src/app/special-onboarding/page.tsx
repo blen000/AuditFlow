@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { UserPlus, Mail, ShieldCheck, UserCheck, Star } from 'lucide-react';
+import { UserPlus, Mail, ShieldCheck, UserCheck, Star, Lock } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -30,6 +30,7 @@ import { initialRoles } from '@/lib/mock-data';
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name is required.'),
   email: z.string().email('Invalid email address.'),
+  password: z.string().min(6, 'Password must be at least 6 characters.'),
   role: z.string().min(1, 'Executive role is required.'),
   status: z.string().min(1, 'Status is required.'),
 });
@@ -43,6 +44,7 @@ export default function SpecialOnboardingPage() {
     defaultValues: {
       fullName: '',
       email: '',
+      password: '',
       role: '',
       status: 'Active',
     },
@@ -84,34 +86,53 @@ export default function SpecialOnboardingPage() {
             <CardContent className="pt-8">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <UserCheck className="h-4 w-4 text-muted-foreground" />
-                          Full Name
-                        </FormLabel>
-                        <FormControl>
-                          <Input placeholder="Full Legal Name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="fullName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <UserCheck className="h-4 w-4 text-muted-foreground" />
+                            Full Name
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder="Full Legal Name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            Official Email Address
+                          </FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="executive.name@bank.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}
-                    name="email"
+                    name="password"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          Official Email Address
+                          <Lock className="h-4 w-4 text-muted-foreground" />
+                          Secure Login Password
                         </FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="executive.name@bank.com" {...field} />
+                          <Input type="password" placeholder="Assign a secure password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

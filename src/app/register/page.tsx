@@ -5,7 +5,6 @@ import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -13,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { UserPlus, Mail, ShieldCheck, UserCheck } from 'lucide-react';
+import { UserPlus, Mail, ShieldCheck, UserCheck, Lock } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -31,6 +30,7 @@ import { initialRoles } from '@/lib/mock-data';
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name is required.'),
   email: z.string().email('Invalid email address.'),
+  password: z.string().min(6, 'Password must be at least 6 characters.'),
   role: z.string().min(1, 'Role is required.'),
   status: z.string().min(1, 'Status is required.'),
 });
@@ -44,6 +44,7 @@ export default function UserRegistrationPage() {
     defaultValues: {
       fullName: '',
       email: '',
+      password: '',
       role: '',
       status: 'Active',
     },
@@ -81,34 +82,53 @@ export default function UserRegistrationPage() {
             <CardContent className="pt-8">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <UserCheck className="h-4 w-4 text-muted-foreground" />
-                          Full Name
-                        </FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., John Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="fullName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <UserCheck className="h-4 w-4 text-muted-foreground" />
+                            Full Name
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            Email Address
+                          </FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="john.doe@bank.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}
-                    name="email"
+                    name="password"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          Email Address
+                          <Lock className="h-4 w-4 text-muted-foreground" />
+                          Login Password
                         </FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="john.doe@bank.com" {...field} />
+                          <Input type="password" placeholder="Create a secure password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
