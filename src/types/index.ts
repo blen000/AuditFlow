@@ -178,6 +178,8 @@ export type User = {
   role: UserRole;
   status: UserStatus;
   dateJoined: string;
+  branch?: string;
+  district?: string;
 };
 
 export type Permission = 'audit_read' | 'audit_write' | 'reports_read' | 'settings_manage';

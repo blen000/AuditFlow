@@ -91,10 +91,10 @@ export const initialSpecialAudits: SpecialAudit[] = [
 ];
 
 export const initialUsers: User[] = [
-  { id: 'USR-1', fullName: 'Admin User', email: 'admin@auditflow.com', role: 'Admin', status: 'Active', dateJoined: '2024-01-01' },
-  { id: 'USR-2', fullName: 'Abebe Shirega', email: 'abebe@bank.com', role: 'Auditor', status: 'Active', dateJoined: '2024-02-15' },
-  { id: 'USR-3', fullName: 'Branch Manager', email: 'manager@mainstreet.com', role: 'Auditee', status: 'Active', dateJoined: '2024-03-10' },
-  { id: 'USR-4', fullName: 'InActive Auditor', email: 'inactive@bank.com', role: 'Auditor', status: 'Inactive', dateJoined: '2024-01-20' },
+  { id: 'USR-1', fullName: 'Admin User', email: 'admin@auditflow.com', role: 'Admin', status: 'Active', dateJoined: '2024-01-01', branch: 'Head Office', district: 'HQ' },
+  { id: 'USR-2', fullName: 'Abebe Shirega', email: 'abebe@bank.com', role: 'Auditor', status: 'Active', dateJoined: '2024-02-15', branch: 'Internal Audit Dept', district: 'HQ' },
+  { id: 'USR-3', fullName: 'Branch Manager', email: 'manager@mainstreet.com', role: 'Auditee', status: 'Active', dateJoined: '2024-03-10', branch: 'Main Street Branch', district: 'Northern District' },
+  { id: 'USR-4', fullName: 'InActive Auditor', email: 'inactive@bank.com', role: 'Auditor', status: 'Inactive', dateJoined: '2024-01-20', branch: 'Park Avenue Branch', district: 'Southern District' },
 ];
 
 export const initialRoles: Role[] = [

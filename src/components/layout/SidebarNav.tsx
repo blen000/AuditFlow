@@ -17,13 +17,21 @@ import {
   ShieldCheck,
   UserPlus,
   MessageSquare,
-  Star
+  Star,
+  UserCircle,
+  LogOut
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // In a real app, clear tokens/session here
+    router.push('/login');
+  };
   
   return (
     <SidebarMenu>
@@ -153,7 +161,18 @@ export function SidebarNav() {
       </SidebarGroup>
 
       <SidebarGroup className="mt-auto">
-        <SidebarGroupLabel>System</SidebarGroupLabel>
+        <SidebarGroupLabel>Account</SidebarGroupLabel>
+        <SidebarMenuItem>
+          <Link href="/profile">
+            <SidebarMenuButton
+              isActive={pathname === '/profile'}
+              tooltip="My Profile"
+            >
+              <UserCircle />
+              <span>My Profile</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
         <SidebarMenuItem>
           <Link href="/settings">
             <SidebarMenuButton
@@ -164,6 +183,16 @@ export function SidebarNav() {
               <span>Settings</span>
             </SidebarMenuButton>
           </Link>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            onClick={handleLogout}
+            tooltip="Logout"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <LogOut />
+            <span>Logout</span>
+          </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarGroup>
     </SidebarMenu>
