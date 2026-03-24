@@ -43,9 +43,6 @@ export default function RootLayout({
     }
   }, [pathname, router]);
 
-  // Prevent flash of protected content
-  if (isAuthenticated === null) return null;
-
   const isLoginPage = pathname === '/login';
   const showShell = isAuthenticated && !isLoginPage;
 
@@ -69,28 +66,34 @@ export default function RootLayout({
         className={cn('font-body antialiased', 'min-h-screen bg-background')}
         suppressHydrationWarning
       >
-        <SidebarProvider>
-          {showShell && (
-            <Sidebar>
-              <SidebarHeader>
-                <Button variant="ghost" className="h-fit w-full justify-start p-0 hover:bg-transparent">
-                  <Link href="/" className="flex items-center gap-3 p-2 group">
-                    <ShieldCheck className="h-7 w-7 text-accent transition-colors group-hover:text-accent/80" />
-                    <span className="text-2xl font-bold tracking-tight text-accent transition-colors group-hover:text-accent/80">
-                      Nib Audit
-                    </span>
-                  </Link>
-                </Button>
-              </SidebarHeader>
-              <SidebarContent>
-                <SidebarNav />
-              </SidebarContent>
-            </Sidebar>
-          )}
-          <SidebarInset className={cn(!showShell && "m-0 ml-0 p-0 shadow-none border-none bg-transparent")}>
-            {children}
-          </SidebarInset>
-        </SidebarProvider>
+        {isAuthenticated !== null ? (
+          <SidebarProvider>
+            {showShell && (
+              <Sidebar>
+                <SidebarHeader>
+                  <Button variant="ghost" className="h-fit w-full justify-start p-0 hover:bg-transparent">
+                    <Link href="/" className="flex items-center gap-3 p-2 group">
+                      <ShieldCheck className="h-7 w-7 text-accent transition-colors group-hover:text-accent/80" />
+                      <span className="text-2xl font-bold tracking-tight text-accent transition-colors group-hover:text-accent/80">
+                        Nib Audit
+                      </span>
+                    </Link>
+                  </Button>
+                </SidebarHeader>
+                <SidebarContent>
+                  <SidebarNav />
+                </SidebarContent>
+              </Sidebar>
+            )}
+            <SidebarInset className={cn(!showShell && "m-0 ml-0 p-0 shadow-none border-none bg-transparent")}>
+              {children}
+            </SidebarInset>
+          </SidebarProvider>
+        ) : (
+          <div className="min-h-screen bg-background flex items-center justify-center">
+            {/* Loading state or empty to prevent flash */}
+          </div>
+        )}
         <Toaster />
       </body>
     </html>
