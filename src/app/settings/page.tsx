@@ -7,9 +7,6 @@ import {
   Building, 
   MapPin, 
   Briefcase, 
-  UserRound, 
-  UserCog, 
-  ShieldCheck, 
   ShieldAlert, 
   Tags,
   ArrowRight
@@ -37,27 +34,6 @@ const settingsModules = [
     icon: Briefcase,
     href: '/departments',
     buttonText: 'Go to Departments'
-  },
-  {
-    title: 'Chief Office Management',
-    description: 'Register and manage organizational Chief positions and executive oversight parameters.',
-    icon: UserRound,
-    href: '/chiefs',
-    buttonText: 'Go to Chiefs'
-  },
-  {
-    title: 'CEO Office Registration',
-    description: 'Manage high-level executive offices and leadership positions within the organizational hierarchy.',
-    icon: UserCog,
-    href: '/ceos',
-    buttonText: 'Go to CEOs'
-  },
-  {
-    title: 'Board & Committee Setup',
-    description: 'Configure Board of Directors and specialized Audit Committees for finalization oversight.',
-    icon: ShieldCheck,
-    href: '/boards',
-    buttonText: 'Go to Boards'
   },
   {
     title: 'Risk Level Configuration',
