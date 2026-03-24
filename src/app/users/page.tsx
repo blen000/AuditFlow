@@ -16,7 +16,8 @@ import {
   Mail, 
   Calendar,
   FilterX,
-  UserCog
+  UserCog,
+  Pencil
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -29,11 +30,16 @@ import { initialUsers } from '@/lib/mock-data';
 import type { User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { EditUserDialog } from '@/components/audit/EditUserDialog';
 
 export default function UserManagementPage() {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Edit State
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => 
@@ -59,6 +65,24 @@ export default function UserManagementPage() {
       title: "Status Updated",
       description: "User status has been toggled successfully.",
     });
+  };
+
+  const handleEditClick = (user: User) => {
+    setEditingUser(user);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateUser = (updatedData: Partial<User>) => {
+    if (editingUser) {
+      setUsers(prev => prev.map(u => 
+        u.id === editingUser.id ? { ...u, ...updatedData } : u
+      ));
+      toast({
+        title: "Profile Updated",
+        description: `${updatedData.fullName}'s information has been modified.`,
+      });
+    }
+    setEditingUser(null);
   };
 
   return (
@@ -158,6 +182,9 @@ export default function UserManagementPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem onClick={() => handleEditClick(user)}>
+                                <Pencil className="mr-2 h-4 w-4" /> Edit Profile
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => toggleStatus(user.id)}>
                                 {user.status === 'Active' ? 'Deactivate Account' : 'Activate Account'}
                               </DropdownMenuItem>
@@ -183,6 +210,13 @@ export default function UserManagementPage() {
           </Card>
         </div>
       </main>
+
+      <EditUserDialog 
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        user={editingUser}
+        onSubmit={handleUpdateUser}
+      />
     </div>
   );
 }
