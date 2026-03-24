@@ -122,6 +122,7 @@ export const initialFindings: AuditFinding[] = [
     recommendation: 'Update password policy to require characters, numbers, and symbols.',
     status: 'Open',
     auditeeAgreement: 'Pending',
+    followUpStatus: 'Pending',
     involvedCases: [],
     involvedAmounts: [],
     progressUpdates: [],
@@ -148,6 +149,7 @@ export const initialFindings: AuditFinding[] = [
     recommendation: 'Reinforce dual control training and audit vault logs weekly.',
     status: 'In Progress',
     auditeeAgreement: 'Agreed',
+    followUpStatus: 'Action Plan',
     mitigationDueDate: addDays(new Date(), 30),
     involvedCases: [
       { id: 'C-01', ownerName: 'Vault A', status: 'Open' }
@@ -179,6 +181,7 @@ export const initialFindings: AuditFinding[] = [
     recommendation: 'Freeze accounts until documentation is provided.',
     status: 'Awaiting Response',
     auditeeAgreement: 'Declined',
+    followUpStatus: 'Refereed',
     auditeeResponse: 'Documentation was scanned but not linked in the system.',
     involvedCases: [],
     involvedAmounts: [
@@ -206,6 +209,7 @@ export const initialFindings: AuditFinding[] = [
     recommendation: 'Enforce strict documentation requirements for all expense claims.',
     status: 'Open',
     auditeeAgreement: 'Partially Agreed',
+    followUpStatus: 'Partially Rectified',
     auditeeResponse: 'Boarding passes are being collected from the travel agency.',
     mitigationDueDate: addDays(new Date(), 14),
     involvedCases: [],
@@ -232,6 +236,7 @@ export const initialFindings: AuditFinding[] = [
     recommendation: 'Complete asset tagging for all equipment over $500.',
     status: 'Open',
     auditeeAgreement: 'Agreed',
+    followUpStatus: 'Rectified',
     teamLeader: 'Ze',
     teamMembers: ['Abebe Shirega'],
     assignedDate: subDays(new Date(), 2),
