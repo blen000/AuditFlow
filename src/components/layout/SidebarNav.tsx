@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -29,8 +30,11 @@ export function SidebarNav() {
   const router = useRouter();
 
   const handleLogout = () => {
-    // In a real app, clear tokens/session here
-    router.push('/login');
+    // Clear simulation authentication state
+    localStorage.removeItem('isAuthenticated');
+    
+    // Use window.location for a hard reset to ensure all layout states are cleared
+    window.location.href = '/login';
   };
   
   return (

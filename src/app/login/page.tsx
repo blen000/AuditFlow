@@ -1,10 +1,10 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { ShieldCheck, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -41,11 +41,17 @@ export default function LoginPage() {
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
     // Local simulation of login
     console.log('Logging in with:', values.email);
+    
+    // Set authentication flag in localStorage
+    localStorage.setItem('isAuthenticated', 'true');
+    
     toast({
       title: "Welcome back!",
-      description: "Authentication successful. Accessing AuditFlow...",
+      description: "Authentication successful. Accessing Nib Audit...",
     });
-    router.push('/');
+    
+    // Use window.location for a harder refresh to clear layout state if needed
+    window.location.href = '/';
   };
 
   return (
@@ -60,7 +66,7 @@ export default function LoginPage() {
           </div>
         </div>
         <div className="flex flex-col">
-          <span className="text-3xl font-bold text-white tracking-tight leading-none">Nib SmartBranch</span>
+          <span className="text-3xl font-bold text-white tracking-tight leading-none">Nib Audit</span>
           <div className="h-0.5 w-full bg-yellow-500 mt-1 opacity-50" />
         </div>
       </div>
@@ -70,7 +76,7 @@ export default function LoginPage() {
         <CardContent className="p-10 md:p-12">
           <div className="text-center space-y-2 mb-10">
             <h1 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Welcome to</h1>
-            <h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">SmartBranch</h2>
+            <h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Nib Audit</h2>
             <p className="text-sm text-gray-500 mt-4 px-4 leading-relaxed">
               Enter your credentials to access the secure internal audit platform.
             </p>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -36,7 +37,8 @@ export default function ProfilePage() {
   }, []);
 
   const handleLogout = () => {
-    router.push('/login');
+    localStorage.removeItem('isAuthenticated');
+    window.location.href = '/login';
   };
 
   if (!mounted || !currentUser) return null;
