@@ -16,7 +16,8 @@ import {
   Users,
   ShieldCheck,
   UserPlus,
-  MessageSquare
+  MessageSquare,
+  Star
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -109,6 +110,17 @@ export function SidebarNav() {
             >
               <UserPlus />
               <span>Register User</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <Link href="/special-onboarding">
+            <SidebarMenuButton
+              isActive={pathname === '/special-onboarding'}
+              tooltip="Special Onboarding"
+            >
+              <Star className="text-amber-500" />
+              <span>Special Onboarding</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>

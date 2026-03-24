@@ -98,10 +98,12 @@ export const initialUsers: User[] = [
 ];
 
 export const initialRoles: Role[] = [
-  { id: 'ROL-1', name: 'Admin', description: 'Full system access including user and settings management.', permissions: ['audit_read', 'audit_write', 'reports_read', 'settings_manage'] },
-  { id: 'ROL-2', name: 'Auditor', description: 'Can create and manage audit findings and view reports.', permissions: ['audit_read', 'audit_write', 'reports_read'] },
-  { id: 'ROL-3', name: 'Auditee', description: 'Can view findings related to their branch and provide responses.', permissions: ['audit_read'] },
-  { id: 'ROL-4', name: 'Management', description: 'View-only access to all audit reports and high-level dashboards.', permissions: ['audit_read', 'reports_read'] },
+  { id: 'ROL-1', name: 'Admin', description: 'Full system access including user and settings management.', permissions: ['audit_read', 'audit_write', 'reports_read', 'settings_manage'], isSpecial: false },
+  { id: 'ROL-2', name: 'Auditor', description: 'Can create and manage audit findings and view reports.', permissions: ['audit_read', 'audit_write', 'reports_read'], isSpecial: false },
+  { id: 'ROL-3', name: 'Auditee', description: 'Can view findings related to their branch and provide responses.', permissions: ['audit_read'], isSpecial: false },
+  { id: 'ROL-4', name: 'Management', description: 'View-only access to all audit reports and high-level dashboards.', permissions: ['audit_read', 'reports_read'], isSpecial: false },
+  { id: 'ROL-5', name: 'CEO', description: 'Executive level oversight and organizational strategy review.', permissions: ['audit_read', 'reports_read'], isSpecial: true },
+  { id: 'ROL-6', name: 'Chief Auditor', description: 'Top level audit executive with departmental governance responsibilities.', permissions: ['audit_read', 'audit_write', 'reports_read', 'settings_manage'], isSpecial: true },
 ];
 
 export const initialFindings: AuditFinding[] = [

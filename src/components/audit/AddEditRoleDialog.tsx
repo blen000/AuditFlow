@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,6 +28,7 @@ import {
 } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Role, Permission } from '@/types';
+import { ShieldAlert, Star } from 'lucide-react';
 
 const permissionOptions: { value: Permission; label: string; description: string }[] = [
   { value: 'audit_read', label: 'Read Audits', description: 'Can view audit findings and case details.' },
@@ -38,6 +41,7 @@ const formSchema = z.object({
   name: z.string().min(2, 'Role name is required.'),
   description: z.string().min(5, 'Description is required.'),
   permissions: z.array(z.string()).min(1, 'Select at least one permission.'),
+  isSpecial: z.boolean().default(false),
 });
 
 type AddEditRoleDialogProps = {
@@ -59,6 +63,7 @@ export function AddEditRoleDialog({
       name: '',
       description: '',
       permissions: [],
+      isSpecial: false,
     },
   });
 
@@ -69,9 +74,10 @@ export function AddEditRoleDialog({
           name: role.name,
           description: role.description,
           permissions: role.permissions,
+          isSpecial: role.isSpecial || false,
         });
       } else {
-        form.reset({ name: '', description: '', permissions: [] });
+        form.reset({ name: '', description: '', permissions: [], isSpecial: false });
       }
     }
   }, [role, form, open]);
@@ -100,6 +106,32 @@ export function AddEditRoleDialog({
           >
             <ScrollArea className="flex-1">
               <div className="p-6 space-y-6">
+                <div className="flex flex-row items-center justify-between rounded-lg border p-4 bg-amber-50/30 border-amber-100">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base flex items-center gap-2">
+                      <Star className="h-4 w-4 text-amber-600 fill-amber-600" />
+                      Special (Executive) Role
+                    </FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Mark this as an executive role for special onboarding.
+                    </p>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="isSpecial"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
                   name="name"

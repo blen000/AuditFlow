@@ -5,7 +5,6 @@ import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -13,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { UserPlus, Mail, ShieldCheck, UserCheck } from 'lucide-react';
+import { UserPlus, Mail, ShieldCheck, UserCheck, Star } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -31,11 +30,11 @@ import { initialRoles } from '@/lib/mock-data';
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name is required.'),
   email: z.string().email('Invalid email address.'),
-  role: z.string().min(1, 'Role is required.'),
+  role: z.string().min(1, 'Executive role is required.'),
   status: z.string().min(1, 'Status is required.'),
 });
 
-export default function UserRegistrationPage() {
+export default function SpecialOnboardingPage() {
   const router = useRouter();
   const { toast } = useToast();
   
@@ -49,14 +48,14 @@ export default function UserRegistrationPage() {
     },
   });
 
-  // Only show regular roles (isSpecial is false or undefined)
-  const regularRoles = initialRoles.filter(role => !role.isSpecial);
+  // Only show high-level/special roles
+  const specialRoles = initialRoles.filter(role => role.isSpecial === true);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log('Registering user locally:', values);
+    console.log('Registering special user locally:', values);
     toast({
-      title: "Registration Successful",
-      description: `${values.fullName} has been added to the system as ${values.role}.`,
+      title: "Special Registration Successful",
+      description: `Executive account for ${values.fullName} created as ${values.role}.`,
     });
     router.push('/users');
   };
@@ -64,19 +63,23 @@ export default function UserRegistrationPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader 
-        title="User Registration" 
-        description="Onboard new personnel and assign system privileges."
+        title="Special Onboarding" 
+        description="Register high-level organizational leadership and executive roles."
         backHref="/settings"
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-2xl">
-          <Card className="border-t-4 border-t-primary shadow-xl">
+          <Card className="border-t-4 border-t-amber-500 shadow-xl overflow-hidden">
+            <div className="bg-amber-500/10 py-3 px-6 border-b flex items-center gap-2">
+              <Star className="h-4 w-4 text-amber-600 fill-amber-600" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-amber-700">Executive Access Management</span>
+            </div>
             <CardHeader className="text-center pb-8 border-b bg-muted/20">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <UserPlus className="h-6 w-6" />
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+                <ShieldCheck className="h-6 w-6" />
               </div>
-              <CardTitle className="text-2xl font-bold uppercase tracking-tight">Personnel Onboarding</CardTitle>
-              <CardDescription>Establish a new user account with specific organizational roles.</CardDescription>
+              <CardTitle className="text-2xl font-bold uppercase tracking-tight">Executive Onboarding</CardTitle>
+              <CardDescription>Provision accounts for board members, chiefs, and executive leadership.</CardDescription>
             </CardHeader>
             <CardContent className="pt-8">
               <Form {...form}>
@@ -91,7 +94,7 @@ export default function UserRegistrationPage() {
                           Full Name
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., John Doe" {...field} />
+                          <Input placeholder="Full Legal Name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -105,10 +108,10 @@ export default function UserRegistrationPage() {
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
                           <Mail className="h-4 w-4 text-muted-foreground" />
-                          Email Address
+                          Official Email Address
                         </FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="john.doe@bank.com" {...field} />
+                          <Input type="email" placeholder="executive.name@bank.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -122,19 +125,23 @@ export default function UserRegistrationPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="flex items-center gap-2">
-                            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-                            Assigned Role
+                            <Star className="h-4 w-4 text-amber-600" />
+                            Executive Role
                           </FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a role" />
+                              <SelectTrigger className="border-amber-200 focus:ring-amber-500">
+                                <SelectValue placeholder="Select executive role" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {regularRoles.map((role) => (
-                                <SelectItem key={role.id} value={role.name}>{role.name}</SelectItem>
-                              ))}
+                              {specialRoles.length > 0 ? (
+                                specialRoles.map((role) => (
+                                  <SelectItem key={role.id} value={role.name}>{role.name}</SelectItem>
+                                ))
+                              ) : (
+                                <div className="p-2 text-xs text-muted-foreground text-center">No special roles defined. Configure them in Role Management.</div>
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -167,7 +174,7 @@ export default function UserRegistrationPage() {
 
                   <div className="flex justify-end gap-3 pt-6 border-t">
                     <Button type="button" variant="outline" onClick={() => router.push('/settings')}>Cancel</Button>
-                    <Button type="submit" className="px-8">Register User</Button>
+                    <Button type="submit" className="px-8 bg-amber-600 hover:bg-amber-700 text-white">Provision Account</Button>
                   </div>
                 </form>
               </Form>

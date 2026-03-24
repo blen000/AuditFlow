@@ -13,7 +13,8 @@ import {
   CheckCircle, 
   Info,
   Lock,
-  Pencil
+  Pencil,
+  Star
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -102,12 +103,24 @@ export default function RoleManagementPage() {
           <div className="grid grid-cols-1 gap-6">
             {roles.length > 0 ? (
               roles.map((role) => (
-                <Card key={role.id} className="shadow-sm hover:shadow-md transition-shadow">
+                <Card key={role.id} className="shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+                  {role.isSpecial && (
+                    <div className="absolute top-0 right-0 h-16 w-16">
+                      <div className="absolute transform rotate-45 bg-amber-500 text-amber-950 text-[8px] font-bold py-1 px-10 right-[-35px] top-[15px] shadow-sm text-center uppercase tracking-tighter">
+                        Special
+                      </div>
+                    </div>
+                  )}
                   <CardHeader className="flex flex-row items-start justify-between pb-2 bg-muted/10 border-b">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <CardTitle className="text-xl font-bold">{role.name}</CardTitle>
                         {role.name === 'Admin' && <Lock className="h-4 w-4 text-primary opacity-50" />}
+                        {role.isSpecial && (
+                          <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200 gap-1 h-5 py-0">
+                            <Star className="h-2.5 w-2.5 fill-amber-800" /> Executive
+                          </Badge>
+                        )}
                       </div>
                       <CardDescription>{role.description}</CardDescription>
                     </div>
@@ -162,7 +175,7 @@ export default function RoleManagementPage() {
             <div className="flex gap-3">
               <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <p className="text-sm leading-relaxed text-foreground">
-                <strong>Access Control Policy:</strong> System roles define the functional boundaries for users. Changes to a role's permissions will immediately affect all users assigned to that role. Use the <strong>User Management</strong> page to associate these roles with individual personnel.
+                <strong>Access Control Policy:</strong> System roles define the functional boundaries for users. Roles marked as <strong>Special</strong> are exclusive to the <strong>Special Onboarding</strong> flow for high-level executives.
               </p>
             </div>
           </div>
