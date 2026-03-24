@@ -13,7 +13,7 @@ import { AuditFindingCard } from '@/components/audit/AuditFindingCard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Filter, PlusCircle, Search, CalendarIcon, ShieldCheck, Layers, ChevronRight, FileText } from 'lucide-react';
+import { Filter, PlusCircle, Search, ShieldCheck, Layers, ChevronRight, Building2, Briefcase, FilterX } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -23,19 +23,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import type { DateRange } from 'react-day-picker';
-import type { AuditFinding, Branch, RiskLevelData, StatusData, RiskLevel, FindingStatus } from '@/types';
-import { initialBranches, initialFindings, initialRiskLevels, initialStatuses } from '@/lib/mock-data';
+import type { AuditFinding, Branch, RiskLevelData, StatusData, RiskLevel, FindingStatus, Department } from '@/types';
+import { initialBranches, initialFindings, initialRiskLevels, initialStatuses, initialDepartments } from '@/lib/mock-data';
 import { CaseReportDialog } from '@/components/audit/CaseReportDialog';
 
 export default function AuditeeViewPage() {
   const [branches] = useState<Branch[]>(initialBranches);
+  const [departments] = useState<Department[]>(initialDepartments);
   const [findings, setFindings] = useState<AuditFinding[]>(initialFindings);
-  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  
+  // Default both to 'all' to show all findings initially
+  const [selectedBranch, setSelectedBranch] = useState<string>('all');
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   
   const [allRiskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
   const [allStatuses] = useState<StatusData[]>(initialStatuses);
@@ -64,9 +63,21 @@ export default function AuditeeViewPage() {
     }
   };
 
+  const clearGlobalFilters = () => {
+    setSelectedBranch('all');
+    setSelectedDepartment('all');
+    setRiskFilter([]);
+    setStatusFilter([]);
+    setSearchQuery('');
+    setAuditorSearch('');
+  };
+
   const filteredFindings = findings.filter((finding) => {
-    if (!selectedBranch) return false;
-    if (selectedBranch !== 'all' && finding.branchOrDepartment !== selectedBranch) return false;
+    // Branch Filter
+    const branchMatch = selectedBranch === 'all' || finding.branchOrDepartment === selectedBranch;
+    
+    // Department Filter
+    const deptMatch = selectedDepartment === 'all' || finding.branchOrDepartment === selectedDepartment;
 
     const riskMatch = riskFilter.length === 0 || riskFilter.includes(finding.riskLevel);
     const statusMatch = statusFilter.length === 0 || statusFilter.includes(finding.status);
@@ -79,7 +90,7 @@ export default function AuditeeViewPage() {
       finding.teamLeader.toLowerCase().includes(auditorSearch.toLowerCase()) ||
       finding.teamMembers.some(m => m.toLowerCase().includes(auditorSearch.toLowerCase()));
 
-    return riskMatch && statusMatch && searchMatch && auditorMatch;
+    return branchMatch && deptMatch && riskMatch && statusMatch && searchMatch && auditorMatch;
   });
 
   // Grouped Rendering: Case -> Subsection -> Findings
@@ -106,182 +117,199 @@ export default function AuditeeViewPage() {
     return Object.entries(cases).sort((a, b) => a[0].localeCompare(b[0]));
   }, [filteredFindings]);
 
+  const hasActiveFilters = selectedBranch !== 'all' || selectedDepartment !== 'all' || riskFilter.length > 0 || statusFilter.length > 0 || searchQuery !== '' || auditorSearch !== '';
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader
         title="Auditee Mission Control"
-        description="Select your branch to manage hierarchical audit findings."
+        description="Filter by branch or department to manage hierarchical audit findings."
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-8 flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="w-full md:w-80">
-              <label className="mb-1.5 block text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Current Branch/Department
-              </label>
-              <Select onValueChange={setSelectedBranch}>
-                <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Select a branch/department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Branches</SelectItem>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.name}>{branch.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          
+          {/* Top Organization Selectors */}
+          <div className="mb-8 bg-card p-6 rounded-xl border shadow-sm">
+            <div className="flex flex-col md:flex-row items-end gap-6">
+              <div className="w-full md:flex-1 space-y-2">
+                <label className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider ml-1">
+                  <Building2 className="h-3 w-3" /> Filter by Bank Branch
+                </label>
+                <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                  <SelectTrigger className="h-11 bg-background">
+                    <SelectValue placeholder="All Branches" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Branches</SelectItem>
+                    {branches.map((branch) => (
+                      <SelectItem key={branch.id} value={branch.name}>{branch.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="w-full md:flex-1 space-y-2">
+                <label className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider ml-1">
+                  <Briefcase className="h-3 w-3" /> Filter by Department
+                </label>
+                <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                  <SelectTrigger className="h-11 bg-background">
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {hasActiveFilters && (
+                <Button variant="ghost" size="icon" onClick={clearGlobalFilters} className="h-11 w-11 text-muted-foreground shrink-0" title="Reset all filters">
+                  <FilterX className="h-5 w-5" />
+                </Button>
+              )}
             </div>
           </div>
 
-          {selectedBranch ? (
-            <div className="space-y-12">
-              <div className="flex flex-col items-start gap-4 border-t pt-8">
-                <div className="flex w-full flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Mission Oversight</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Hierarchical management for {selectedBranch === 'all' ? 'All Branches' : selectedBranch}.
-                    </p>
-                  </div>
-                  <Button asChild>
-                    <Link href="/findings/new">
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Log Hierarchical Audit
-                    </Link>
-                  </Button>
+          <div className="space-y-12">
+            <div className="flex flex-col items-start gap-4 border-t pt-8">
+              <div className="flex w-full flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight">Mission Oversight</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Hierarchical management for filtered organizational units.
+                  </p>
                 </div>
-
-                <div className="flex w-full flex-col gap-3 rounded-lg border bg-muted/30 p-4 lg:flex-row lg:items-center">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Search Case ID, Parent Summary or Title..."
-                      className="pl-8 bg-background"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <div className="relative flex-1">
-                    <ShieldCheck className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Filter by Team Leader or Member..."
-                      className="pl-8 bg-background"
-                      value={auditorSearch}
-                      onChange={(e) => setAuditorSearch(e.target.value)}
-                    />
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="shrink-0 bg-background">
-                        <Filter className="mr-2 h-4 w-4" />
-                        Filters
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-64">
-                      <DropdownMenuLabel>Risk Severity</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {allRiskLevels.map((level) => (
-                        <DropdownMenuCheckboxItem
-                          key={level.id}
-                          checked={riskFilter.includes(level.name)}
-                          onCheckedChange={() => toggleFilter(riskFilter, setRiskFilter, level.name)}
-                        >
-                          {level.name}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                      <DropdownMenuLabel className="pt-2">Workflow Status</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {allStatuses.map((status) => (
-                        <DropdownMenuCheckboxItem
-                          key={status.id}
-                          checked={statusFilter.includes(status.name)}
-                          onCheckedChange={() => toggleFilter(statusFilter, setStatusFilter, status.name)}
-                        >
-                          {status.name}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                <Button asChild>
+                  <Link href="/findings/new">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Log Hierarchical Audit
+                  </Link>
+                </Button>
               </div>
 
-              {/* Grouped Rendering */}
-              <div className="space-y-16">
-                {hierarchicalData.length > 0 ? (
-                  hierarchicalData.map(([caseNum, caseGroup]) => (
-                    <div key={caseNum} className="space-y-8">
-                      {/* Case Level (L1) */}
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl border border-primary/20">
-                        <div className="flex items-center gap-4">
-                          <Badge className="h-10 w-12 rounded-lg flex items-center justify-center text-xl font-bold bg-primary text-primary-foreground">
-                            {caseNum}
-                          </Badge>
-                          <div className="flex flex-col">
-                            <h3 className="text-2xl font-black tracking-tight text-foreground uppercase">{caseGroup.summary}</h3>
-                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Main Audit Mission #{caseNum}</p>
-                          </div>
-                        </div>
-                        <CaseReportDialog 
-                          caseNum={caseNum} 
-                          caseSummary={caseGroup.summary} 
-                          findings={caseGroup.allFindings} 
-                        />
-                      </div>
-
-                      {/* Subsection Level (L2) */}
-                      <div className="space-y-10 pl-4 border-l-2 border-dashed border-muted ml-6">
-                        {Object.entries(caseGroup.subsections).map(([subId, subGroup]) => (
-                          <div key={subId} className="space-y-4">
-                            <div className="flex items-center gap-3">
-                              <Badge variant="secondary" className="px-2 py-0.5 text-xs font-bold">
-                                {subId === 'default' ? `${caseNum}.X` : subId}
-                              </Badge>
-                              <h4 className="text-lg font-bold text-muted-foreground flex items-center gap-2">
-                                {subGroup.title}
-                                <ChevronRight className="h-4 w-4 opacity-50" />
-                              </h4>
-                            </div>
-                            
-                            {/* Finding/Leaf Level (L3) */}
-                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                              {subGroup.findings.map(finding => (
-                                <AuditFindingCard
-                                  key={finding.id}
-                                  finding={finding}
-                                  onDelete={handleDelete}
-                                  onUpdate={handleUpdate}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-24 text-center">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                      <Search className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-xl font-bold">No missions found</h3>
-                    <p className="text-muted-foreground">Adjust your filters to view hierarchical audit results.</p>
-                  </div>
-                )}
+              <div className="flex w-full flex-col gap-3 rounded-lg border bg-muted/30 p-4 lg:flex-row lg:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search Case ID, Parent Summary or Title..."
+                    className="pl-8 bg-background"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <div className="relative flex-1">
+                  <ShieldCheck className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Filter by Team Leader or Member..."
+                    className="pl-8 bg-background"
+                    value={auditorSearch}
+                    onChange={(e) => setAuditorSearch(e.target.value)}
+                  />
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="shrink-0 bg-background">
+                      <Filter className="mr-2 h-4 w-4" />
+                      Filters
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel>Risk Severity</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {allRiskLevels.map((level) => (
+                      <DropdownMenuCheckboxItem
+                        key={level.id}
+                        checked={riskFilter.includes(level.name)}
+                        onCheckedChange={() => toggleFilter(riskFilter, setRiskFilter, level.name)}
+                      >
+                        {level.name}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                    <DropdownMenuLabel className="pt-2">Workflow Status</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {allStatuses.map((status) => (
+                      <DropdownMenuCheckboxItem
+                        key={status.id}
+                        checked={statusFilter.includes(status.name)}
+                        onCheckedChange={() => toggleFilter(statusFilter, setStatusFilter, status.name)}
+                      >
+                        {status.name}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
-          ) : (
-            <Card className="border-dashed bg-muted/10 py-24">
-              <CardContent className="flex flex-col items-center justify-center text-center">
-                <Layers className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-                <CardTitle className="mb-2">Awaiting Selection</CardTitle>
-                <p className="max-w-xs text-muted-foreground text-sm">
-                  Please select a branch or department from the top selector to view organized audit missions and nested sub-findings.
-                </p>
-              </CardContent>
-            </Card>
-          )}
+
+            {/* Grouped Rendering */}
+            <div className="space-y-16">
+              {hierarchicalData.length > 0 ? (
+                hierarchicalData.map(([caseNum, caseGroup]) => (
+                  <div key={caseNum} className="space-y-8">
+                    {/* Case Level (L1) */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl border border-primary/20">
+                      <div className="flex items-center gap-4">
+                        <Badge className="h-10 w-12 rounded-lg flex items-center justify-center text-xl font-bold bg-primary text-primary-foreground">
+                          {caseNum}
+                        </Badge>
+                        <div className="flex flex-col">
+                          <h3 className="text-2xl font-black tracking-tight text-foreground uppercase">{caseGroup.summary}</h3>
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Main Audit Mission #{caseNum}</p>
+                        </div>
+                      </div>
+                      <CaseReportDialog 
+                        caseNum={caseNum} 
+                        caseSummary={caseGroup.summary} 
+                        findings={caseGroup.allFindings} 
+                      />
+                    </div>
+
+                    {/* Subsection Level (L2) */}
+                    <div className="space-y-10 pl-4 border-l-2 border-dashed border-muted ml-6">
+                      {Object.entries(caseGroup.subsections).map(([subId, subGroup]) => (
+                        <div key={subId} className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="secondary" className="px-2 py-0.5 text-xs font-bold">
+                              {subId === 'default' ? `${caseNum}.X` : subId}
+                            </Badge>
+                            <h4 className="text-lg font-bold text-muted-foreground flex items-center gap-2">
+                              {subGroup.title}
+                              <ChevronRight className="h-4 w-4 opacity-50" />
+                            </h4>
+                          </div>
+                          
+                          {/* Finding/Leaf Level (L3) */}
+                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {subGroup.findings.map(finding => (
+                              <AuditFindingCard
+                                key={finding.id}
+                                finding={finding}
+                                onDelete={handleDelete}
+                                onUpdate={handleUpdate}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-24 text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                    <Search className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-xl font-bold">No missions found</h3>
+                  <p className="text-muted-foreground">Adjust your filters to view hierarchical audit results.</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </main>
     </div>
