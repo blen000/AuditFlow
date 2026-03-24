@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Settings, LogOut, UserCircle } from "lucide-react";
+import { User, LogOut, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -55,12 +55,6 @@ export function UserNav() {
             <DropdownMenuItem className="cursor-pointer">
               <User className="mr-2 h-4 w-4 text-primary" />
               <span>View Profile</span>
-            </DropdownMenuItem>
-          </Link>
-          <Link href="/settings">
-            <DropdownMenuItem className="cursor-pointer">
-              <Settings className="mr-2 h-4 w-4 text-primary" />
-              <span>System Settings</span>
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>

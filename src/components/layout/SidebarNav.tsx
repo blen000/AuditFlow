@@ -124,6 +124,17 @@ export function SidebarNav() {
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
+        <SidebarMenuItem>
+          <Link href="/settings">
+            <SidebarMenuButton
+              isActive={pathname === '/settings'}
+              tooltip="System Settings"
+            >
+              <Settings />
+              <span>System Settings</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
       </SidebarGroup>
 
       <SidebarGroup>
