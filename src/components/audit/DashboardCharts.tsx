@@ -274,7 +274,7 @@ export function DashboardCharts({ findings, specialAudits }: DashboardChartsProp
           <CardDescription>Categorized by mission risk level.</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-          <ChartContainer config={config} className="h-[280px] w-full">
+          <ChartContainer config={config} className="h-[300px] w-full">
             <BarChart data={riskData}>
               <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.3} />
               <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={10} fontVariant="bold" />
@@ -287,10 +287,10 @@ export function DashboardCharts({ findings, specialAudits }: DashboardChartsProp
       </Card>
 
       {/* Special Audit Monetary Analysis */}
-      <Card className="md:col-span-2 shadow-sm border-none bg-card/50">
+      <Card className="shadow-sm border-none bg-card/50">
         <CardHeader className="pb-2 border-b bg-muted/10">
           <CardTitle className="text-lg font-bold uppercase tracking-tight">Special Audit Monetary Reconciliation</CardTitle>
-          <CardDescription>Analysis of involved vs recovered funds across special reports.</CardDescription>
+          <CardDescription>Analysis of involved vs recovered funds.</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <ChartContainer config={config} className="h-[300px] w-full">
