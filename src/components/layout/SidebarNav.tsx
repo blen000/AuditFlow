@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -18,24 +17,13 @@ import {
   ShieldCheck,
   UserPlus,
   MessageSquare,
-  Star,
-  UserCircle,
-  LogOut
+  Star
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 export function SidebarNav() {
   const pathname = usePathname();
-  const router = useRouter();
-
-  const handleLogout = () => {
-    // Clear simulation authentication state
-    localStorage.removeItem('isAuthenticated');
-    
-    // Use window.location for a hard reset to ensure all layout states are cleared
-    window.location.href = '/login';
-  };
   
   return (
     <SidebarMenu>
@@ -161,42 +149,6 @@ export function SidebarNav() {
               <span>Audit Reports Hub</span>
             </SidebarMenuButton>
           </Link>
-        </SidebarMenuItem>
-      </SidebarGroup>
-
-      <SidebarGroup className="mt-auto">
-        <SidebarGroupLabel>Account</SidebarGroupLabel>
-        <SidebarMenuItem>
-          <Link href="/profile">
-            <SidebarMenuButton
-              isActive={pathname === '/profile'}
-              tooltip="My Profile"
-            >
-              <UserCircle />
-              <span>My Profile</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <Link href="/settings">
-            <SidebarMenuButton
-              isActive={pathname.startsWith('/settings')}
-              tooltip="Settings"
-            >
-              <Settings />
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            onClick={handleLogout}
-            tooltip="Logout"
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            <LogOut />
-            <span>Logout</span>
-          </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarGroup>
     </SidebarMenu>
