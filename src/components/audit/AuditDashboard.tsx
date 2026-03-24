@@ -4,6 +4,7 @@ import type { AuditFinding, SpecialAudit, AuditTypeCategory } from '@/types';
 import { initialFindings, initialSpecialAudits, initialBranches } from '@/lib/mock-data';
 import { DashboardStats } from './DashboardStats';
 import { DashboardCharts } from './DashboardCharts';
+import { FindingsFrequencyTable } from './FindingsFrequencyTable';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Filter, Calendar, Building2, Layers, FilterX } from 'lucide-react';
@@ -116,6 +117,9 @@ export default function AuditDashboard() {
 
       {/* 2. Charts Row */}
       <DashboardCharts findings={filteredFindings} specialAudits={specialAudits} />
+
+      {/* 3. Findings Frequency Table */}
+      <FindingsFrequencyTable findings={filteredFindings} />
       
       <div className="rounded-lg border bg-muted/30 p-8 text-center border-dashed border-primary/20">
         <p className="text-muted-foreground text-sm">
