@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -6,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { ShieldCheck, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, Eye, EyeOff, Info } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -19,6 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { initialUsers } from '@/lib/mock-data';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
@@ -39,18 +39,28 @@ export default function LoginPage() {
   });
 
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
-    // Local simulation of login
-    console.log('Logging in with:', values.email);
-    
+    // Check if user exists in our mock data
+    const userExists = initialUsers.find(u => u.email.toLowerCase() === values.email.toLowerCase());
+
+    if (!userExists) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "User not found in system. Try using the demo credentials.",
+      });
+      return;
+    }
+
     // Set authentication flag in localStorage
     localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userEmail', values.email);
     
     toast({
       title: "Welcome back!",
-      description: "Authentication successful. Accessing Nib Audit...",
+      description: `Authentication successful for ${userExists.fullName}.`,
     });
     
-    // Use window.location for a harder refresh to clear layout state if needed
+    // Use window.location for a harder refresh to clear layout state
     window.location.href = '/';
   };
 
@@ -95,7 +105,7 @@ export default function LoginPage() {
                         <div className="relative">
                           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <Input 
-                            placeholder="e.g., user@nibbank.com" 
+                            placeholder="e.g., admin@auditflow.com" 
                             className="h-14 pl-12 rounded-xl bg-gray-50 border-gray-100 focus:ring-[#8b4513] focus:border-[#8b4513]" 
                             {...field} 
                           />
@@ -145,7 +155,16 @@ export default function LoginPage() {
             </form>
           </Form>
 
-          <div className="mt-12 pt-8 border-t border-gray-100 text-center">
+          {/* Demo Credentials Helper */}
+          <div className="mt-8 p-4 rounded-xl bg-muted/30 border border-dashed text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-2 mb-1 font-bold text-primary uppercase tracking-tight">
+              <Info className="h-3 w-3" /> Demo Credentials
+            </div>
+            <p>Admin Email: <span className="font-mono font-bold select-all">admin@auditflow.com</span></p>
+            <p>Demo Password: <span className="font-mono font-bold select-all">password</span></p>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
             <div className="flex items-center justify-center gap-2">
               <ShieldCheck className="h-4 w-4 text-yellow-600" />
               <span className="text-[9px] font-black uppercase tracking-[0.15em] text-gray-400">
