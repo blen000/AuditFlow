@@ -22,6 +22,14 @@ export type CommunicationEntry = {
   meta?: string; // Individuals for verbal, Address for others
 };
 
+export type ForwardingEntry = {
+  id: string;
+  from: string;
+  to: string;
+  date: Date | Timestamp;
+  comments?: string;
+};
+
 export type FollowUpStatus = 'Pending' | 'Partially Rectified' | 'Rectified' | 'Refereed' | 'Action Plan';
 
 export type ProgressUpdate = {
@@ -84,6 +92,9 @@ export type AuditFinding = {
   esc2?: CommunicationEntry[]; // Max 3
   followUpRecommendations?: string;
   isClosed?: boolean;
+  // Forwarding & Collaboration
+  collaboratingWith?: string;
+  forwardingHistory?: ForwardingEntry[];
 };
 
 export type SpecialAuditIndividual = {

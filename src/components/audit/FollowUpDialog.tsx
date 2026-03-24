@@ -23,14 +23,20 @@ import {
   ShieldCheck, 
   CheckCircle2, 
   Plus, 
-  X 
+  X,
+  Share2,
+  History,
+  Info
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import type { AuditFinding, FollowUpStatus, CommunicationEntry } from '@/types';
+import type { AuditFinding, FollowUpStatus, CommunicationEntry, ForwardingEntry } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ForwardCaseDialog } from './ForwardCaseDialog';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 type FollowUpDialogProps = {
   open: boolean;
@@ -47,6 +53,9 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
   const [esc2, setEsc2] = useState<CommunicationEntry[]>(finding.esc2 || []);
   const [recommendations, setRecommendations] = useState(finding.followUpRecommendations || '');
   const [isClosed, setIsClosed] = useState(finding.isClosed || false);
+  const [isForwardDialogOpen, setIsForwardDialogOpen] = useState(false);
+  const [forwardingHistory, setForwardingHistory] = useState<ForwardingEntry[]>(finding.forwardingHistory || []);
+  const [collaboratingWith, setCollaboratingWith] = useState<string | undefined>(finding.collaboratingWith);
 
   useEffect(() => {
     if (open) {
@@ -57,6 +66,8 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
       setEsc2(finding.esc2 || []);
       setRecommendations(finding.followUpRecommendations || '');
       setIsClosed(finding.isClosed || false);
+      setForwardingHistory(finding.forwardingHistory || []);
+      setCollaboratingWith(finding.collaboratingWith);
     }
   }, [open, finding]);
 
@@ -69,8 +80,24 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
       esc2: esc2,
       followUpRecommendations: recommendations,
       isClosed: isClosed,
+      forwardingHistory: forwardingHistory,
+      collaboratingWith: collaboratingWith,
     });
     onOpenChange(false);
+  };
+
+  const handleForwardCase = (target: string, comments: string) => {
+    const newEntry: ForwardingEntry = {
+      id: `FWD-${Date.now()}`,
+      from: finding.branchOrDepartment,
+      to: target,
+      date: new Date(),
+      comments: comments,
+    };
+    
+    setForwardingHistory(prev => [newEntry, ...prev]);
+    setCollaboratingWith(target);
+    setStatus('Refereed');
   };
 
   const updateEntry = (
@@ -180,113 +207,181 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none gap-0">
-        <DialogHeader className="p-6 pb-2 shrink-0 border-b bg-background">
-          <DialogTitle className="text-xl flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-            Audit Follow-up Management
-          </DialogTitle>
-          <DialogDescription>
-            Record communication serials, escalations, and track final closure for Case No: {finding.id}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[700px] h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none gap-0">
+          <DialogHeader className="p-6 pb-2 shrink-0 border-b bg-background">
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              Audit Follow-up Management
+            </DialogTitle>
+            <DialogDescription>
+              Record communication serials, escalations, and track final closure for Case No: {finding.id}
+            </DialogDescription>
+          </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0 bg-background">
-          <div className="px-6 py-6 space-y-8">
-            {/* Status & Closure Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end bg-primary/5 p-4 rounded-xl border border-primary/20">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase text-primary tracking-widest">Follow-up Lifecycle Status</Label>
-                <Select value={status} onValueChange={(v) => setStatus(v as FollowUpStatus)}>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Partially Rectified">Partially Rectified</SelectItem>
-                    <SelectItem value="Rectified">Rectified</SelectItem>
-                    <SelectItem value="Refereed">Refereed</SelectItem>
-                    <SelectItem value="Action Plan">Action Plan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center justify-between gap-4 h-10 px-4 rounded-md bg-background border">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className={cn("h-4 w-4", isClosed ? "text-green-600" : "text-muted-foreground")} />
-                  <Label className="text-sm font-semibold">Audit Closure</Label>
+          <ScrollArea className="flex-1 min-h-0 bg-background">
+            <div className="px-6 py-6 space-y-8">
+              {/* Status & Closure Section */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end bg-primary/5 p-4 rounded-xl border border-primary/20">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[10px] font-bold uppercase text-primary tracking-widest">Follow-up Lifecycle Status</Label>
+                      {status === 'Refereed' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-6 text-[9px] font-black uppercase bg-primary text-primary-foreground hover:bg-primary/90"
+                          onClick={() => setIsForwardDialogOpen(true)}
+                        >
+                          <Share2 className="mr-1 h-3 w-3" />
+                          Forward Case
+                        </Button>
+                      )}
+                    </div>
+                    <Select value={status} onValueChange={(v) => setStatus(v as FollowUpStatus)}>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Pending">Pending</SelectItem>
+                        <SelectItem value="Partially Rectified">Partially Rectified</SelectItem>
+                        <SelectItem value="Rectified">Rectified</SelectItem>
+                        <SelectItem value="Refereed">Refereed</SelectItem>
+                        <SelectItem value="Action Plan">Action Plan</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 h-10 px-4 rounded-md bg-background border">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className={cn("h-4 w-4", isClosed ? "text-green-600" : "text-muted-foreground")} />
+                      <Label className="text-sm font-semibold">Audit Closure</Label>
+                    </div>
+                    <Switch checked={isClosed} onCheckedChange={setIsClosed} />
+                  </div>
                 </div>
-                <Switch checked={isClosed} onCheckedChange={setIsClosed} />
+
+                {collaboratingWith && (
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-100 rounded-lg text-blue-800">
+                    <Info className="h-4 w-4 shrink-0" />
+                    <div className="flex flex-col">
+                      <p className="text-xs font-bold leading-tight uppercase">External Collaboration Active</p>
+                      <p className="text-[11px] opacity-80">This case is currently being handled in collaboration with: <strong>{collaboratingWith}</strong></p>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
 
-            <Tabs defaultValue="comm" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="comm">Communications</TabsTrigger>
-                <TabsTrigger value="esc">Escalations</TabsTrigger>
-                <TabsTrigger value="notes">Final Recs</TabsTrigger>
-              </TabsList>
+              <Tabs defaultValue="comm" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="comm">Communications</TabsTrigger>
+                  <TabsTrigger value="esc">Escalations</TabsTrigger>
+                  <TabsTrigger value="history">Transfer Log</TabsTrigger>
+                  <TabsTrigger value="notes">Final Recs</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="comm" className="space-y-8 pt-4">
-                <CommSection
-                  title="Verbal Communication"
-                  icon={MessageSquare}
-                  entries={verbal}
-                  setter={setVerbal}
-                  metaLabel="Involved Individuals"
-                  metaPlaceholder="Names of staff spoken to..."
-                />
-                <CommSection
-                  title="Written Communication"
-                  icon={MessageSquare}
-                  entries={written}
-                  setter={setWritten}
-                  metaLabel="Address / Reference"
-                  metaPlaceholder="Letter Ref No or Memo Address..."
-                />
-              </TabsContent>
-
-              <TabsContent value="esc" className="space-y-8 pt-4">
-                <CommSection
-                  title="1st Escalation"
-                  icon={AlertTriangle}
-                  entries={esc1}
-                  setter={setEsc1}
-                  metaLabel="Escalated To (Address)"
-                  metaPlaceholder="Supervisor / Dept Head..."
-                />
-                <CommSection
-                  title="2nd Escalation"
-                  icon={AlertTriangle}
-                  entries={esc2}
-                  setter={setEsc2}
-                  metaLabel="Escalated To (Address)"
-                  metaPlaceholder="Executive / Internal Audit HQ..."
-                />
-              </TabsContent>
-
-              <TabsContent value="notes" className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label className="font-bold">Follow up Recommendations</Label>
-                  <Textarea
-                    placeholder="Enter detailed follow-up recommendations and next steps..."
-                    className="min-h-[250px] resize-none"
-                    value={recommendations}
-                    onChange={(e) => setRecommendations(e.target.value)}
+                <TabsContent value="comm" className="space-y-8 pt-4">
+                  <CommSection
+                    title="Verbal Communication"
+                    icon={MessageSquare}
+                    entries={verbal}
+                    setter={setVerbal}
+                    metaLabel="Involved Individuals"
+                    metaPlaceholder="Names of staff spoken to..."
                   />
-                </div>
-              </TabsContent>
-            </Tabs>
-            {/* Added extra padding at the bottom to ensure last items aren't obscured by shadow/footer */}
-            <div className="h-10" />
-          </div>
-        </ScrollArea>
+                  <CommSection
+                    title="Written Communication"
+                    icon={MessageSquare}
+                    entries={written}
+                    setter={setWritten}
+                    metaLabel="Address / Reference"
+                    metaPlaceholder="Letter Ref No or Memo Address..."
+                  />
+                </TabsContent>
 
-        <DialogFooter className="p-6 border-t bg-muted/30 shrink-0">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="button" onClick={handleSave}>Save Follow-up Data</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+                <TabsContent value="esc" className="space-y-8 pt-4">
+                  <CommSection
+                    title="1st Escalation"
+                    icon={AlertTriangle}
+                    entries={esc1}
+                    setter={setEsc1}
+                    metaLabel="Escalated To (Address)"
+                    metaPlaceholder="Supervisor / Dept Head..."
+                  />
+                  <CommSection
+                    title="2nd Escalation"
+                    icon={AlertTriangle}
+                    entries={esc2}
+                    setter={setEsc2}
+                    metaLabel="Escalated To (Address)"
+                    metaPlaceholder="Executive / Internal Audit HQ..."
+                  />
+                </TabsContent>
+
+                <TabsContent value="history" className="space-y-4 pt-4">
+                  <div className="space-y-2 border-b pb-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <History className="h-4 w-4 text-primary" />
+                      <h4 className="text-sm font-bold uppercase tracking-wider">Forwarding & Transfer History</h4>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {forwardingHistory.length > 0 ? (
+                      forwardingHistory.map((entry) => (
+                        <div key={entry.id} className="p-4 rounded-lg border bg-muted/10 space-y-2 relative">
+                          <div className="flex justify-between items-start">
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">Case Forwarded To</span>
+                              <span className="text-sm font-bold text-primary">{entry.to}</span>
+                            </div>
+                            <Badge variant="outline" className="text-[9px] h-5">{format(entry.date as Date, 'MMM d, yyyy')}</Badge>
+                          </div>
+                          {entry.comments && (
+                            <div className="mt-2 text-xs text-muted-foreground leading-relaxed italic border-l-2 pl-3">
+                              "{entry.comments}"
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-12 border-2 border-dashed rounded-xl">
+                        <History className="h-10 w-10 text-muted-foreground opacity-20 mx-auto mb-2" />
+                        <p className="text-xs text-muted-foreground">No forwarding records for this case.</p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="notes" className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label className="font-bold">Follow up Recommendations</Label>
+                    <Textarea
+                      placeholder="Enter detailed follow-up recommendations and next steps..."
+                      className="min-h-[250px] resize-none"
+                      value={recommendations}
+                      onChange={(e) => setRecommendations(e.target.value)}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+              <div className="h-10" />
+            </div>
+          </ScrollArea>
+
+          <DialogFooter className="p-6 border-t bg-muted/30 shrink-0">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" onClick={handleSave}>Save Follow-up Data</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <ForwardCaseDialog 
+        open={isForwardDialogOpen}
+        onOpenChange={setIsForwardDialogOpen}
+        onForward={handleForwardCase}
+        currentOwner={finding.branchOrDepartment}
+      />
+    </>
   );
 }
