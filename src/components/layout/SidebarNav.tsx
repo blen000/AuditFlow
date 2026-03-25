@@ -76,6 +76,18 @@ export function SidebarNav() {
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
+
+        <SidebarMenuItem>
+          <Link href="/reports">
+            <SidebarMenuButton
+              isActive={pathname.startsWith('/reports')}
+              tooltip="Audit Reports"
+            >
+              <FileText />
+              <span>Audit Reports Hub</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
       </SidebarGroup>
 
       <SidebarGroup>
@@ -147,17 +159,6 @@ export function SidebarNav() {
             >
               <MessageSquare />
               <span>Communications</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <Link href="/reports">
-            <SidebarMenuButton
-              isActive={pathname.startsWith('/reports')}
-              tooltip="Audit Reports"
-            >
-              <FileText />
-              <span>Audit Reports Hub</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
