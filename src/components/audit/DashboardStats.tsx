@@ -28,7 +28,9 @@ export function DashboardStats({ findings, specialAudits }: DashboardStatsProps)
   const totalSpecial = specialAudits.length;
   const totalRecovered = specialAudits.reduce((acc, curr) => acc + curr.recovered, 0);
   const totalInvolved = specialAudits.reduce((acc, curr) => acc + curr.amountInvolved, 0);
+  const totalPending = specialAudits.reduce((acc, curr) => acc + curr.pending, 0);
   const recoveryRate = totalInvolved > 0 ? (totalRecovered / totalInvolved) * 100 : 0;
+  const pendingRate = totalInvolved > 0 ? (totalPending / totalInvolved) * 100 : 0;
 
   const stats = [
     {
@@ -60,11 +62,11 @@ export function DashboardStats({ findings, specialAudits }: DashboardStatsProps)
       color: 'text-blue-500',
     },
     {
-      title: 'Monetary Recovery',
-      value: `$${(totalRecovered / 1000).toFixed(1)}k`,
+      title: 'Monetary Pending',
+      value: `$${(totalPending / 1000).toFixed(1)}k`,
       icon: DollarSign,
-      description: `${recoveryRate.toFixed(0)}% Recovery Rate`,
-      color: 'text-green-600',
+      description: `${pendingRate.toFixed(0)}% Outstanding Rate`,
+      color: 'text-destructive',
     },
     {
       title: 'Active Issues',
