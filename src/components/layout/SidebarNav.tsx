@@ -148,21 +148,6 @@ export function SidebarNav() {
           </Link>
         </SidebarMenuItem>
       </SidebarGroup>
-
-      <SidebarGroup>
-        <SidebarGroupLabel>Reporting & Tracking</SidebarGroupLabel>
-        <SidebarMenuItem>
-          <Link href="/communications">
-            <SidebarMenuButton
-              isActive={pathname === '/communications'}
-              tooltip="Audit Communications"
-            >
-              <MessageSquare />
-              <span>Communications</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-      </SidebarGroup>
     </SidebarMenu>
   );
 }
