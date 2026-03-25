@@ -21,7 +21,8 @@ import {
   Clock,
   User,
   Briefcase,
-  Hash
+  Hash,
+  Scale
 } from 'lucide-react';
 import type { SpecialAudit } from '@/types';
 import { Badge } from '@/components/ui/badge';
@@ -41,8 +42,8 @@ export function ViewSpecialAuditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl gap-0">
-        <DialogHeader className="px-8 py-6 border-b shrink-0 bg-primary text-primary-foreground">
+      <DialogContent className="sm:max-w-[800px] h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl gap-0 print:h-auto print:max-h-none print:shadow-none">
+        <DialogHeader className="px-8 py-6 border-b shrink-0 bg-primary text-primary-foreground rounded-t-none">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <DialogTitle className="text-2xl font-black uppercase tracking-tight">
@@ -58,10 +59,10 @@ export function ViewSpecialAuditDialog({
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 bg-background">
-          <div className="p-8 space-y-10">
+        <ScrollArea className="flex-1 bg-background print:overflow-visible">
+          <div className="p-8 space-y-10 print:p-0 print:space-y-8">
             {/* Location & Summary Section */}
-            <section className="space-y-4">
+            <section className="space-y-4 print:break-inside-avoid">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary border-b pb-2 flex items-center gap-2">
                 <MapPin className="h-3.5 w-3.5" /> Placement & Scope
               </h4>
@@ -78,7 +79,7 @@ export function ViewSpecialAuditDialog({
             </section>
 
             {/* Monetary Reconciliation */}
-            <section className="space-y-4">
+            <section className="space-y-4 print:break-inside-avoid">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary border-b pb-2 flex items-center gap-2">
                 <CircleDollarSign className="h-3.5 w-3.5" /> Monetary Reconciliation
               </h4>
@@ -99,7 +100,7 @@ export function ViewSpecialAuditDialog({
             </section>
 
             {/* Involved Individuals */}
-            <section className="space-y-4">
+            <section className="space-y-4 print:break-inside-avoid">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary border-b pb-2 flex items-center gap-2">
                 <UserPlus className="h-3.5 w-3.5" /> Involved Personnel
               </h4>
@@ -129,10 +130,47 @@ export function ViewSpecialAuditDialog({
               </div>
             </section>
 
-            {/* Analysis & Actions */}
-            <section className="space-y-6">
+            {/* Analysis & Recommendations Section */}
+            <section className="space-y-6 print:break-inside-avoid">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary border-b pb-2 flex items-center gap-2">
-                <ShieldAlert className="h-3.5 w-3.5" /> Analysis & Corrective Measures
+                <Scale className="h-3.5 w-3.5" /> Analysis & Recommendations
+              </h4>
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-primary font-bold uppercase text-[10px] tracking-widest">
+                      Cause of Audit
+                    </div>
+                    <p className="text-sm leading-relaxed bg-muted/20 p-4 rounded-lg border italic">
+                      {audit.auditCause || 'Not specified'}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-primary font-bold uppercase text-[10px] tracking-widest">
+                      Effect of Audit
+                    </div>
+                    <p className="text-sm leading-relaxed bg-muted/20 p-4 rounded-lg border italic">
+                      {audit.auditEffect || 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-primary font-bold uppercase text-[10px] tracking-widest">
+                    Proposed Recommendation
+                  </div>
+                  <p className="text-sm font-bold leading-relaxed bg-primary/5 p-4 rounded-lg border border-primary/10">
+                    {audit.recommendation || 'Not specified'}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Analysis & Actions */}
+            <section className="space-y-6 print:break-inside-avoid">
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary border-b pb-2 flex items-center gap-2">
+                <ShieldAlert className="h-3.5 w-3.5" /> Accountability & Corrective Measures
               </h4>
               
               <div className="space-y-6">
@@ -167,7 +205,7 @@ export function ViewSpecialAuditDialog({
           </div>
         </ScrollArea>
 
-        <DialogFooter className="p-6 border-t bg-muted/20 shrink-0">
+        <DialogFooter className="p-6 border-t bg-muted/20 shrink-0 print:hidden">
           <Button type="button" variant="outline" className="font-bold h-10" onClick={() => onOpenChange(false)}>
             Close Report
           </Button>

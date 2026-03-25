@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, UserPlus, FileText, CircleDollarSign, ShieldAlert } from 'lucide-react';
+import { Plus, Trash2, UserPlus, FileText, CircleDollarSign, ShieldAlert, Scale } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { SpecialAudit } from '@/types';
@@ -54,6 +54,9 @@ const formSchema = z.object({
   actionDisciplinary: z.string().min(2, 'Action is required'),
   gapWitnessed: z.string().min(2, 'Gap description is required'),
   correctiveActionTaken: z.string().min(2, 'Corrective action is required'),
+  auditCause: z.string().optional(),
+  auditEffect: z.string().optional(),
+  recommendation: z.string().optional(),
 });
 
 type AddEditSpecialAuditDialogProps = {
@@ -82,6 +85,9 @@ export function AddEditSpecialAuditDialog({
       actionDisciplinary: '',
       gapWitnessed: '',
       correctiveActionTaken: '',
+      auditCause: '',
+      auditEffect: '',
+      recommendation: '',
     },
   });
 
@@ -104,6 +110,9 @@ export function AddEditSpecialAuditDialog({
           actionDisciplinary: audit.actionDisciplinary,
           gapWitnessed: audit.gapWitnessed,
           correctiveActionTaken: audit.correctiveActionTaken,
+          auditCause: audit.auditCause || '',
+          auditEffect: audit.auditEffect || '',
+          recommendation: audit.recommendation || '',
         });
       } else {
         form.reset({
@@ -117,6 +126,9 @@ export function AddEditSpecialAuditDialog({
           actionDisciplinary: '',
           gapWitnessed: '',
           correctiveActionTaken: '',
+          auditCause: '',
+          auditEffect: '',
+          recommendation: '',
         });
       }
     }
@@ -335,10 +347,54 @@ export function AddEditSpecialAuditDialog({
 
                 <Separator />
 
-                {/* Analysis */}
+                {/* Analysis & Recommendations */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-primary font-bold uppercase text-[10px] tracking-widest">
-                    <ShieldAlert className="h-4 w-4" /> Analysis & Actions
+                    <Scale className="h-4 w-4" /> Analysis & Recommendations
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="auditCause"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Cause of Audit</FormLabel>
+                          <FormControl><Textarea placeholder="Explain the root cause..." {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="auditEffect"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Effect of Audit</FormLabel>
+                          <FormControl><Textarea placeholder="Describe the impact..." {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="recommendation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Proposed Recommendation</FormLabel>
+                        <FormControl><Textarea placeholder="Outline necessary actions..." {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Separator />
+
+                {/* Accountability */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-primary font-bold uppercase text-[10px] tracking-widest">
+                    <ShieldAlert className="h-4 w-4" /> Accountability & Actions
                   </div>
                   <FormField
                     control={form.control}

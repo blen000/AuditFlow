@@ -117,6 +117,9 @@ export type SpecialAudit = {
   actionDisciplinary: string;
   gapWitnessed: string;
   correctiveActionTaken: string;
+  auditCause?: string;
+  auditEffect?: string;
+  recommendation?: string;
   dateCreated: Date | string;
 };
 
