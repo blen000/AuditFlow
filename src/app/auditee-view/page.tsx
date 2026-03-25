@@ -13,7 +13,7 @@ import { AuditFindingCard } from '@/components/audit/AuditFindingCard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Filter, PlusCircle, Search, ShieldCheck, Layers, ChevronRight, Building2, Briefcase, FilterX } from 'lucide-react';
+import { Filter, PlusCircle, Search, ShieldCheck, Layers, ChevronRight, ChevronDown, Building2, Briefcase, FilterX } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import type { AuditFinding, Branch, RiskLevelData, StatusData, RiskLevel, FindingStatus, Department } from '@/types';
 import { initialBranches, initialFindings, initialRiskLevels, initialStatuses, initialDepartments } from '@/lib/mock-data';
 import { CaseReportDialog } from '@/components/audit/CaseReportDialog';
+import { cn } from '@/lib/utils';
 
 export default function AuditeeViewPage() {
   const [branches] = useState<Branch[]>(initialBranches);
@@ -42,6 +43,31 @@ export default function AuditeeViewPage() {
   const [statusFilter, setStatusFilter] = useState<FindingStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [auditorSearch, setAuditorSearch] = useState('');
+
+  // Expansion State
+  const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
+  const [expandedSubsections, setExpandedSubsections] = useState<Set<string>>(new Set());
+
+  const toggleCase = (caseNum: string) => {
+    const next = new Set(expandedCases);
+    if (next.has(caseNum)) {
+      next.delete(caseNum);
+    } else {
+      next.add(caseNum);
+    }
+    setExpandedCases(next);
+  };
+
+  const toggleSubsection = (caseNum: string, subId: string) => {
+    const key = `${caseNum}-${subId}`;
+    const next = new Set(expandedSubsections);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    setExpandedSubsections(next);
+  };
 
   const handleDelete = (id: string) => {
     setFindings(prev => prev.filter(f => f.id !== id));
@@ -179,7 +205,7 @@ export default function AuditeeViewPage() {
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight">Mission Oversight</h2>
                   <p className="text-sm text-muted-foreground">
-                    Hierarchical management for filtered organizational units.
+                    Hierarchical management for filtered organizational units. Click headers to expand findings.
                   </p>
                 </div>
                 <Button asChild>
@@ -247,58 +273,76 @@ export default function AuditeeViewPage() {
             </div>
 
             {/* Grouped Rendering */}
-            <div className="space-y-16">
+            <div className="space-y-8">
               {hierarchicalData.length > 0 ? (
-                hierarchicalData.map(([caseNum, caseGroup]) => (
-                  <div key={caseNum} className="space-y-8">
-                    {/* Case Level (L1) */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl border border-primary/20">
-                      <div className="flex items-center gap-4">
-                        <Badge className="h-10 w-12 rounded-lg flex items-center justify-center text-xl font-bold bg-primary text-primary-foreground">
-                          {caseNum}
-                        </Badge>
-                        <div className="flex flex-col">
-                          <h3 className="text-2xl font-black tracking-tight text-foreground uppercase">{caseGroup.summary}</h3>
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Main Audit Mission #{caseNum}</p>
+                hierarchicalData.map(([caseNum, caseGroup]) => {
+                  const isCaseExpanded = expandedCases.has(caseNum);
+                  
+                  return (
+                    <div key={caseNum} className="space-y-4">
+                      {/* Case Level (L1) */}
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl border border-primary/20 hover:bg-primary/10 transition-colors cursor-pointer" onClick={() => toggleCase(caseNum)}>
+                        <div className="flex items-center gap-4">
+                          {isCaseExpanded ? <ChevronDown className="h-5 w-5 text-primary" /> : <ChevronRight className="h-5 w-5 text-primary" />}
+                          <Badge className="h-10 w-12 rounded-lg flex items-center justify-center text-xl font-bold bg-primary text-primary-foreground">
+                            {caseNum}
+                          </Badge>
+                          <div className="flex flex-col">
+                            <h3 className="text-2xl font-black tracking-tight text-foreground uppercase">{caseGroup.summary}</h3>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Main Audit Mission #{caseNum}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                          <CaseReportDialog 
+                            caseNum={caseNum} 
+                            caseSummary={caseGroup.summary} 
+                            findings={caseGroup.allFindings} 
+                          />
                         </div>
                       </div>
-                      <CaseReportDialog 
-                        caseNum={caseNum} 
-                        caseSummary={caseGroup.summary} 
-                        findings={caseGroup.allFindings} 
-                      />
-                    </div>
 
-                    {/* Subsection Level (L2) */}
-                    <div className="space-y-10 pl-4 border-l-2 border-dashed border-muted ml-6">
-                      {Object.entries(caseGroup.subsections).map(([subId, subGroup]) => (
-                        <div key={subId} className="space-y-4">
-                          <div className="flex items-center gap-3">
-                            <Badge variant="secondary" className="px-2 py-0.5 text-xs font-bold">
-                              {subId === 'default' ? `${caseNum}.X` : subId}
-                            </Badge>
-                            <h4 className="text-lg font-bold text-muted-foreground flex items-center gap-2">
-                              {subGroup.title}
-                              <ChevronRight className="h-4 w-4 opacity-50" />
-                            </h4>
-                          </div>
-                          
-                          {/* Finding/Leaf Level (L3) */}
-                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {subGroup.findings.map(finding => (
-                              <AuditFindingCard
-                                key={finding.id}
-                                finding={finding}
-                                onDelete={handleDelete}
-                                onUpdate={handleUpdate}
-                              />
-                            ))}
-                          </div>
+                      {/* Subsection Level (L2) */}
+                      {isCaseExpanded && (
+                        <div className="space-y-6 pl-4 border-l-2 border-dashed border-muted ml-6 animate-in slide-in-from-top-2 duration-200">
+                          {Object.entries(caseGroup.subsections).map(([subId, subGroup]) => {
+                            const isSubExpanded = expandedSubsections.has(`${caseNum}-${subId}`);
+                            
+                            return (
+                              <div key={subId} className="space-y-4">
+                                <div 
+                                  className="flex items-center gap-3 cursor-pointer group hover:opacity-80"
+                                  onClick={() => toggleSubsection(caseNum, subId)}
+                                >
+                                  {isSubExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                                  <Badge variant="secondary" className="px-2 py-0.5 text-xs font-bold">
+                                    {subId === 'default' ? `${caseNum}.X` : subId}
+                                  </Badge>
+                                  <h4 className="text-lg font-bold text-muted-foreground uppercase tracking-tight">
+                                    {subGroup.title}
+                                  </h4>
+                                </div>
+                                
+                                {/* Finding/Leaf Level (L3) */}
+                                {isSubExpanded && (
+                                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pl-7 animate-in fade-in zoom-in-95 duration-200">
+                                    {subGroup.findings.map(finding => (
+                                      <AuditFindingCard
+                                        key={finding.id}
+                                        finding={finding}
+                                        onDelete={handleDelete}
+                                        onUpdate={handleUpdate}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="py-24 text-center">
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
