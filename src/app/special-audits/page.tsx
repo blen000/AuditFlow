@@ -35,13 +35,12 @@ import {
   BadgeInfo, 
   Search, 
   FilterX, 
-  User, 
-  Calendar,
-  Eye,
   History,
+  Eye,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { initialSpecialAudits } from '@/lib/mock-data';
 import type { SpecialAudit } from '@/types';
@@ -49,7 +48,6 @@ import { AddEditSpecialAuditDialog } from '@/components/audit/AddEditSpecialAudi
 import { ViewSpecialAuditDialog } from '@/components/audit/ViewSpecialAuditDialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import { getMonth, getQuarter, getYear, format } from 'date-fns';
 
 type SortConfig = {
@@ -270,7 +268,7 @@ export default function SpecialAuditsPage() {
                   <TableHeader className="bg-muted/50">
                     <TableRow className="hover:bg-transparent">
                       <TableHead 
-                        className="w-[250px] font-bold uppercase text-[10px] tracking-widest py-4 cursor-pointer"
+                        className="w-[300px] font-bold uppercase text-[10px] tracking-widest py-4 cursor-pointer"
                         onClick={() => requestSort('id')}
                       >
                         <div className="flex items-center">
@@ -322,7 +320,7 @@ export default function SpecialAuditsPage() {
                             </div>
                           </TableCell>
                           <TableCell className="align-top py-6">
-                            <div className="space-y-1 text-[11px] bg-muted/10 p-2 rounded-lg border border-dashed">
+                            <div className="space-y-1 text-[11px] bg-muted/10 p-2 rounded-lg border border-dashed min-w-[140px]">
                               <div className="flex justify-between gap-4">
                                 <span className="text-muted-foreground uppercase text-[9px] font-bold">Involved:</span>
                                 <span className="font-black text-foreground">${audit.amountInvolved.toLocaleString()}</span>
