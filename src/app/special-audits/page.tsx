@@ -31,24 +31,21 @@ import {
   MoreHorizontal, 
   Edit, 
   Trash2, 
-  ShieldAlert, 
-  BadgeInfo, 
   Search, 
   FilterX, 
-  History,
   Eye,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Calendar as CalendarIcon
+  History
 } from 'lucide-react';
 import { initialSpecialAudits } from '@/lib/mock-data';
 import type { SpecialAudit } from '@/types';
 import { AddEditSpecialAuditDialog } from '@/components/audit/AddEditSpecialAuditDialog';
 import { ViewSpecialAuditDialog } from '@/components/audit/ViewSpecialAuditDialog';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { getMonth, getQuarter, getYear, format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 type SortConfig = {
   key: 'dateCreated' | 'amountInvolved' | 'id';
@@ -112,30 +109,22 @@ export default function SpecialAuditsPage() {
     let result = audits.filter(audit => {
       const date = new Date(audit.dateCreated);
       
-      // 1. Search Query
       const searchMatch = searchQuery === '' || 
         audit.shortSummary.toLowerCase().includes(searchQuery.toLowerCase()) ||
         audit.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         audit.placementValue.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // 2. Month Filter
       const monthMatch = filterMonth === 'all' || (getMonth(date) + 1).toString() === filterMonth;
-
-      // 3. Quarter Filter
       const quarterMatch = filterQuarter === 'all' || `Q${getQuarter(date)}` === filterQuarter;
-
-      // 4. Year Filter
       const yearMatch = filterYear === 'all' || getYear(date).toString() === filterYear;
 
       return searchMatch && monthMatch && quarterMatch && yearMatch;
     });
 
-    // Sorting
     if (sortConfig.direction) {
       result.sort((a, b) => {
         const valA = a[sortConfig.key];
         const valB = b[sortConfig.key];
-
         if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
         if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
@@ -169,7 +158,7 @@ export default function SpecialAuditsPage() {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader
         title="Special Audit Reports"
-        description="Pertinent findings included in specialized internal audit missions."
+        description="Formal tracking of specialized internal audit missions and monetary reconciliation."
         backHref="/reports"
       >
         <Button onClick={handleAddNew}>
@@ -179,7 +168,7 @@ export default function SpecialAuditsPage() {
       </PageHeader>
       
       <main className="flex-1 p-4 sm:p-6 md:p-8">
-        <div className="mx-auto max-w-7xl space-y-6">
+        <div className="mx-auto max-w-full space-y-6">
           
           {/* Advanced Search & Date Filters */}
           <div className="bg-card p-6 rounded-xl border shadow-sm space-y-6">
@@ -260,162 +249,106 @@ export default function SpecialAuditsPage() {
             </div>
           </div>
 
-          {/* Structured Audit Table */}
-          <Card className="border shadow-lg overflow-hidden border-t-4 border-t-primary">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-muted/50">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead 
-                        className="w-[300px] font-bold uppercase text-[10px] tracking-widest py-4 cursor-pointer"
-                        onClick={() => requestSort('id')}
-                      >
-                        <div className="flex items-center">
-                          Report Summary <SortIcon column="id" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Placement</TableHead>
-                      <TableHead 
-                        className="font-bold uppercase text-[10px] tracking-widest py-4 cursor-pointer"
-                        onClick={() => requestSort('amountInvolved')}
-                      >
-                        <div className="flex items-center">
-                          Monetary Value <SortIcon column="amountInvolved" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Involved Individuals</TableHead>
-                      <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Action & Analysis</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAndSortedAudits.length > 0 ? (
-                      filteredAndSortedAudits.map((audit) => (
-                        <TableRow 
-                          key={audit.id} 
-                          className="hover:bg-muted/20 transition-colors cursor-pointer group border-b"
-                          onClick={() => handleView(audit)}
-                        >
-                          <TableCell className="align-top py-6">
-                            <div className="flex flex-col gap-1.5">
-                              <span className="font-bold text-sm text-foreground group-hover:text-primary transition-colors leading-snug">
-                                {audit.shortSummary}
-                              </span>
-                              <div className="flex items-center gap-3">
-                                <span className="text-[10px] text-muted-foreground uppercase font-mono bg-muted/50 px-1.5 py-0.5 rounded">
-                                  ID: {audit.id}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                  <History className="h-3 w-3" /> 
-                                  {format(new Date(audit.dateCreated), 'MMM d, yyyy')}
-                                </span>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top py-6">
-                            <div className="flex flex-col gap-1">
-                              <Badge variant="secondary" className="w-fit text-[10px] h-5 font-bold uppercase tracking-tight">{audit.placement}</Badge>
-                              <span className="font-semibold text-xs text-muted-foreground">{audit.placementValue}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top py-6">
-                            <div className="space-y-1 text-[11px] bg-muted/10 p-2 rounded-lg border border-dashed min-w-[140px]">
-                              <div className="flex justify-between gap-4">
-                                <span className="text-muted-foreground uppercase text-[9px] font-bold">Involved:</span>
-                                <span className="font-black text-foreground">${audit.amountInvolved.toLocaleString()}</span>
-                              </div>
-                              <div className="flex justify-between gap-4">
-                                <span className="text-muted-foreground uppercase text-[9px] font-bold">Recovered:</span>
-                                <span className="font-black text-green-600">${audit.recovered.toLocaleString()}</span>
-                              </div>
-                              <div className="flex justify-between gap-4 border-t border-muted pt-1 mt-1">
-                                <span className="text-muted-foreground uppercase text-[9px] font-bold">Pending:</span>
-                                <span className="font-black text-destructive">${audit.pending.toLocaleString()}</span>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top py-6">
-                            <div className="space-y-2">
-                              {audit.individuals.map((person, idx) => (
-                                <div 
-                                  key={idx} 
-                                  className="text-xs p-2.5 rounded-lg border bg-background shadow-sm space-y-1"
-                                >
-                                  <div className="flex items-center justify-between font-bold text-foreground">
-                                    <span>{person.name}</span>
-                                    <span className="text-[9px] font-normal text-muted-foreground px-1.5 py-0.5 bg-muted rounded">({person.sex})</span>
-                                  </div>
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-tight leading-none">
-                                    {person.position} • {person.age}y • {person.tenure}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top py-6">
-                            <div className="space-y-4">
-                              <div className="flex gap-2">
-                                <ShieldAlert className="h-4 w-4 text-destructive shrink-0" />
-                                <div className="space-y-0.5">
-                                  <p className="text-[9px] font-black uppercase text-destructive tracking-widest">Disciplinary Action</p>
-                                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{audit.actionDisciplinary}</p>
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <BadgeInfo className="h-4 w-4 text-accent shrink-0" />
-                                <div className="space-y-0.5">
-                                  <p className="text-[9px] font-black uppercase text-accent tracking-widest">Corrective Action</p>
-                                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{audit.correctiveActionTaken}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top py-6" onClick={(e) => e.stopPropagation()}>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted-foreground/10">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-40">
-                                <DropdownMenuItem onClick={() => handleView(audit)}>
-                                  <Eye className="mr-2 h-4 w-4" /> View Report
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEdit(audit)}>
-                                  <Edit className="mr-2 h-4 w-4" /> Edit Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(audit.id)}>
-                                  <Trash2 className="mr-2 h-4 w-4" /> Delete Report
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
-                          <div className="flex flex-col items-center justify-center gap-3">
-                            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                              <Search className="h-6 w-6 opacity-30" />
-                            </div>
-                            <div className="space-y-1">
-                              <p className="font-bold text-foreground">No reports found</p>
-                              <p className="text-sm">Adjust your filters or search terms to find specialized audit records.</p>
-                            </div>
-                            <Button variant="outline" size="sm" onClick={clearFilters} className="mt-2">
-                              Reset all filters
-                            </Button>
+          {/* Formal Structured Audit Table */}
+          <div className="rounded-sm border-2 border-black overflow-hidden shadow-sm bg-white">
+            <Table className="border-collapse">
+              <TableHeader>
+                <TableRow className="bg-muted/80 hover:bg-muted/80 border-b-2 border-black divide-x-2 divide-black">
+                  <TableHead className="w-16 text-center font-black text-black uppercase text-xs">S.No</TableHead>
+                  <TableHead className="min-w-[200px] font-black text-black uppercase text-xs">Concise explanation</TableHead>
+                  <TableHead className="w-32 text-center font-black text-black uppercase text-xs cursor-pointer" onClick={() => requestSort('amountInvolved')}>
+                    <div className="flex items-center justify-center">
+                      Amount incurred <SortIcon column="amountInvolved" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-32 text-center font-black text-black uppercase text-xs">Recovered</TableHead>
+                  <TableHead className="w-32 text-center font-black text-black uppercase text-xs">Pending</TableHead>
+                  <TableHead className="min-w-[180px] font-black text-black uppercase text-xs">Responsible individual</TableHead>
+                  <TableHead className="min-w-[180px] font-black text-black uppercase text-xs">Action taken disciplinary</TableHead>
+                  <TableHead className="min-w-[180px] font-black text-black uppercase text-xs">Gap witnessed</TableHead>
+                  <TableHead className="w-[50px] border-l-2 border-black"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y-2 divide-black">
+                {filteredAndSortedAudits.length > 0 ? (
+                  filteredAndSortedAudits.map((audit, index) => (
+                    <TableRow 
+                      key={audit.id} 
+                      className="hover:bg-muted/30 transition-colors cursor-pointer divide-x-2 divide-black"
+                      onClick={() => handleView(audit)}
+                    >
+                      <TableCell className="text-center font-bold text-black">{index + 1}.</TableCell>
+                      <TableCell className="text-black leading-snug py-4 align-top">
+                        <div className="space-y-1">
+                          <p className="font-bold">{audit.shortSummary}</p>
+                          <div className="flex items-center gap-2 text-[9px] font-black uppercase text-muted-foreground tracking-tighter">
+                            <span>ID: {audit.id}</span>
+                            <span className="flex items-center gap-1"><History className="h-2 w-2" /> {format(new Date(audit.dateCreated), 'dd/MM/yyyy')}</span>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-black align-top py-4">
+                        ${audit.amountInvolved.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-green-700 align-top py-4">
+                        ${audit.recovered.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-destructive align-top py-4">
+                        ${audit.pending.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-black text-xs align-top py-4">
+                        <ul className="list-disc pl-4 space-y-1">
+                          {audit.individuals.map((person, idx) => (
+                            <li key={idx} className="font-medium">
+                              {person.name} <span className="text-[10px] text-muted-foreground">({person.position})</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </TableCell>
+                      <TableCell className="text-black text-xs leading-relaxed align-top py-4">
+                        {audit.actionDisciplinary}
+                      </TableCell>
+                      <TableCell className="text-black text-xs leading-relaxed align-top py-4">
+                        {audit.gapWitnessed}
+                      </TableCell>
+                      <TableCell className="text-center border-l-2 border-black" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem onClick={() => handleView(audit)}>
+                              <Eye className="mr-2 h-4 w-4" /> View Report
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(audit)}>
+                              <Edit className="mr-2 h-4 w-4" /> Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(audit.id)}>
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete Report
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={9} className="h-48 text-center text-muted-foreground bg-muted/5">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Search className="h-10 w-10 opacity-20" />
+                        <p className="font-bold text-black uppercase text-xs">No records found for the selected criteria</p>
+                        <Button variant="outline" size="sm" onClick={clearFilters} className="mt-2 h-8 text-[10px] font-bold uppercase border-black">
+                          Reset Data Filter
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </main>
 
