@@ -40,7 +40,8 @@ import {
   Clock, 
   Hash, 
   Users,
-  Eye
+  Eye,
+  History
 } from 'lucide-react';
 import { initialSpecialAudits } from '@/lib/mock-data';
 import type { SpecialAudit } from '@/types';
@@ -64,6 +65,7 @@ export default function SpecialAuditsPage() {
   const [filterTenure, setFilterTenure] = useState('');
   const [filterAge, setFilterAge] = useState('');
   const [filterSex, setFilterSex] = useState<string>('all');
+  const [filterLifetime, setFilterLifetime] = useState<string>('all');
 
   const handleAddNew = () => {
     setEditingAudit(null);
@@ -94,16 +96,31 @@ export default function SpecialAuditsPage() {
     setFilterTenure('');
     setFilterAge('');
     setFilterSex('all');
+    setFilterLifetime('all');
   };
 
   const filteredAudits = useMemo(() => {
     return audits.filter(audit => {
-      // If no filters are applied, show everything
+      // 1. Date Filter (Lifetime)
+      if (filterLifetime !== 'all') {
+        const createdDate = new Date(audit.dateCreated);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - createdDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (filterLifetime === '30d' && diffDays > 30) return false;
+        if (filterLifetime === '90d' && diffDays > 90) return false;
+        if (filterLifetime === '180d' && diffDays > 180) return false;
+        if (filterLifetime === '1y' && diffDays > 365) return false;
+      }
+
+      // 2. Individual criteria search
+      // If no criteria filters are applied, show everything that passed date filter
       if (!filterName && !filterPosition && !filterTenure && !filterAge && filterSex === 'all') {
         return true;
       }
 
-      // Check if ANY individual in the audit matches the criteria
+      // Check if ANY individual in the audit matches the remaining criteria
       return audit.individuals.some(person => {
         const nameMatch = person.name.toLowerCase().includes(filterName.toLowerCase());
         const positionMatch = person.position.toLowerCase().includes(filterPosition.toLowerCase());
@@ -114,7 +131,7 @@ export default function SpecialAuditsPage() {
         return nameMatch && positionMatch && tenureMatch && ageMatch && sexMatch;
       });
     });
-  }, [audits, filterName, filterPosition, filterTenure, filterAge, filterSex]);
+  }, [audits, filterName, filterPosition, filterTenure, filterAge, filterSex, filterLifetime]);
 
   const handleSubmit = (formData: Omit<SpecialAudit, 'id' | 'dateCreated'>) => {
     if (editingAudit) {
@@ -152,9 +169,9 @@ export default function SpecialAuditsPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold uppercase tracking-widest text-primary flex items-center gap-2">
                 <Search className="h-4 w-4" />
-                Filter by Involved Individuals
+                Filter by Involved Individuals & Period
               </h3>
-              {(filterName || filterPosition || filterTenure || filterAge || filterSex !== 'all') && (
+              {(filterName || filterPosition || filterTenure || filterAge || filterSex !== 'all' || filterLifetime !== 'all') && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs font-semibold text-muted-foreground">
                   <FilterX className="mr-2 h-3 w-3" />
                   Clear Filters
@@ -162,7 +179,7 @@ export default function SpecialAuditsPage() {
               )}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Individual's Name</label>
                 <div className="relative">
@@ -196,7 +213,7 @@ export default function SpecialAuditsPage() {
                   <Input 
                     placeholder="e.g., 5 years" 
                     className="pl-9 h-9 text-sm"
-                    value={filterName}
+                    value={filterTenure}
                     onChange={(e) => setFilterTenure(e.target.value)}
                   />
                 </div>
@@ -226,6 +243,25 @@ export default function SpecialAuditsPage() {
                     <SelectItem value="all">All Genders</SelectItem>
                     <SelectItem value="Male">Male</SelectItem>
                     <SelectItem value="Female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Lifetime</label>
+                <Select value={filterLifetime} onValueChange={setFilterLifetime}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <div className="flex items-center gap-2">
+                      <History className="h-3 w-3 text-muted-foreground" />
+                      <SelectValue placeholder="Select period" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="30d">Last 30 Days</SelectItem>
+                    <SelectItem value="90d">Last 90 Days</SelectItem>
+                    <SelectItem value="180d">Last 6 Months</SelectItem>
+                    <SelectItem value="1y">Last Year</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
