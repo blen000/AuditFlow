@@ -7,11 +7,19 @@ import {
   ClipboardList, 
   FileText,
   ArrowRight,
-  MessageSquare
+  MessageSquare,
+  BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
 
 const reportModules = [
+  {
+    title: 'Findings Frequency Analysis',
+    description: 'Detailed breakdown of irregularities across branches, including case counts and organizational prevalence percentages.',
+    icon: BarChart3,
+    href: '/reports/frequency',
+    buttonText: 'View Frequency Report'
+  },
   {
     title: 'Audit Assignments',
     description: 'Track official roles, team structures, and KPI performance metrics for all active and completed audit cycles.',

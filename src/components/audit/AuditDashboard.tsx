@@ -4,12 +4,11 @@ import type { AuditFinding, SpecialAudit, AuditTypeCategory } from '@/types';
 import { initialFindings, initialSpecialAudits, initialBranches } from '@/lib/mock-data';
 import { DashboardStats } from './DashboardStats';
 import { DashboardCharts } from './DashboardCharts';
-import { FindingsFrequencyTable } from './FindingsFrequencyTable';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Filter, Calendar, Building2, Layers, FilterX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { isWithinInterval, subMonths, startOfDay, endOfDay } from 'date-fns';
+import { isWithinInterval, subMonths } from 'date-fns';
 
 const auditTypes: AuditTypeCategory[] = ['Branch', 'District', 'Division', 'Department', 'Chief', 'CEO', 'Board'];
 
@@ -117,14 +116,11 @@ export default function AuditDashboard() {
 
       {/* 2. Charts Row */}
       <DashboardCharts findings={filteredFindings} specialAudits={specialAudits} />
-
-      {/* 3. Findings Frequency Table */}
-      <FindingsFrequencyTable findings={filteredFindings} />
       
       <div className="rounded-lg border bg-muted/30 p-8 text-center border-dashed border-primary/20">
         <p className="text-muted-foreground text-sm">
-          Detailed case management, individual branch findings, and follow-up tracking are available in the 
-          <a href="/auditee-view" className="ml-1 font-bold text-primary hover:underline">Auditee Mission Control</a>.
+          Detailed case management, individual branch findings, and frequency analysis are available in the 
+          <a href="/reports" className="ml-1 font-bold text-primary hover:underline">Audit Reports Hub</a>.
         </p>
       </div>
     </div>
