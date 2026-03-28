@@ -101,12 +101,11 @@ export default function SpecialAuditsPage() {
 
   const filteredAudits = useMemo(() => {
     return audits.filter(audit => {
-      // 1. Date Filter (Lifetime)
+      // 1. Date Filter (Lifetime) - items created WITHIN the last X days
       if (filterLifetime !== 'all') {
-        const createdDate = new Date(audit.dateCreated);
-        const now = new Date();
-        const diffTime = Math.abs(now.getTime() - createdDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const createdDate = new Date(audit.dateCreated).getTime();
+        const now = new Date().getTime();
+        const diffDays = (now - createdDate) / (1000 * 60 * 60 * 24);
         
         if (filterLifetime === '30d' && diffDays > 30) return false;
         if (filterLifetime === '90d' && diffDays > 90) return false;
@@ -115,12 +114,12 @@ export default function SpecialAuditsPage() {
       }
 
       // 2. Individual criteria search
-      // If no criteria filters are applied, show everything that passed date filter
-      if (!filterName && !filterPosition && !filterTenure && !filterAge && filterSex === 'all') {
-        return true;
-      }
+      // If no criteria filters are applied, show everything that passed the date filter
+      const hasCriteriaFilters = filterName || filterPosition || filterTenure || filterAge || filterSex !== 'all';
+      
+      if (!hasCriteriaFilters) return true;
 
-      // Check if ANY individual in the audit matches the remaining criteria
+      // Check if ANY individual in the audit matches the criteria
       return audit.individuals.some(person => {
         const nameMatch = person.name.toLowerCase().includes(filterName.toLowerCase());
         const positionMatch = person.position.toLowerCase().includes(filterPosition.toLowerCase());
@@ -289,6 +288,10 @@ export default function SpecialAuditsPage() {
                           <div className="flex flex-col gap-1">
                             <span className="font-bold text-sm text-primary">{audit.shortSummary}</span>
                             <span className="text-[10px] text-muted-foreground uppercase font-mono">ID: {audit.id}</span>
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <History className="h-3 w-3" /> 
+                              {new Date(audit.dateCreated).toLocaleDateString()}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
