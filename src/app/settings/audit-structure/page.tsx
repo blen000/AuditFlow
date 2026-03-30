@@ -43,6 +43,20 @@ export default function AuditStructurePage() {
   };
 
   const handleMissionSubmit = (data: Omit<AuditMissionDefinition, 'id'>) => {
+    // Check for duplicate Case Number
+    const isDuplicate = missions.some(m => 
+      m.caseNumber === data.caseNumber && (!editingMission || m.id !== editingMission.id)
+    );
+
+    if (isDuplicate) {
+      toast({
+        variant: "destructive",
+        title: "Registration Error",
+        description: `Case Number ${data.caseNumber} is already assigned to another mission.`,
+      });
+      return;
+    }
+
     if (editingMission) {
       setMissions(prev => prev.map(m => m.id === editingMission.id ? { ...m, ...data } : m));
       toast({ title: 'Mission Updated' });
@@ -51,6 +65,7 @@ export default function AuditStructurePage() {
       setMissions(prev => [...prev, newMission]);
       toast({ title: 'Mission Registered' });
     }
+    setIsMissionDialogOpen(false);
   };
 
   const handleAddSubsection = () => {
@@ -69,6 +84,23 @@ export default function AuditStructurePage() {
   };
 
   const handleSubsectionSubmit = (data: Omit<AuditSubsectionDefinition, 'id'>) => {
+    // Check for duplicate subsection number within the SAME parent mission
+    const isDuplicate = subsections.some(s => 
+      s.missionId === data.missionId && 
+      s.number === data.number && 
+      (!editingSubsection || s.id !== editingSubsection.id)
+    );
+
+    if (isDuplicate) {
+      const parent = missions.find(m => m.id === data.missionId);
+      toast({
+        variant: "destructive",
+        title: "Registration Error",
+        description: `Subsection No. ${data.number} is already registered under ${parent?.title || 'this mission'}.`,
+      });
+      return;
+    }
+
     if (editingSubsection) {
       setSubsections(prev => prev.map(s => s.id === editingSubsection.id ? { ...s, ...data } : s));
       toast({ title: 'Subsection Updated' });
@@ -77,6 +109,7 @@ export default function AuditStructurePage() {
       setSubsections(prev => [...prev, newSub]);
       toast({ title: 'Subsection Registered' });
     }
+    setIsSubsectionDialogOpen(false);
   };
 
   return (
