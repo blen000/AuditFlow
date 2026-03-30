@@ -35,17 +35,16 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import type { Branch, RiskLevelData, Auditor } from '@/types';
+import type { Branch, RiskLevelData, Auditor, AuditMissionDefinition, AuditSubsectionDefinition } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
 import { PlusCircle, Trash2, ShieldCheck, ChevronDown, Layers, FileText, CalendarIcon, Timer, Plus, Info } from 'lucide-react';
-import { useState } from 'react';
-import { initialBranches, initialRiskLevels, initialAuditors } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
+import { initialBranches, initialRiskLevels, initialAuditors, initialAuditMissions, initialAuditSubsections } from '@/lib/mock-data';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
 
@@ -71,9 +70,8 @@ const leafDetailSchema = z.object({
 const subSubsectionSchema = leafDetailSchema;
 
 const subsectionSchema = z.object({
-  title: z.string().min(2, 'Subsection title is required.'),
+  title: z.string().min(1, 'Please select a predefined subsection title.'),
   subSubsections: z.array(subSubsectionSchema).optional(),
-  // Details are only required if no sub-subsections exist
   details: z.string().optional(),
   riskLevel: z.string().optional(),
   branchOrDepartment: z.string().optional(),
@@ -92,8 +90,7 @@ const subsectionSchema = z.object({
 });
 
 const formSchema = z.object({
-  caseNumber: z.string().min(1, 'Case number is required.'),
-  summary: z.string().min(5, 'Summary finding is required.'),
+  missionId: z.string().min(1, 'Please select a predefined mission.'),
   subsections: z.array(subsectionSchema).min(1, 'At least one subsection is required.'),
 });
 
@@ -104,12 +101,13 @@ export function CreateFindingForm() {
   const [branches] = useState<Branch[]>(initialBranches);
   const [riskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
   const [auditors] = useState<Auditor[]>(initialAuditors);
+  const [missions] = useState<AuditMissionDefinition[]>(initialAuditMissions);
+  const [allSubsections] = useState<AuditSubsectionDefinition[]>(initialAuditSubsections);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      caseNumber: '',
-      summary: '',
+      missionId: '',
       subsections: [{
         title: '',
         details: '',
@@ -127,6 +125,10 @@ export function CreateFindingForm() {
     },
   });
 
+  const selectedMissionId = form.watch('missionId');
+  const availableSubsections = allSubsections.filter(s => s.missionId === selectedMissionId);
+  const selectedMission = missions.find(m => m.id === selectedMissionId);
+
   const { fields: subsectionFields, append: appendSubsection, remove: removeSubsection } = useFieldArray({
     control: form.control,
     name: 'subsections',
@@ -141,47 +143,48 @@ export function CreateFindingForm() {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader
         title="Hierarchical Audit Log"
-        description="Establish nested audit findings with three-level grouping."
+        description="Select predefined mission levels and document findings."
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-5xl">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               
-              {/* Level 1: Main Case */}
+              {/* Level 1: Main Mission Selection */}
               <Card className="border-t-4 border-t-primary shadow-md">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Layers className="h-5 w-5 text-primary" />
                     Main Audit Mission (Level 1)
                   </CardTitle>
-                  <CardDescription>The root identity for this comprehensive audit mission.</CardDescription>
+                  <CardDescription>Select from predefined missions managed in System Settings.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                    <FormField
-                      control={form.control}
-                      name="caseNumber"
-                      render={({ field }) => (
-                        <FormItem className="md:col-span-1">
-                          <FormLabel>Case Number</FormLabel>
-                          <FormControl><Input placeholder="e.g., 1" {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="summary"
-                      render={({ field }) => (
-                        <FormItem className="md:col-span-3">
-                          <FormLabel>Main Mission Summary</FormLabel>
-                          <FormControl><Input placeholder="Objective of the overall audit..." {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="missionId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Predefined Mission Summary</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="h-12 bg-muted/20">
+                              <SelectValue placeholder="Choose a Mission..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {missions.map(m => (
+                              <SelectItem key={m.id} value={m.id}>
+                                Case {m.caseNumber}: {m.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>The Mission Title and Case Number are predefined in settings.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </Card>
 
@@ -196,6 +199,7 @@ export function CreateFindingForm() {
                     type="button" 
                     variant="outline" 
                     size="sm" 
+                    disabled={!selectedMissionId}
                     onClick={() => appendSubsection({
                       title: '',
                       details: '',
@@ -216,25 +220,34 @@ export function CreateFindingForm() {
                   </Button>
                 </div>
 
-                <div className="space-y-6">
-                  {subsectionFields.map((subsectionField, subIndex) => (
-                    <SubsectionCard
-                      key={subsectionField.id}
-                      subIndex={subIndex}
-                      control={form.control}
-                      form={form}
-                      removeSubsection={removeSubsection}
-                      branches={branches}
-                      riskLevels={riskLevels}
-                      auditors={auditors}
-                    />
-                  ))}
-                </div>
+                {!selectedMissionId ? (
+                  <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
+                    <Info className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
+                    <p className="text-muted-foreground font-medium">Please select a Main Mission first.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {subsectionFields.map((subsectionField, subIndex) => (
+                      <SubsectionCard
+                        key={subsectionField.id}
+                        subIndex={subIndex}
+                        control={form.control}
+                        form={form}
+                        removeSubsection={removeSubsection}
+                        branches={branches}
+                        riskLevels={riskLevels}
+                        auditors={auditors}
+                        availableSubsections={availableSubsections}
+                        missionCaseNumber={selectedMission?.caseNumber || '?'}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-6 border-t">
                 <Button type="button" variant="outline" onClick={() => router.push('/')}>Cancel</Button>
-                <Button type="submit" size="lg">Submit Hierarchical Audit</Button>
+                <Button type="submit" size="lg" disabled={!selectedMissionId}>Submit Hierarchical Audit</Button>
               </div>
             </form>
           </Form>
@@ -251,7 +264,9 @@ function SubsectionCard({
   removeSubsection, 
   branches, 
   riskLevels, 
-  auditors 
+  auditors,
+  availableSubsections,
+  missionCaseNumber
 }: { 
   subIndex: number; 
   control: Control<FormValues>;
@@ -260,6 +275,8 @@ function SubsectionCard({
   branches: Branch[];
   riskLevels: RiskLevelData[];
   auditors: Auditor[];
+  availableSubsections: AuditSubsectionDefinition[];
+  missionCaseNumber: string;
 }) {
   const { fields: subSubsectionFields, append: appendSubSubsection, remove: removeSubSubsection } = useFieldArray({
     control,
@@ -267,7 +284,6 @@ function SubsectionCard({
   });
 
   const hasSubSubsections = subSubsectionFields.length > 0;
-  const caseNo = form.watch('caseNumber') || '?';
   const subTitle = form.watch(`subsections.${subIndex}.title`);
 
   return (
@@ -276,20 +292,25 @@ function SubsectionCard({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Badge variant="outline" className="h-7 w-12 flex justify-center font-mono text-lg font-bold">
-              {caseNo}.{subIndex + 1}
+              {missionCaseNumber}.{subIndex + 1}
             </Badge>
             <FormField
               control={control}
               name={`subsections.${subIndex}.title`}
               render={({ field }) => (
                 <FormItem className="space-y-0">
-                  <FormControl>
-                    <Input 
-                      placeholder="Subsection Title (Level 2)" 
-                      className="h-9 font-bold bg-transparent border-dashed focus:border-solid w-[300px]" 
-                      {...field} 
-                    />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="h-9 font-bold bg-white border-dashed focus:border-solid w-[300px]">
+                        <SelectValue placeholder="Select Predefined Subsection..." />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {availableSubsections.map(s => (
+                        <SelectItem key={s.id} value={s.title}>{s.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage className="text-[10px]" />
                 </FormItem>
               )}
@@ -328,7 +349,6 @@ function SubsectionCard({
       
       <CardContent className="p-0">
         {!hasSubSubsections ? (
-          /* Case B: Subsection holds the detailed information */
           <div className="p-6 space-y-6">
             <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted/20 p-2 rounded w-fit">
               <Info className="h-3 w-3" /> Leaf Node: Detailed Information (Level 2)
@@ -342,7 +362,6 @@ function SubsectionCard({
             />
           </div>
         ) : (
-          /* Case A: Subsection is promoted to Head Section, children hold details */
           <div className="bg-muted/10">
             <div className="p-4 border-b flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-widest">
               <Layers className="h-3 w-3" /> Head Section: Managing Sub-subsections (Level 3)
@@ -353,7 +372,7 @@ function SubsectionCard({
                    <div className="p-3 bg-muted/20 border-b flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="h-5 w-8 flex justify-center text-[10px] font-bold">
-                        {caseNo}.{subIndex + 1}.{subSubIndex + 1}
+                        {missionCaseNumber}.{subIndex + 1}.{subSubIndex + 1}
                       </Badge>
                       <FormField
                         control={control}

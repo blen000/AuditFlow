@@ -11,7 +11,9 @@ import type {
   Board, 
   SpecialAudit,
   User,
-  Role
+  Role,
+  AuditMissionDefinition,
+  AuditSubsectionDefinition
 } from '@/types';
 import { subDays, addDays } from 'date-fns';
 
@@ -69,6 +71,23 @@ export const initialAuditors: Auditor[] = [
   { id: 'AUD-1', fullName: 'Abebe Shirega', email: 'abebe@bank.com', phone: '+251911000001' },
   { id: 'AUD-2', fullName: 'Fikre Tollossa', email: 'fikre@bank.com', phone: '+251911000002' },
   { id: 'AUD-3', fullName: 'Ze', email: 'ze@bank.com', phone: '+251911000003' },
+];
+
+// Predefined Audit Structure
+export const initialAuditMissions: AuditMissionDefinition[] = [
+  { id: 'MISS-1', caseNumber: '1', title: 'Cash & Vault Management' },
+  { id: 'MISS-2', caseNumber: '2', title: 'IT Systems & Cyber Security' },
+  { id: 'MISS-3', caseNumber: '3', title: 'Operational Compliance' },
+  { id: 'MISS-4', caseNumber: '4', title: 'Human Resources & Payroll' },
+];
+
+export const initialAuditSubsections: AuditSubsectionDefinition[] = [
+  { id: 'SUB-1', missionId: 'MISS-1', title: 'Dual Control Protocols' },
+  { id: 'SUB-2', missionId: 'MISS-1', title: 'Vault Access Logs' },
+  { id: 'SUB-3', missionId: 'MISS-2', title: 'Password Complexity' },
+  { id: 'SUB-4', missionId: 'MISS-2', title: 'Firewall Configuration' },
+  { id: 'SUB-5', missionId: 'MISS-3', title: 'KYC Documentation' },
+  { id: 'SUB-6', missionId: 'MISS-3', title: 'AML Transaction Monitoring' },
 ];
 
 export const initialSpecialAudits: SpecialAudit[] = [

@@ -9,11 +9,19 @@ import {
   Briefcase, 
   ShieldAlert, 
   Tags,
-  ArrowRight
+  ArrowRight,
+  Layers
 } from 'lucide-react';
 import Link from 'next/link';
 
 const settingsModules = [
+  {
+    title: 'Hierarchy & Titles',
+    description: 'Predefine Audit Case Numbers, Main Mission Summaries, and Subsection Titles for hierarchical logging.',
+    icon: Layers,
+    href: '/settings/audit-structure',
+    buttonText: 'Manage Structure'
+  },
   {
     title: 'Branch Registration',
     description: 'Add and manage physical bank branch information. Configure locations and regional mapping.',

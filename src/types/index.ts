@@ -97,6 +97,19 @@ export type AuditFinding = {
   forwardingHistory?: ForwardingEntry[];
 };
 
+// New types for predefined structure
+export type AuditMissionDefinition = {
+  id: string;
+  caseNumber: string;
+  title: string;
+};
+
+export type AuditSubsectionDefinition = {
+  id: string;
+  missionId: string;
+  title: string;
+};
+
 export type SpecialAuditIndividual = {
   name: string;
   position: string;
