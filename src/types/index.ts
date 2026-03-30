@@ -104,6 +104,7 @@ export type AuditMissionDefinition = {
 export type AuditSubsectionDefinition = {
   id: string;
   missionId: string;
+  number: string; // Subsection No., e.g., "1.1"
   title: string;
 };
 

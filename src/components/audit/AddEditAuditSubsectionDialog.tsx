@@ -33,6 +33,7 @@ import type { AuditSubsectionDefinition, AuditMissionDefinition } from '@/types'
 
 const formSchema = z.object({
   missionId: z.string().min(1, 'Please select a parent mission.'),
+  number: z.string().min(1, 'Subsection number is required (e.g., 1.1).'),
   title: z.string().min(3, 'Subsection title must be at least 3 characters.'),
 });
 
@@ -47,15 +48,15 @@ type Props = {
 export function AddEditAuditSubsectionDialog({ open, onOpenChange, onSubmit, subsection, missions }: Props) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { missionId: '', title: '' },
+    defaultValues: { missionId: '', number: '', title: '' },
   });
 
   useEffect(() => {
     if (open) {
       if (subsection) {
-        form.reset({ missionId: subsection.missionId, title: subsection.title });
+        form.reset({ missionId: subsection.missionId, number: subsection.number, title: subsection.title });
       } else {
-        form.reset({ missionId: '', title: '' });
+        form.reset({ missionId: '', number: '', title: '' });
       }
     }
   }, [subsection, form, open]);
@@ -94,6 +95,17 @@ export function AddEditAuditSubsectionDialog({ open, onOpenChange, onSubmit, sub
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Subsection No.</FormLabel>
+                  <FormControl><Input placeholder="e.g., 1.1" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}

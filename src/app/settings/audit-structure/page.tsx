@@ -158,7 +158,8 @@ export default function AuditStructurePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Parent Mission</TableHead>
+                    <TableHead className="w-32">Parent Mission</TableHead>
+                    <TableHead className="w-24">No.</TableHead>
                     <TableHead>Subsection Title</TableHead>
                     <TableHead className="w-32 text-right">Actions</TableHead>
                   </TableRow>
@@ -170,10 +171,11 @@ export default function AuditStructurePage() {
                       return (
                         <TableRow key={s.id}>
                           <TableCell>
-                            <Badge variant="outline" className="font-mono">
-                              Case {parent?.caseNumber || '?'}: {parent?.title || 'Unknown'}
+                            <Badge variant="outline" className="font-mono text-[10px]">
+                              Case {parent?.caseNumber || '?'}
                             </Badge>
                           </TableCell>
+                          <TableCell className="font-bold">{s.number}</TableCell>
                           <TableCell className="font-medium">{s.title}</TableCell>
                           <TableCell className="text-right space-x-2">
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditSubsection(s)}>
@@ -188,7 +190,7 @@ export default function AuditStructurePage() {
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">No subsections defined.</TableCell>
+                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No subsections defined.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>

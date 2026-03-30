@@ -82,12 +82,12 @@ export const initialAuditMissions: AuditMissionDefinition[] = [
 ];
 
 export const initialAuditSubsections: AuditSubsectionDefinition[] = [
-  { id: 'SUB-1', missionId: 'MISS-1', title: 'Dual Control Protocols' },
-  { id: 'SUB-2', missionId: 'MISS-1', title: 'Vault Access Logs' },
-  { id: 'SUB-3', missionId: 'MISS-2', title: 'Password Complexity' },
-  { id: 'SUB-4', missionId: 'MISS-2', title: 'Firewall Configuration' },
-  { id: 'SUB-5', missionId: 'MISS-3', title: 'KYC Documentation' },
-  { id: 'SUB-6', missionId: 'MISS-3', title: 'AML Transaction Monitoring' },
+  { id: 'SUB-1', missionId: 'MISS-1', number: '1.1', title: 'Dual Control Protocols' },
+  { id: 'SUB-2', missionId: 'MISS-1', number: '1.2', title: 'Vault Access Logs' },
+  { id: 'SUB-3', missionId: 'MISS-2', number: '2.1', title: 'Password Complexity' },
+  { id: 'SUB-4', missionId: 'MISS-2', number: '2.2', title: 'Firewall Configuration' },
+  { id: 'SUB-5', missionId: 'MISS-3', number: '3.1', title: 'KYC Documentation' },
+  { id: 'SUB-6', missionId: 'MISS-3', number: '3.2', title: 'AML Transaction Monitoring' },
 ];
 
 export const initialSpecialAudits: SpecialAudit[] = [
@@ -156,9 +156,11 @@ export const initialFindings: AuditFinding[] = [
     tatDays: 15,
   },
   {
-    id: '2.1',
+    id: '2.1.1',
     parentCaseNumber: '2',
     parentSummary: 'Operational Compliance Audit',
+    subsectionId: '2.1',
+    subsectionTitle: 'Vault Controls',
     title: 'Dual Control Violation',
     category: 'Cash',
     details: 'The vault was opened by a single employee on three separate occasions.',
@@ -188,9 +190,11 @@ export const initialFindings: AuditFinding[] = [
     tatDays: 15,
   },
   {
-    id: '3.1',
+    id: '3.1.1',
     parentCaseNumber: '3',
     parentSummary: 'KYC & AML Review',
+    subsectionId: '3.1',
+    subsectionTitle: 'Account Onboarding',
     title: 'Missing KYC Documentation',
     category: 'Accounts',
     details: 'Several high-value accounts were opened without complete KYC documentation.',
@@ -216,9 +220,11 @@ export const initialFindings: AuditFinding[] = [
     tatDays: 15,
   },
   {
-    id: '4.1',
+    id: '4.1.1',
     parentCaseNumber: '4',
     parentSummary: 'Management Oversight Review',
+    subsectionId: '4.1',
+    subsectionTitle: 'Expenses',
     title: 'Executive Travel Expenses',
     category: 'Others',
     details: 'Travel expenses were approved without corresponding boarding passes.',
@@ -243,9 +249,11 @@ export const initialFindings: AuditFinding[] = [
     tatDays: 15,
   },
   {
-    id: '5.1',
+    id: '5.1.1',
     parentCaseNumber: '5',
     parentSummary: 'Fixed Asset Audit',
+    subsectionId: '5.1',
+    subsectionTitle: 'Asset Tracking',
     title: 'Asset Tagging Discrepancy',
     category: 'Fixed Assets',
     details: 'IT equipment in the Southern District office lacks official asset tags.',

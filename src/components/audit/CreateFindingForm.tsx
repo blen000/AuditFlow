@@ -284,14 +284,18 @@ function SubsectionCard({
 
   const hasSubSubsections = subSubsectionFields.length > 0;
   const subTitle = form.watch(`subsections.${subIndex}.title`);
+  
+  // Find official subsection number from selection
+  const selectedSub = availableSubsections.find(s => s.title === subTitle);
+  const officialSubNo = selectedSub?.number || `${missionCaseNumber}.${subIndex + 1}`;
 
   return (
     <Card className="border shadow-sm overflow-hidden bg-card/50">
       <CardHeader className="bg-muted/30 border-b py-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="h-7 w-12 flex justify-center font-mono text-lg font-bold">
-              {missionCaseNumber}.{subIndex + 1}
+            <Badge variant="outline" className="h-7 min-w-12 flex justify-center font-mono text-lg font-bold">
+              {officialSubNo}
             </Badge>
             <FormField
               control={control}
@@ -306,7 +310,9 @@ function SubsectionCard({
                     </FormControl>
                     <SelectContent>
                       {availableSubsections.map(s => (
-                        <SelectItem key={s.id} value={s.title}>{s.title}</SelectItem>
+                        <SelectItem key={s.id} value={s.title}>
+                          {s.number}: {s.title}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -370,8 +376,8 @@ function SubsectionCard({
                 <Card key={subSubField.id} className="border bg-background shadow-sm overflow-hidden">
                    <div className="p-3 bg-muted/20 border-b flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="h-5 w-12 flex justify-center text-[10px] font-bold font-mono">
-                        {missionCaseNumber}.{subIndex + 1}.{subSubIndex + 1}
+                      <Badge variant="secondary" className="h-5 min-w-12 flex justify-center text-[10px] font-bold font-mono">
+                        {officialSubNo}.{subSubIndex + 1}
                       </Badge>
                       <FormField
                         control={control}
