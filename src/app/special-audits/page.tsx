@@ -261,8 +261,8 @@ export default function SpecialAuditsPage() {
                       Amount incurred <SortIcon column="amountInvolved" />
                     </div>
                   </TableHead>
-                  <TableHead className="w-32 text-center font-black text-black uppercase text-xs">Recovered</TableHead>
-                  <TableHead className="w-32 text-center font-black text-black uppercase text-xs">Pending</TableHead>
+                  <TableHead className="w-32 text-center font-black text-black uppercase text-xs">recovered</TableHead>
+                  <TableHead className="w-32 text-center font-black text-black uppercase text-xs">pending</TableHead>
                   <TableHead className="min-w-[180px] font-black text-black uppercase text-xs">Responsible individual</TableHead>
                   <TableHead className="min-w-[180px] font-black text-black uppercase text-xs">Action taken disciplinary</TableHead>
                   <TableHead className="min-w-[180px] font-black text-black uppercase text-xs">Gap witnessed</TableHead>
@@ -288,13 +288,13 @@ export default function SpecialAuditsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-center font-bold text-black align-top py-4">
-                        ${audit.amountInvolved.toLocaleString()}
+                        ETB {audit.amountInvolved.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-center font-bold text-green-700 align-top py-4">
-                        ${audit.recovered.toLocaleString()}
+                        ETB {audit.recovered.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-center font-bold text-destructive align-top py-4">
-                        ${audit.pending.toLocaleString()}
+                        ETB {audit.pending.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-black text-xs align-top py-4">
                         <ul className="list-disc pl-4 space-y-1">

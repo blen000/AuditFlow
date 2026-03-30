@@ -224,10 +224,7 @@ export function AuditFindingCard({
               <div className="flex items-center gap-1.5">
                 <CircleDollarSign className="h-3.5 w-3.5" />
                 <span className="font-semibold text-foreground">
-                  {new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                  }).format(totalAmount)}
+                  ETB {totalAmount.toLocaleString()}
                 </span>
                 <span>involved</span>
               </div>

@@ -106,7 +106,7 @@ export function FindingsFrequencyTable({ findings }: FindingsFrequencyTableProps
                         <TableCell className="text-black leading-snug font-medium pr-4">{row.irregularity}</TableCell>
                         {(group.name === 'Card Banking' || group.name === 'Cash') && (
                           <TableCell className="text-center font-bold text-black">
-                            {row.difference > 0 ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(row.difference) : ''}
+                            {row.difference > 0 ? `ETB ${row.difference.toLocaleString()}` : ''}
                           </TableCell>
                         )}
                         <TableCell className="text-center font-bold text-black">{row.noOfBranches}</TableCell>

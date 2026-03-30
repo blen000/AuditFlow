@@ -1,4 +1,3 @@
-
 'use client';
 
 import { use, useState } from 'react';
@@ -71,10 +70,7 @@ export default function RespondToFindingPage({
                             <li key={index}>
                               {item.name}:{' '}
                               <span className="font-medium text-foreground">
-                                {new Intl.NumberFormat('en-US', {
-                                  style: 'currency',
-                                  currency: 'USD',
-                                }).format(item.amount)}
+                                ETB {item.amount.toLocaleString()}
                               </span>
                             </li>
                           ))}

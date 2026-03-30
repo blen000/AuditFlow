@@ -86,15 +86,15 @@ export function ViewSpecialAuditDialog({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-muted/30 p-4 rounded-xl border">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Involved</p>
-                  <p className="text-2xl font-bold">${audit.amountInvolved.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">ETB {audit.amountInvolved.toLocaleString()}</p>
                 </div>
                 <div className="bg-green-500/5 p-4 rounded-xl border border-green-500/20">
                   <p className="text-[10px] font-bold text-green-600 uppercase">Recovered Amount</p>
-                  <p className="text-2xl font-bold text-green-600">${audit.recovered.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-green-600">ETB {audit.recovered.toLocaleString()}</p>
                 </div>
                 <div className="bg-destructive/5 p-4 rounded-xl border border-destructive/20">
                   <p className="text-[10px] font-bold text-destructive uppercase">Pending Balance</p>
-                  <p className="text-2xl font-bold text-destructive">${audit.pending.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-destructive">ETB {audit.pending.toLocaleString()}</p>
                 </div>
               </div>
             </section>

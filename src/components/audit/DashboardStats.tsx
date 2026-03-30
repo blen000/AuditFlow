@@ -63,7 +63,7 @@ export function DashboardStats({ findings, specialAudits }: DashboardStatsProps)
     },
     {
       title: 'Monetary Pending',
-      value: `$${(totalPending / 1000).toFixed(1)}k`,
+      value: `ETB ${(totalPending / 1000).toFixed(1)}k`,
       icon: DollarSign,
       description: `${pendingRate.toFixed(0)}% Outstanding Rate`,
       color: 'text-destructive',

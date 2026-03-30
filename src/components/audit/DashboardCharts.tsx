@@ -110,9 +110,9 @@ export function DashboardCharts({ findings, specialAudits }: DashboardChartsProp
 
   const config = {
     count: { label: 'Findings', color: 'hsl(var(--primary))' },
-    involved: { label: 'Involved', color: 'hsl(var(--primary))' },
-    recovered: { label: 'Recovered', color: 'hsl(var(--accent))' },
-    pending: { label: 'Pending', color: 'hsl(var(--destructive))' },
+    involved: { label: 'Involved (ETB)', color: 'hsl(var(--primary))' },
+    recovered: { label: 'Recovered (ETB)', color: 'hsl(var(--accent))' },
+    pending: { label: 'Pending (ETB)', color: 'hsl(var(--destructive))' },
   } satisfies ChartConfig;
 
   const handleSliceClick = (data: any) => {
@@ -290,14 +290,14 @@ export function DashboardCharts({ findings, specialAudits }: DashboardChartsProp
       <Card className="shadow-sm border-none bg-card/50">
         <CardHeader className="pb-2 border-b bg-muted/10">
           <CardTitle className="text-lg font-bold uppercase tracking-tight">Special Audit Monetary Reconciliation</CardTitle>
-          <CardDescription>Analysis of involved vs recovered funds.</CardDescription>
+          <CardDescription>Analysis of involved vs recovered funds (ETB).</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <ChartContainer config={config} className="h-[300px] w-full">
             <BarChart data={monetaryData}>
               <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.3} />
               <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={10} fontVariant="mono" />
-              <YAxis fontSize={10} tickFormatter={(value) => `$${value/1000}k`} />
+              <YAxis fontSize={10} tickFormatter={(value) => `ETB ${value/1000}k`} />
               <ChartTooltip content={<ChartTooltipContent />} />
               <ChartLegend content={<ChartLegendContent />} />
               <Bar dataKey="involved" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
