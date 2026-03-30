@@ -1,229 +1,178 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PlusCircle, Layers, Trash2, Edit, ListTree } from 'lucide-react';
-import { initialAuditMissions, initialAuditSubsections } from '@/lib/mock-data';
-import type { AuditMissionDefinition, AuditSubsectionDefinition } from '@/types';
+import { PlusCircle, Layers, Trash2, Edit, ListTree, ChevronRight, FolderPlus } from 'lucide-react';
+import { initialHierarchy } from '@/lib/mock-data';
+import type { AuditHierarchyNode } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { AddEditAuditMissionDialog } from '@/components/audit/AddEditAuditMissionDialog';
-import { AddEditAuditSubsectionDialog } from '@/components/audit/AddEditAuditSubsectionDialog';
+import { AddEditAuditNodeDialog } from '@/components/audit/AddEditAuditNodeDialog';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function AuditStructurePage() {
   const { toast } = useToast();
-  const [missions, setMissions] = useState<AuditMissionDefinition[]>(initialAuditMissions);
-  const [subsections, setSubsections] = useState<AuditSubsectionDefinition[]>(initialAuditSubsections);
+  const [hierarchy, setHierarchy] = useState<AuditHierarchyNode[]>(initialHierarchy);
 
-  // Mission Dialog State
-  const [isMissionDialogOpen, setIsMissionDialogOpen] = useState(false);
-  const [editingMission, setEditingMission] = useState<AuditMissionDefinition | null>(null);
+  // Dialog State
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingNode, setEditingNode] = useState<AuditHierarchyNode | null>(null);
+  const [targetParent, setTargetParent] = useState<AuditHierarchyNode | null>(null);
 
-  // Subsection Dialog State
-  const [isSubsectionDialogOpen, setIsSubsectionDialogOpen] = useState(false);
-  const [editingSubsection, setEditingSubsection] = useState<AuditSubsectionDefinition | null>(null);
-
-  const handleAddMission = () => {
-    setEditingMission(null);
-    setIsMissionDialogOpen(true);
+  const handleAddTopLevel = () => {
+    setEditingNode(null);
+    setTargetParent(null);
+    setIsDialogOpen(true);
   };
 
-  const handleEditMission = (mission: AuditMissionDefinition) => {
-    setEditingMission(mission);
-    setIsMissionDialogOpen(true);
+  const handleAddChild = (parent: AuditHierarchyNode) => {
+    setEditingNode(null);
+    setTargetParent(parent);
+    setIsDialogOpen(true);
   };
 
-  const handleDeleteMission = (id: string) => {
-    setMissions(prev => prev.filter(m => m.id !== id));
-    setSubsections(prev => prev.filter(s => s.missionId !== id));
-    toast({ title: 'Mission Deleted', description: 'The audit mission and its subsections have been removed.' });
+  const handleEdit = (node: AuditHierarchyNode) => {
+    setEditingNode(node);
+    setTargetParent(hierarchy.find(n => n.id === node.parentId) || null);
+    setIsDialogOpen(true);
   };
 
-  const handleMissionSubmit = (data: Omit<AuditMissionDefinition, 'id'>) => {
-    // Check for duplicate Case Number
-    const isDuplicate = missions.some(m => 
-      m.caseNumber === data.caseNumber && (!editingMission || m.id !== editingMission.id)
+  const handleDelete = (id: string) => {
+    // Also need to delete all descendants
+    const getDescendants = (parentId: string): string[] => {
+      const children = hierarchy.filter(n => n.parentId === parentId);
+      return [...children.map(c => c.id), ...children.flatMap(c => getDescendants(c.id))];
+    };
+
+    const idsToDelete = [id, ...getDescendants(id)];
+    setHierarchy(prev => prev.filter(n => !idsToDelete.includes(n.id)));
+    toast({ 
+      title: 'Hierarchy Level Removed', 
+      description: `Removed ${idsToDelete.length} level(s) from the audit structure.` 
+    });
+  };
+
+  const handleSubmit = (data: Omit<AuditHierarchyNode, 'id'>) => {
+    // Check for duplicate number within the same sibling group
+    const isDuplicate = hierarchy.some(n => 
+      n.parentId === data.parentId && 
+      n.number === data.number && 
+      (!editingNode || n.id !== editingNode.id)
     );
 
     if (isDuplicate) {
       toast({
         variant: "destructive",
-        title: "Registration Error",
-        description: `Case Number ${data.caseNumber} is already assigned to another mission.`,
+        title: "Configuration Error",
+        description: `Reference Number ${data.number} is already assigned at this level.`,
       });
       return;
     }
 
-    if (editingMission) {
-      setMissions(prev => prev.map(m => m.id === editingMission.id ? { ...m, ...data } : m));
-      toast({ title: 'Mission Updated' });
+    if (editingNode) {
+      setHierarchy(prev => prev.map(n => n.id === editingNode.id ? { ...n, ...data } : n));
+      toast({ title: 'Hierarchy Updated' });
     } else {
-      const newMission = { ...data, id: `MISS-${Date.now()}` };
-      setMissions(prev => [...prev, newMission]);
-      toast({ title: 'Mission Registered' });
+      const newNode = { ...data, id: `NODE-${Date.now()}` };
+      setHierarchy(prev => [...prev, newNode]);
+      toast({ title: 'New Level Registered' });
     }
-    setIsMissionDialogOpen(false);
+    setIsDialogOpen(false);
   };
 
-  const handleAddSubsection = () => {
-    setEditingSubsection(null);
-    setIsSubsectionDialogOpen(true);
-  };
-
-  const handleEditSubsection = (sub: AuditSubsectionDefinition) => {
-    setEditingSubsection(sub);
-    setIsSubsectionDialogOpen(true);
-  };
-
-  const handleDeleteSubsection = (id: string) => {
-    setSubsections(prev => prev.filter(s => s.id !== id));
-    toast({ title: 'Subsection Deleted' });
-  };
-
-  const handleSubsectionSubmit = (data: Omit<AuditSubsectionDefinition, 'id'>) => {
-    // Check for duplicate subsection number within the SAME parent mission
-    const isDuplicate = subsections.some(s => 
-      s.missionId === data.missionId && 
-      s.number === data.number && 
-      (!editingSubsection || s.id !== editingSubsection.id)
-    );
-
-    if (isDuplicate) {
-      const parent = missions.find(m => m.id === data.missionId);
-      toast({
-        variant: "destructive",
-        title: "Registration Error",
-        description: `Subsection No. ${data.number} is already registered under ${parent?.title || 'this mission'}.`,
-      });
-      return;
-    }
-
-    if (editingSubsection) {
-      setSubsections(prev => prev.map(s => s.id === editingSubsection.id ? { ...s, ...data } : s));
-      toast({ title: 'Subsection Updated' });
-    } else {
-      const newSub = { ...data, id: `SUB-${Date.now()}` };
-      setSubsections(prev => [...prev, newSub]);
-      toast({ title: 'Subsection Registered' });
-    }
-    setIsSubsectionDialogOpen(false);
-  };
+  // Sort hierarchy numerically for display
+  const sortedHierarchy = useMemo(() => {
+    return [...hierarchy].sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+  }, [hierarchy]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader 
-        title="Hierarchy & Titles" 
-        description="Predefine Level 1 Mission Summaries and Level 2 Subsection Titles."
+        title="Audit Hierarchy Management" 
+        description="Define multi-level hierarchical titles and numbering for institutional audit missions."
         backHref="/settings"
-      />
+      >
+        <Button onClick={handleAddTopLevel}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Add Level 1 Mission
+        </Button>
+      </PageHeader>
+      
       <main className="flex-1 p-4 sm:p-6 md:p-8">
-        <div className="mx-auto max-w-6xl space-y-8">
-          
-          {/* Level 1: Missions */}
-          <Card className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/10">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Layers className="h-5 w-5 text-primary" />
-                  Main Audit Missions (Level 1)
-                </CardTitle>
-                <CardDescription>Register Case Numbers and their primary summaries.</CardDescription>
+        <div className="mx-auto max-w-6xl">
+          <Card className="shadow-xl border-none overflow-hidden">
+            <CardHeader className="bg-muted/10 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <ListTree className="h-5 w-5 text-primary" />
+                    Institutional Hierarchy & Taxonomy
+                  </CardTitle>
+                  <CardDescription>Establish standardized mission summaries and functional sub-areas.</CardDescription>
+                </div>
               </div>
-              <Button onClick={handleAddMission} size="sm">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Mission
-              </Button>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead className="w-24">Case No.</TableHead>
-                    <TableHead>Mission Summary / Title</TableHead>
-                    <TableHead className="w-32 text-right">Actions</TableHead>
+                    <TableHead className="w-32 font-bold uppercase text-[10px] tracking-widest">Ref No.</TableHead>
+                    <TableHead className="font-bold uppercase text-[10px] tracking-widest">Title / Descriptor</TableHead>
+                    <TableHead className="w-24 text-center font-bold uppercase text-[10px] tracking-widest">Level</TableHead>
+                    <TableHead className="w-48 text-right font-bold uppercase text-[10px] tracking-widest">Administrative Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {missions.length > 0 ? (
-                    missions.map((m) => (
-                      <TableRow key={m.id}>
-                        <TableCell className="font-bold">{m.caseNumber}</TableCell>
-                        <TableCell>{m.title}</TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditMission(m)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteMission(m.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                  {sortedHierarchy.length > 0 ? (
+                    sortedHierarchy.map((node) => (
+                      <TableRow key={node.id} className={cn("transition-colors", node.level === 1 ? "bg-primary/5" : "hover:bg-muted/30")}>
+                        <TableCell className="font-mono font-black text-primary">
+                          <div className="flex items-center">
+                            {Array.from({ length: node.level - 1 }).map((_, i) => (
+                              <div key={i} className="w-4 border-l h-full" />
+                            ))}
+                            <Badge variant={node.level === 1 ? "default" : "outline"} className="font-mono">
+                              {node.number}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className={cn("text-sm", node.level === 1 ? "font-bold text-lg" : "font-medium")}>
+                            {node.title}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="text-[10px] uppercase">{node.level}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 text-[10px] font-bold uppercase tracking-tighter" 
+                              onClick={() => handleAddChild(node)}
+                            >
+                              <FolderPlus className="mr-1 h-3.5 w-3.5" />
+                              Sub-level
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(node)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(node.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">No missions defined.</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Level 2: Subsections */}
-          <Card className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/10">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <ListTree className="h-5 w-5 text-primary" />
-                  Subsection Titles (Level 2)
-                </CardTitle>
-                <CardDescription>Define functional subsections linked to Level 1 missions.</CardDescription>
-              </div>
-              <Button onClick={handleAddSubsection} size="sm">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Subsection
-              </Button>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-32">Parent Mission</TableHead>
-                    <TableHead className="w-24">No.</TableHead>
-                    <TableHead>Subsection Title</TableHead>
-                    <TableHead className="w-32 text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {subsections.length > 0 ? (
-                    subsections.map((s) => {
-                      const parent = missions.find(m => m.id === s.missionId);
-                      return (
-                        <TableRow key={s.id}>
-                          <TableCell>
-                            <Badge variant="outline" className="font-mono text-[10px]">
-                              Case {parent?.caseNumber || '?'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-bold">{s.number}</TableCell>
-                          <TableCell className="font-medium">{s.title}</TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditSubsection(s)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteSubsection(s.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No subsections defined.</TableCell>
+                      <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic">
+                        No hierarchical structure defined. Start by adding a Level 1 Mission.
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -233,19 +182,12 @@ export default function AuditStructurePage() {
         </div>
       </main>
 
-      <AddEditAuditMissionDialog 
-        open={isMissionDialogOpen} 
-        onOpenChange={setIsMissionDialogOpen}
-        onSubmit={handleMissionSubmit}
-        mission={editingMission}
-      />
-
-      <AddEditAuditSubsectionDialog
-        open={isSubsectionDialogOpen}
-        onOpenChange={setIsSubsectionDialogOpen}
-        onSubmit={handleSubsectionSubmit}
-        subsection={editingSubsection}
-        missions={missions}
+      <AddEditAuditNodeDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen}
+        onSubmit={handleSubmit}
+        node={editingNode}
+        parent={targetParent}
       />
     </div>
   );

@@ -93,18 +93,15 @@ export type AuditFinding = {
   // Forwarding & Collaboration
   collaboratingWith?: string;
   forwardingHistory?: ForwardingEntry[];
+  // Reference to Settings Hierarchy
+  hierarchyNodeId?: string;
 };
 
-export type AuditMissionDefinition = {
+export type AuditHierarchyNode = {
   id: string;
-  caseNumber: string;
-  title: string;
-};
-
-export type AuditSubsectionDefinition = {
-  id: string;
-  missionId: string;
-  number: string; // Subsection No., e.g., "1.1"
+  parentId: string | null;
+  level: number;
+  number: string; // e.g., "1", "1.1", "1.1.1"
   title: string;
 };
 

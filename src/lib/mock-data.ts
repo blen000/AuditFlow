@@ -12,8 +12,7 @@ import type {
   SpecialAudit,
   User,
   Role,
-  AuditMissionDefinition,
-  AuditSubsectionDefinition
+  AuditHierarchyNode
 } from '@/types';
 import { subDays, addDays } from 'date-fns';
 
@@ -73,21 +72,16 @@ export const initialAuditors: Auditor[] = [
   { id: 'AUD-3', fullName: 'Ze', email: 'ze@bank.com', phone: '+251911000003' },
 ];
 
-// Predefined Audit Structure
-export const initialAuditMissions: AuditMissionDefinition[] = [
-  { id: 'MISS-1', caseNumber: '1', title: 'Cash & Vault Management' },
-  { id: 'MISS-2', caseNumber: '2', title: 'IT Systems & Cyber Security' },
-  { id: 'MISS-3', caseNumber: '3', title: 'Operational Compliance' },
-  { id: 'MISS-4', caseNumber: '4', title: 'Human Resources & Payroll' },
-];
-
-export const initialAuditSubsections: AuditSubsectionDefinition[] = [
-  { id: 'SUB-1', missionId: 'MISS-1', number: '1.1', title: 'Dual Control Protocols' },
-  { id: 'SUB-2', missionId: 'MISS-1', number: '1.2', title: 'Vault Access Logs' },
-  { id: 'SUB-3', missionId: 'MISS-2', number: '2.1', title: 'Password Complexity' },
-  { id: 'SUB-4', missionId: 'MISS-2', number: '2.2', title: 'Firewall Configuration' },
-  { id: 'SUB-5', missionId: 'MISS-3', number: '3.1', title: 'KYC Documentation' },
-  { id: 'SUB-6', missionId: 'MISS-3', number: '3.2', title: 'AML Transaction Monitoring' },
+// Recursive Predefined Audit Hierarchy
+export const initialHierarchy: AuditHierarchyNode[] = [
+  { id: 'NODE-1', parentId: null, level: 1, number: '1', title: 'Cash & Vault Management' },
+  { id: 'NODE-1-1', parentId: 'NODE-1', level: 2, number: '1.1', title: 'Dual Control Protocols' },
+  { id: 'NODE-1-1-1', parentId: 'NODE-1-1', level: 3, number: '1.1.1', title: 'Vault Access Logs' },
+  { id: 'NODE-2', parentId: null, level: 1, number: '2', title: 'IT Systems & Cyber Security' },
+  { id: 'NODE-2-1', parentId: 'NODE-2', level: 2, number: '2.1', title: 'Identity & Access Management' },
+  { id: 'NODE-2-1-1', parentId: 'NODE-2-1', level: 3, number: '2.1.1', title: 'Password Complexity' },
+  { id: 'NODE-3', parentId: null, level: 1, number: '3', title: 'Operational Compliance' },
+  { id: 'NODE-3-1', parentId: 'NODE-3', level: 2, number: '3.1', title: 'KYC & AML Controls' },
 ];
 
 export const initialSpecialAudits: SpecialAudit[] = [
@@ -153,120 +147,6 @@ export const initialFindings: AuditFinding[] = [
     teamMembers: ['Fikre Tollossa', 'Ze'],
     assignedDate: subDays(new Date(), 20),
     dateCommunicated: subDays(new Date(), 18),
-    tatDays: 15,
-  },
-  {
-    id: '2.1.1',
-    parentCaseNumber: '2',
-    parentSummary: 'Operational Compliance Audit',
-    subsectionId: '2.1',
-    subsectionTitle: 'Vault Controls',
-    title: 'Dual Control Violation',
-    category: 'Cash',
-    details: 'The vault was opened by a single employee on three separate occasions.',
-    riskLevel: 'High',
-    branchOrDepartment: 'Park Avenue Branch',
-    auditType: 'Branch',
-    recommendation: 'Reinforce dual control training and audit vault logs weekly.',
-    status: 'In Progress',
-    auditeeAgreement: 'Agreed',
-    followUpStatus: 'Action Plan',
-    mitigationDueDate: addDays(new Date(), 30),
-    involvedCases: [
-      { id: 'C-01', ownerName: 'Vault A', status: 'Open' }
-    ],
-    involvedAmounts: [],
-    progressUpdates: [
-      { id: 'P-01', date: subDays(new Date(), 5), details: 'Training session scheduled for staff.' }
-    ],
-    findingAttachments: [],
-    recommendationAttachments: [],
-    auditCause: 'Staff shortage leading to operational shortcuts.',
-    auditEffect: 'High risk of internal fraud or theft.',
-    teamLeader: 'Abebe Shirega',
-    teamMembers: ['Fikre Tollossa'],
-    assignedDate: subDays(new Date(), 10),
-    dateCommunicated: subDays(new Date(), 9),
-    tatDays: 15,
-  },
-  {
-    id: '3.1.1',
-    parentCaseNumber: '3',
-    parentSummary: 'KYC & AML Review',
-    subsectionId: '3.1',
-    subsectionTitle: 'Account Onboarding',
-    title: 'Missing KYC Documentation',
-    category: 'Accounts',
-    details: 'Several high-value accounts were opened without complete KYC documentation.',
-    riskLevel: 'High',
-    branchOrDepartment: 'Main Street Branch',
-    auditType: 'Branch',
-    recommendation: 'Freeze accounts until documentation is provided.',
-    status: 'Awaiting Response',
-    auditeeAgreement: 'Declined',
-    followUpStatus: 'Refereed',
-    auditeeResponse: 'Documentation was scanned but not linked in the system.',
-    involvedCases: [],
-    involvedAmounts: [
-      { name: 'Total Account Value', amount: 250000 }
-    ],
-    progressUpdates: [],
-    findingAttachments: [],
-    recommendationAttachments: [],
-    teamLeader: 'Fikre Tollossa',
-    teamMembers: ['Ze'],
-    assignedDate: subDays(new Date(), 5),
-    dateCommunicated: subDays(new Date(), 4),
-    tatDays: 15,
-  },
-  {
-    id: '4.1.1',
-    parentCaseNumber: '4',
-    parentSummary: 'Management Oversight Review',
-    subsectionId: '4.1',
-    subsectionTitle: 'Expenses',
-    title: 'Executive Travel Expenses',
-    category: 'Others',
-    details: 'Travel expenses were approved without corresponding boarding passes.',
-    riskLevel: 'Medium',
-    branchOrDepartment: 'CEO Office',
-    auditType: 'CEO',
-    recommendation: 'Enforce strict documentation requirements for all expense claims.',
-    status: 'Open',
-    auditeeAgreement: 'Partially Agreed',
-    followUpStatus: 'Partially Rectified',
-    auditeeResponse: 'Boarding passes are being collected from the travel agency.',
-    mitigationDueDate: addDays(new Date(), 14),
-    involvedCases: [],
-    involvedAmounts: [
-      { name: 'Unverified Expenses', amount: 12500 }
-    ],
-    progressUpdates: [],
-    teamLeader: 'Abebe Shirega',
-    teamMembers: ['Fikre Tollossa'],
-    assignedDate: subDays(new Date(), 12),
-    dateCommunicated: subDays(new Date(), 11),
-    tatDays: 15,
-  },
-  {
-    id: '5.1.1',
-    parentCaseNumber: '5',
-    parentSummary: 'Fixed Asset Audit',
-    subsectionId: '5.1',
-    subsectionTitle: 'Asset Tracking',
-    title: 'Asset Tagging Discrepancy',
-    category: 'Fixed Assets',
-    details: 'IT equipment in the Southern District office lacks official asset tags.',
-    riskLevel: 'Low',
-    branchOrDepartment: 'Park Avenue Branch',
-    auditType: 'District',
-    recommendation: 'Complete asset tagging for all equipment over $500.',
-    status: 'Open',
-    auditeeAgreement: 'Agreed',
-    followUpStatus: 'Rectified',
-    teamLeader: 'Ze',
-    teamMembers: ['Abebe Shirega'],
-    assignedDate: subDays(new Date(), 2),
     tatDays: 15,
   }
 ];
