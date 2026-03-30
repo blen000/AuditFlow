@@ -10,7 +10,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AuditFindingCard } from '@/components/audit/AuditFindingCard';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Filter, PlusCircle, Search, ShieldCheck, Layers, ChevronRight, ChevronDown, Building2, Briefcase, FilterX } from 'lucide-react';
@@ -33,7 +32,6 @@ export default function AuditeeViewPage() {
   const [departments] = useState<Department[]>(initialDepartments);
   const [findings, setFindings] = useState<AuditFinding[]>(initialFindings);
   
-  // Default both to 'all' to show all findings initially
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   
@@ -99,12 +97,8 @@ export default function AuditeeViewPage() {
   };
 
   const filteredFindings = findings.filter((finding) => {
-    // Branch Filter
     const branchMatch = selectedBranch === 'all' || finding.branchOrDepartment === selectedBranch;
-    
-    // Department Filter
     const deptMatch = selectedDepartment === 'all' || finding.branchOrDepartment === selectedDepartment;
-
     const riskMatch = riskFilter.length === 0 || riskFilter.includes(finding.riskLevel);
     const statusMatch = statusFilter.length === 0 || statusFilter.includes(finding.status);
     const searchMatch = searchQuery === '' ||
@@ -119,25 +113,30 @@ export default function AuditeeViewPage() {
     return branchMatch && deptMatch && riskMatch && statusMatch && searchMatch && auditorMatch;
   });
 
-  // Grouped Rendering: Case -> Subsection -> Findings
+  // Grouped Rendering: Case (L1) -> Subsection (L2) -> Findings (L3)
   const hierarchicalData = useMemo(() => {
-    const cases: Record<string, { summary: string, allFindings: AuditFinding[], subsections: Record<string, { title: string, findings: AuditFinding[] }> }> = {};
+    const cases: Record<string, { 
+      summary: string, 
+      allFindings: AuditFinding[], 
+      subsections: Record<string, { title: string, findings: AuditFinding[] }> 
+    }> = {};
     
     filteredFindings.forEach(f => {
-      if (!cases[f.parentCaseNumber]) {
-        cases[f.parentCaseNumber] = { summary: f.parentSummary, allFindings: [], subsections: {} };
+      const caseNum = f.parentCaseNumber || '0';
+      if (!cases[caseNum]) {
+        cases[caseNum] = { summary: f.parentSummary, allFindings: [], subsections: {} };
       }
       
-      cases[f.parentCaseNumber].allFindings.push(f);
+      cases[caseNum].allFindings.push(f);
       
       const subKey = f.subsectionId || 'default';
       const subTitle = f.subsectionTitle || 'General Subsection';
       
-      if (!cases[f.parentCaseNumber].subsections[subKey]) {
-        cases[f.parentCaseNumber].subsections[subKey] = { title: subTitle, findings: [] };
+      if (!cases[caseNum].subsections[subKey]) {
+        cases[caseNum].subsections[subKey] = { title: subTitle, findings: [] };
       }
       
-      cases[f.parentCaseNumber].subsections[subKey].findings.push(f);
+      cases[caseNum].subsections[subKey].findings.push(f);
     });
     
     return Object.entries(cases).sort((a, b) => a[0].localeCompare(b[0]));
@@ -154,7 +153,6 @@ export default function AuditeeViewPage() {
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-7xl">
           
-          {/* Top Organization Selectors */}
           <div className="mb-8 bg-card p-6 rounded-xl border shadow-sm">
             <div className="flex flex-col md:flex-row items-end gap-6">
               <div className="w-full md:flex-1 space-y-2">
@@ -221,7 +219,7 @@ export default function AuditeeViewPage() {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Search Case ID, Parent Summary or Title..."
+                    placeholder="Search Reference, Summary or Title..."
                     className="pl-8 bg-background"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -231,7 +229,7 @@ export default function AuditeeViewPage() {
                   <ShieldCheck className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Filter by Team Leader or Member..."
+                    placeholder="Filter by Auditor..."
                     className="pl-8 bg-background"
                     value={auditorSearch}
                     onChange={(e) => setAuditorSearch(e.target.value)}
@@ -272,7 +270,6 @@ export default function AuditeeViewPage() {
               </div>
             </div>
 
-            {/* Grouped Rendering */}
             <div className="space-y-8">
               {hierarchicalData.length > 0 ? (
                 hierarchicalData.map(([caseNum, caseGroup]) => {
@@ -280,16 +277,19 @@ export default function AuditeeViewPage() {
                   
                   return (
                     <div key={caseNum} className="space-y-4">
-                      {/* Case Level (L1) */}
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl border border-primary/20 hover:bg-primary/10 transition-colors cursor-pointer" onClick={() => toggleCase(caseNum)}>
+                      {/* Level 1: Mission */}
+                      <div 
+                        className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl border border-primary/20 hover:bg-primary/10 transition-colors cursor-pointer group" 
+                        onClick={() => toggleCase(caseNum)}
+                      >
                         <div className="flex items-center gap-4">
                           {isCaseExpanded ? <ChevronDown className="h-5 w-5 text-primary" /> : <ChevronRight className="h-5 w-5 text-primary" />}
-                          <Badge className="h-10 w-12 rounded-lg flex items-center justify-center text-xl font-bold bg-primary text-primary-foreground">
+                          <Badge className="h-10 w-14 rounded-lg flex items-center justify-center text-xl font-bold bg-primary text-primary-foreground font-mono">
                             {caseNum}
                           </Badge>
                           <div className="flex flex-col">
                             <h3 className="text-2xl font-black tracking-tight text-foreground uppercase">{caseGroup.summary}</h3>
-                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Main Audit Mission #{caseNum}</p>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Main Audit Mission Case #{caseNum}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
@@ -301,28 +301,28 @@ export default function AuditeeViewPage() {
                         </div>
                       </div>
 
-                      {/* Subsection Level (L2) */}
+                      {/* Level 2: Subsections */}
                       {isCaseExpanded && (
-                        <div className="space-y-6 pl-4 border-l-2 border-dashed border-muted ml-6 animate-in slide-in-from-top-2 duration-200">
+                        <div className="space-y-6 pl-4 border-l-2 border-dashed border-muted ml-7 animate-in slide-in-from-top-2 duration-200">
                           {Object.entries(caseGroup.subsections).map(([subId, subGroup]) => {
                             const isSubExpanded = expandedSubsections.has(`${caseNum}-${subId}`);
                             
                             return (
                               <div key={subId} className="space-y-4">
                                 <div 
-                                  className="flex items-center gap-3 cursor-pointer group hover:opacity-80"
+                                  className="flex items-center gap-3 cursor-pointer group hover:opacity-80 transition-opacity"
                                   onClick={() => toggleSubsection(caseNum, subId)}
                                 >
                                   {isSubExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                                  <Badge variant="secondary" className="px-2 py-0.5 text-xs font-bold">
-                                    {subId === 'default' ? `${caseNum}.X` : subId}
+                                  <Badge variant="secondary" className="px-3 py-0.5 text-xs font-bold font-mono">
+                                    {subId}
                                   </Badge>
                                   <h4 className="text-lg font-bold text-muted-foreground uppercase tracking-tight">
                                     {subGroup.title}
                                   </h4>
                                 </div>
                                 
-                                {/* Finding/Leaf Level (L3) */}
+                                {/* Level 3: Detailed Findings */}
                                 {isSubExpanded && (
                                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pl-7 animate-in fade-in zoom-in-95 duration-200">
                                     {subGroup.findings.map(finding => (

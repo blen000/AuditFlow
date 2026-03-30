@@ -51,17 +51,17 @@ export type InvolvedCase = {
 };
 
 export type AuditFinding = {
-  id: string; // Subsection ID, e.g., "1.1" or "1.1.1"
-  parentCaseNumber: string; // Level 1: Main Audit ID, e.g., "1"
-  parentSummary: string; // Level 1: Summary of the Main Audit mission
-  subsectionId?: string; // Level 2: Subsection ID if this is a sub-subsection, e.g., "1.1"
-  subsectionTitle?: string; // Level 2: Title of the Subsection
-  title: string; // Level 3 (or Level 2 if no Level 3 exists)
+  id: string; // Hierarchical ID, e.g., "1.1.1"
+  parentCaseNumber: string; // Level 1: Mission Case Number, e.g., "1"
+  parentSummary: string; // Level 1: Mission Title
+  subsectionId?: string; // Level 2: e.g., "1.1"
+  subsectionTitle?: string; // Level 2: Title
+  title: string; // Level 3 title
   category: FindingCategory;
   details: string;
   riskLevel: RiskLevel;
   branchOrDepartment: string;
-  auditType: AuditTypeCategory; // Category from hierarchical levels
+  auditType: AuditTypeCategory;
   recommendation: string;
   status: FindingStatus;
   revalidationDate?: Date | Timestamp;
@@ -72,9 +72,7 @@ export type AuditFinding = {
   findingAttachments?: string[];
   recommendationAttachments?: string[];
   auditCause?: string;
-  auditCauseAttachments?: string[];
   auditEffect?: string;
-  auditEffectAttachments?: string[];
   involvedAmounts?: InvolvedAmount[];
   involvedCases?: InvolvedCase[];
   teamLeader: string;
@@ -86,10 +84,10 @@ export type AuditFinding = {
   tatDays?: number;
   // Follow-up Fields
   followUpStatus?: FollowUpStatus;
-  verbalComm?: CommunicationEntry[]; // Max 3
-  writtenComm?: CommunicationEntry[]; // Max 3
-  esc1?: CommunicationEntry[]; // Max 3
-  esc2?: CommunicationEntry[]; // Max 3
+  verbalComm?: CommunicationEntry[];
+  writtenComm?: CommunicationEntry[];
+  esc1?: CommunicationEntry[];
+  esc2?: CommunicationEntry[];
   followUpRecommendations?: string;
   isClosed?: boolean;
   // Forwarding & Collaboration
@@ -97,7 +95,6 @@ export type AuditFinding = {
   forwardingHistory?: ForwardingEntry[];
 };
 
-// New types for predefined structure
 export type AuditMissionDefinition = {
   id: string;
   caseNumber: string;
@@ -122,7 +119,7 @@ export type SpecialAudit = {
   id: string;
   shortSummary: string;
   placement: 'Branch' | 'District' | 'H.O';
-  placementValue: string; // Name of the branch, district or HO
+  placementValue: string;
   amountInvolved: number;
   recovered: number;
   pending: number;
@@ -195,7 +192,6 @@ export type Notification = {
 };
 
 export type UserRole = 'Admin' | 'Auditor' | 'Auditee' | 'Management' | string;
-
 export type UserStatus = 'Active' | 'Inactive';
 
 export type User = {

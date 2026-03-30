@@ -40,7 +40,7 @@ import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
 import { PlusCircle, Trash2, ShieldCheck, ChevronDown, Layers, FileText, CalendarIcon, Timer, Plus, Info } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { initialBranches, initialRiskLevels, initialAuditors, initialAuditMissions, initialAuditSubsections } from '@/lib/mock-data';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
@@ -67,11 +67,10 @@ const leafDetailSchema = z.object({
   tatDays: z.coerce.number().min(1).optional(),
 });
 
-const subSubsectionSchema = leafDetailSchema;
-
 const subsectionSchema = z.object({
   title: z.string().min(1, 'Please select a predefined subsection title.'),
-  subSubsections: z.array(subSubsectionSchema).optional(),
+  subSubsections: z.array(leafDetailSchema).optional(),
+  // Fields if user enters data directly into L2 (acting as a leaf)
   details: z.string().optional(),
   riskLevel: z.string().optional(),
   branchOrDepartment: z.string().optional(),
@@ -337,7 +336,7 @@ function SubsectionCard({
                   tatDays: 15,
                 })}
               >
-                <Plus className="mr-1 h-3 w-3" /> Add Sub-subsection
+                <Plus className="mr-1 h-3 w-3" /> Add Finding (L3)
               </Button>
             )}
             <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeSubsection(subIndex)}>
@@ -351,7 +350,7 @@ function SubsectionCard({
         {!hasSubSubsections ? (
           <div className="p-6 space-y-6">
             <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-muted/20 p-2 rounded w-fit">
-              <Info className="h-3 w-3" /> Leaf Node: Detailed Information (Level 2)
+              <Info className="h-3 w-3" /> Direct Subsection Entry
             </div>
             <LeafDetailFields 
               prefix={`subsections.${subIndex}`} 
@@ -364,14 +363,14 @@ function SubsectionCard({
         ) : (
           <div className="bg-muted/10">
             <div className="p-4 border-b flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-widest">
-              <Layers className="h-3 w-3" /> Head Section: Managing Sub-subsections (Level 3)
+              <Layers className="h-3 w-3" /> Nested Findings Structure
             </div>
             <div className="p-4 space-y-4">
               {subSubsectionFields.map((subSubField, subSubIndex) => (
                 <Card key={subSubField.id} className="border bg-background shadow-sm overflow-hidden">
                    <div className="p-3 bg-muted/20 border-b flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="h-5 w-8 flex justify-center text-[10px] font-bold">
+                      <Badge variant="secondary" className="h-5 w-12 flex justify-center text-[10px] font-bold font-mono">
                         {missionCaseNumber}.{subIndex + 1}.{subSubIndex + 1}
                       </Badge>
                       <FormField
@@ -381,8 +380,8 @@ function SubsectionCard({
                           <FormItem className="space-y-0">
                             <FormControl>
                               <Input 
-                                placeholder="Sub-subsection Title" 
-                                className="h-7 text-xs font-bold bg-transparent border-none w-[250px]" 
+                                placeholder="Finding Title (e.g., Dual Control Violation)" 
+                                className="h-7 text-xs font-bold bg-transparent border-none w-[350px]" 
                                 {...field} 
                               />
                             </FormControl>
@@ -431,7 +430,7 @@ function SubsectionCard({
                   tatDays: 15,
                 })}
               >
-                <Plus className="mr-2 h-4 w-4" /> Add Another Sub-subsection to "{subTitle || `Subsection ${subIndex + 1}`}"
+                <Plus className="mr-2 h-4 w-4" /> Add Another Finding to "{subTitle || `Subsection ${subIndex + 1}`}"
               </Button>
             </div>
           </div>
@@ -456,7 +455,6 @@ function LeafDetailFields({
 }) {
   return (
     <div className="space-y-8">
-      {/* Team & Schedule */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-4">
           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
@@ -470,7 +468,7 @@ function LeafDetailFields({
                 <FormItem>
                   <FormLabel>Team Leader</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select leader" /></SelectTrigger></FormControl>
+                    <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select leader" /></SelectTrigger></FormControl>
                     <SelectContent>
                       {auditors.map(a => <SelectItem key={a.id} value={a.fullName}>{a.fullName}</SelectItem>)}
                     </SelectContent>
@@ -488,12 +486,10 @@ function LeafDetailFields({
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
-                        <Button variant="outline" className={cn("w-full justify-between h-auto min-h-[40px] px-3 py-2", !field.value?.length && "text-muted-foreground")}>
-                          {field.value?.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {field.value.map((val: string) => <Badge key={val} variant="secondary" className="text-[10px]">{val}</Badge>)}
-                            </div>
-                          ) : "Select members..."}
+                        <Button variant="outline" className={cn("w-full justify-between h-9 px-3 py-2", !field.value?.length && "text-muted-foreground")}>
+                          <span className="truncate">
+                            {field.value?.length > 0 ? `${field.value.length} assigned` : "Select members..."}
+                          </span>
                           <ChevronDown className="h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
@@ -539,8 +535,8 @@ function LeafDetailFields({
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
-                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                        <Button variant={"outline"} className={cn("w-full h-9 pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(field.value, "MMM d, yyyy") : <span>Pick a date</span>}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
@@ -559,7 +555,7 @@ function LeafDetailFields({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>TAT (Days)</FormLabel>
-                  <FormControl><Input type="number" {...field} /></FormControl>
+                  <FormControl><Input type="number" className="h-9" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -570,7 +566,6 @@ function LeafDetailFields({
 
       <Separator />
 
-      {/* Finding Specifics */}
       <div className="space-y-6">
         <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Finding Information</h4>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -581,7 +576,7 @@ function LeafDetailFields({
               <FormItem>
                 <FormLabel>Risk Level</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Select risk" /></SelectTrigger></FormControl>
+                  <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select risk" /></SelectTrigger></FormControl>
                   <SelectContent>
                     {riskLevels.map(l => <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>)}
                   </SelectContent>
@@ -597,7 +592,7 @@ function LeafDetailFields({
               <FormItem>
                 <FormLabel>Branch / Department</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger></FormControl>
+                  <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select branch" /></SelectTrigger></FormControl>
                   <SelectContent>
                     {branches.map(b => <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>)}
                   </SelectContent>
@@ -613,7 +608,7 @@ function LeafDetailFields({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Detailed Description</FormLabel>
-              <FormControl><Textarea className="h-24" placeholder="Explain the detailed finding here..." {...field} /></FormControl>
+              <FormControl><Textarea className="h-24 resize-none" placeholder="Explain the detailed finding here..." {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -622,7 +617,6 @@ function LeafDetailFields({
 
       <Separator />
 
-      {/* Analysis & Recommendations */}
       <div className="space-y-4">
          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Analysis & Recommendations</h4>
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -632,7 +626,7 @@ function LeafDetailFields({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cause of Audit</FormLabel>
-                  <FormControl><Textarea className="h-20" {...field} /></FormControl>
+                  <FormControl><Textarea className="h-20 resize-none" {...field} /></FormControl>
                 </FormItem>
               )}
             />
@@ -642,7 +636,7 @@ function LeafDetailFields({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Effect of Audit</FormLabel>
-                  <FormControl><Textarea className="h-20" {...field} /></FormControl>
+                  <FormControl><Textarea className="h-20 resize-none" {...field} /></FormControl>
                 </FormItem>
               )}
             />
@@ -653,7 +647,7 @@ function LeafDetailFields({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Proposed Recommendation</FormLabel>
-                <FormControl><Textarea className="h-24" {...field} /></FormControl>
+                <FormControl><Textarea className="h-24 resize-none" {...field} /></FormControl>
               </FormItem>
             )}
           />
