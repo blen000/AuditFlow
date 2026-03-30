@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useFieldArray, Control, UseFormReturn } from 'react-hook-form';
+import { useForm, useFieldArray, Control } from 'react-hook-form';
 import * as z from 'zod';
 import {
   Form,
@@ -39,7 +39,7 @@ import type { Branch, RiskLevelData, Auditor, AuditHierarchyNode } from '@/types
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
-import { PlusCircle, Trash2, ShieldCheck, ChevronDown, Layers, FileText, CalendarIcon, Timer, Plus, Info, Search } from 'lucide-react';
+import { PlusCircle, Trash2, ShieldCheck, ChevronDown, Layers, FileText, CalendarIcon, Timer, Info, Search, Settings2 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { initialBranches, initialRiskLevels, initialAuditors, initialHierarchy } from '@/lib/mock-data';
 import { Badge } from '../ui/badge';
@@ -64,6 +64,7 @@ const leafFindingSchema = z.object({
   })).optional(),
   assignedDate: z.date().optional(),
   tatDays: z.coerce.number().min(1).optional(),
+  dynamicValues: z.record(z.any()).optional(),
 });
 
 const formSchema = z.object({
@@ -97,6 +98,7 @@ export function CreateFindingForm() {
         recommendation: '',
         involvedAmounts: [],
         tatDays: 15,
+        dynamicValues: {},
       }],
     },
   });
@@ -118,7 +120,7 @@ export function CreateFindingForm() {
   }, [hierarchy, searchQuery]);
 
   function onSubmit(values: FormValues) {
-    console.log('Logging findings under predefined node locally', values);
+    console.log('Logging findings with dynamic values locally', values);
     router.push('/auditee-view');
   }
 
@@ -133,7 +135,6 @@ export function CreateFindingForm() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               
-              {/* Predefined Hierarchy Selection */}
               <Card className="border-t-4 border-t-primary shadow-lg overflow-hidden">
                 <CardHeader className="bg-muted/10">
                   <CardTitle className="flex items-center gap-2">
@@ -216,7 +217,6 @@ export function CreateFindingForm() {
                 </CardContent>
               </Card>
 
-              {/* Findings Under the Node */}
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold flex items-center gap-2">
@@ -240,6 +240,7 @@ export function CreateFindingForm() {
                       recommendation: '',
                       involvedAmounts: [],
                       tatDays: 15,
+                      dynamicValues: {},
                     })}
                   >
                     <PlusCircle className="mr-2 h-4 w-4" />
@@ -297,6 +298,7 @@ export function CreateFindingForm() {
                             branches={branches} 
                             riskLevels={riskLevels} 
                             auditors={auditors} 
+                            selectedNode={selectedNode}
                           />
                         </CardContent>
                       </Card>
@@ -322,13 +324,15 @@ function LeafDetailFields({
   control, 
   branches, 
   riskLevels, 
-  auditors 
+  auditors,
+  selectedNode
 }: { 
   prefix: string; 
   control: Control<FormValues>;
   branches: Branch[];
   riskLevels: RiskLevelData[];
   auditors: Auditor[];
+  selectedNode?: AuditHierarchyNode;
 }) {
   return (
     <div className="space-y-8">
@@ -445,6 +449,39 @@ function LeafDetailFields({
 
       <div className="space-y-6">
         <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Detailed Observation</h4>
+        
+        {/* Dynamic Custom Fields Section */}
+        {selectedNode?.customFields && selectedNode.customFields.length > 0 && (
+          <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 space-y-4">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase text-primary tracking-widest">
+              <Settings2 className="h-3.5 w-3.5" /> Dynamic Node-Specific Fields
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {selectedNode.customFields.map((cf) => (
+                <FormField
+                  key={cf.id}
+                  control={control}
+                  name={`${prefix}.dynamicValues.${cf.id}` as any}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">{cf.name}</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type={cf.type === 'number' ? 'number' : 'text'} 
+                          className="h-9" 
+                          placeholder={`Enter ${cf.name.toLowerCase()}...`}
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <FormField
             control={control}

@@ -14,7 +14,7 @@ import type {
   Role,
   AuditHierarchyNode
 } from '@/types';
-import { subDays, addDays } from 'date-fns';
+import { subDays } from 'date-fns';
 
 export const initialDistricts: District[] = [
   { id: 'DIST-1', name: 'Northern District' },
@@ -74,8 +74,26 @@ export const initialAuditors: Auditor[] = [
 
 // Recursive Predefined Audit Hierarchy
 export const initialHierarchy: AuditHierarchyNode[] = [
-  { id: 'NODE-1', parentId: null, level: 1, number: '1', title: 'Cash & Vault Management' },
-  { id: 'NODE-1-1', parentId: 'NODE-1', level: 2, number: '1.1', title: 'Dual Control Protocols' },
+  { 
+    id: 'NODE-1', 
+    parentId: null, 
+    level: 1, 
+    number: '1', 
+    title: 'Cash & Vault Management',
+    customFields: [
+      { id: 'cf-1', name: 'Cash Over/Short Amount', type: 'number' }
+    ]
+  },
+  { 
+    id: 'NODE-1-1', 
+    parentId: 'NODE-1', 
+    level: 2, 
+    number: '1.1', 
+    title: 'Dual Control Protocols',
+    customFields: [
+      { id: 'cf-2', name: 'Dual Control Witness', type: 'text' }
+    ]
+  },
   { id: 'NODE-1-1-1', parentId: 'NODE-1-1', level: 3, number: '1.1.1', title: 'Vault Access Logs' },
   { id: 'NODE-2', parentId: null, level: 1, number: '2', title: 'IT Systems & Cyber Security' },
   { id: 'NODE-2-1', parentId: 'NODE-2', level: 2, number: '2.1', title: 'Identity & Access Management' },
@@ -148,5 +166,6 @@ export const initialFindings: AuditFinding[] = [
     assignedDate: subDays(new Date(), 20),
     dateCommunicated: subDays(new Date(), 18),
     tatDays: 15,
+    hierarchyNodeId: 'NODE-2-1-1'
   }
 ];

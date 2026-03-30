@@ -50,6 +50,14 @@ export type InvolvedCase = {
   status: 'Open' | 'Resolved';
 };
 
+export type CustomFieldType = 'text' | 'number';
+
+export type CustomFieldDefinition = {
+  id: string;
+  name: string;
+  type: CustomFieldType;
+};
+
 export type AuditFinding = {
   id: string; // Hierarchical ID, e.g., "1.1.1"
   parentCaseNumber: string; // Level 1: Mission Case Number, e.g., "1"
@@ -95,6 +103,8 @@ export type AuditFinding = {
   forwardingHistory?: ForwardingEntry[];
   // Reference to Settings Hierarchy
   hierarchyNodeId?: string;
+  // Dynamic Custom Values
+  dynamicValues?: Record<string, any>;
 };
 
 export type AuditHierarchyNode = {
@@ -103,6 +113,7 @@ export type AuditHierarchyNode = {
   level: number;
   number: string; // e.g., "1", "1.1", "1.1.1"
   title: string;
+  customFields?: CustomFieldDefinition[];
 };
 
 export type SpecialAuditIndividual = {
