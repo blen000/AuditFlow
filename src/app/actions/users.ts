@@ -55,9 +55,9 @@ export async function createUser(data: any) {
     revalidatePath('/register');
     revalidatePath('/special-onboarding');
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to create user:', error);
-    return { success: false, error: 'User registration failed' };
+    return { success: false, error: error.message || 'User registration failed' };
   }
 }
 

@@ -60,13 +60,20 @@ export default function SpecialOnboardingPage() {
       try {
         const data = await getRoles();
         setRoles(data as any);
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Synchronization Error",
+          description: "Could not retrieve leadership roles from the database."
+        });
       } finally {
         setIsLoading(false);
       }
     }
     loadRoles();
-  }, []);
+  }, [toast]);
 
+  // Only show roles flagged as special/executive
   const specialRoles = roles.filter(role => role.isSpecial === true);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -79,8 +86,12 @@ export default function SpecialOnboardingPage() {
       } else {
         throw new Error(result.error);
       }
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to provision account." });
+    } catch (error: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Provisioning Error", 
+        description: error.message || "Failed to provision executive account." 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -90,7 +101,7 @@ export default function SpecialOnboardingPage() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Initializing Executive Portal...</p>
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Initializing Executive Portal...</p>
       </div>
     );
   }
@@ -182,7 +193,7 @@ export default function SpecialOnboardingPage() {
                             <Star className="h-4 w-4 text-amber-600" />
                             Executive Role
                           </FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger className="border-amber-200 focus:ring-amber-500">
                                 <SelectValue placeholder="Select executive role" />
@@ -194,7 +205,7 @@ export default function SpecialOnboardingPage() {
                                   <SelectItem key={role.id} value={role.name}>{role.name}</SelectItem>
                                 ))
                               ) : (
-                                <div className="p-2 text-xs text-muted-foreground text-center">No special roles defined.</div>
+                                <div className="p-2 text-xs text-muted-foreground text-center">No special roles defined in database.</div>
                               )}
                             </SelectContent>
                           </Select>
@@ -209,7 +220,7 @@ export default function SpecialOnboardingPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Initial Status</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select status" />
@@ -228,7 +239,7 @@ export default function SpecialOnboardingPage() {
 
                   <div className="flex justify-end gap-3 pt-6 border-t">
                     <Button type="button" variant="outline" onClick={() => router.push('/users')} disabled={isSubmitting}>Cancel</Button>
-                    <Button type="submit" className="px-8 bg-amber-600 hover:bg-amber-700 text-white" disabled={isSubmitting}>
+                    <Button type="submit" className="px-8 bg-amber-600 hover:bg-amber-700 text-white" disabled={isSubmitting || specialRoles.length === 0}>
                       {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Provisioning...</> : 'Provision Account'}
                     </Button>
                   </div>

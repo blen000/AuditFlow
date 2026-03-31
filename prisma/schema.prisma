@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,7 +23,7 @@ model User {
   id         String   @id @default(cuid())
   fullName   String
   email      String   @unique
-  password   String?  
+  password   String
   roleId     String
   role       Role     @relation(fields: [roleId], references: [id])
   status     String   @default("Active")
@@ -65,66 +68,66 @@ model AuditHierarchyNode {
   level        Int
   number       String               @unique
   title        String
-  customFields Json?                @default("[]") 
+  customFields Json?                // Store CustomFieldDefinition[]
   findings     AuditFinding[]
 }
 
 model AuditFinding {
-  id                         String              @id @default(cuid())
-  title                      String
-  details                    String
-  riskLevel                  String
-  branchOrDepartment         String
-  recommendation             String
-  status                     String              @default("Open")
-  revalidationDate           DateTime?
-  auditeeAgreement           String              @default("Pending")
-  mitigationDueDate          DateTime?
-  auditeeResponse            String?
-  auditeeAttachmentFilename  String?
-  progressUpdates            Json?               @default("[]") 
-  findingAttachments         String[]            @default([])
-  recommendationAttachments   String[]            @default([])
-  auditCause                 String?
-  auditCauseAttachments      String[]            @default([])
-  auditEffect                String?
-  auditEffectAttachments     String[]            @default([])
-  involvedAmounts            Json?               @default("[]") 
-  involvedCases              Json?               @default("[]") 
-  teamMembers                String[]            @default([])
-  hierarchyNodeId            String?
-  hierarchyNode              AuditHierarchyNode? @relation(fields: [hierarchyNodeId], references: [id])
-  dynamicValues              Json?               @default("{}")
-  createdAt                  DateTime            @default(now())
-  updatedAt                  DateTime            @updatedAt
-  
-  // KPI / Assignment tracking
-  assignedDate               DateTime?
-  finalizationDate           DateTime?
-  tatDays                    Int?                @default(15)
-  teamLeader                 String?
-  auditType                  String?             @default("Branch")
-  parentCaseNumber           String?
-  parentSummary              String?
-  subsectionId               String?
-  subsectionTitle            String?
-  followUpStatus             String?             @default("Pending")
-  isClosed                   Boolean?            @default(false)
+  id                        String             @id @default(cuid()) // Hierarchical ID, e.g., "1.1.1"
+  hierarchyNodeId           String
+  hierarchyNode             AuditHierarchyNode @relation(fields: [hierarchyNodeId], references: [id])
+  title                     String             // Inherited from node
+  details                   String
+  riskLevel                 String
+  branchOrDepartment        String
+  status                    String
+  recommendation            String
+  auditeeAgreement          String             @default("Pending")
+  auditeeResponse           String?
+  auditeeAttachmentFilename String?
+  auditCause                String?
+  auditEffect               String?
+  involvedAmounts           Json?              // Store InvolvedAmount[]
+  involvedCases             Json?              // Store InvolvedCase[]
+  progressUpdates           Json?              // Store ProgressUpdate[]
+  teamLeader                String
+  teamMembers               String[]
+  assignedDate              DateTime?
+  dateCommunicated          DateTime?
+  finalizationDate          DateTime?
+  revalidationDate          DateTime?
+  mitigationDueDate         DateTime?
+  tatDays                   Int                @default(15)
+  followUpStatus            String?            @default("Pending")
+  verbalComm                Json?              // Store CommunicationEntry[]
+  writtenComm               Json?              // Store CommunicationEntry[]
+  esc1                      Json?              // Store CommunicationEntry[]
+  esc2                      Json?              // Store CommunicationEntry[]
+  followUpRecommendations   String?
+  isClosed                  Boolean            @default(false)
+  collaboratingWith         String?
+  forwardingHistory         Json?              // Store ForwardingEntry[]
+  dynamicValues             Json?              // Store values for custom fields
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
 }
 
 model SpecialAudit {
   id                    String                   @id @default(cuid())
   shortSummary          String
-  placement             String                   
+  placement             String                   // Branch, District, H.O
   placementValue        String
   amountInvolved        Float
   recovered             Float
   pending               Float
+  individuals           SpecialAuditIndividual[]
   actionDisciplinary    String
   gapWitnessed          String
   correctiveActionTaken String
+  auditCause            String?
+  auditEffect           String?
+  recommendation        String?
   dateCreated           DateTime                 @default(now())
-  individuals           SpecialAuditIndividual[]
 }
 
 model SpecialAuditIndividual {

@@ -10,6 +10,7 @@ async function main() {
     { name: 'Auditor', description: 'Can create and manage audit findings and view reports.', permissions: ['audit_read', 'audit_write', 'reports_read'], isSpecial: false },
     { name: 'Auditee', description: 'Can view findings related to their branch and provide responses.', permissions: ['audit_read'], isSpecial: false },
     { name: 'CEO', description: 'Executive level oversight and organizational strategy review.', permissions: ['audit_read', 'reports_read'], isSpecial: true },
+    { name: 'Chief Auditor', description: 'Top level audit executive with departmental governance responsibilities.', permissions: ['audit_read', 'audit_write', 'reports_read', 'settings_manage'], isSpecial: true },
   ];
 
   for (const role of roles) {
@@ -30,6 +31,7 @@ async function main() {
       create: {
         fullName: 'System Administrator',
         email: 'admin@auditflow.com',
+        password: 'password', // In a real app, hash this!
         roleId: adminRole.id,
         status: 'Active',
         branch: 'Head Office',
@@ -64,8 +66,10 @@ async function main() {
 
   // 5. Audit Hierarchy
   console.log('Seeding audit hierarchy...');
-  const root1 = await prisma.auditHierarchyNode.create({
-    data: {
+  const root1 = await prisma.auditHierarchyNode.upsert({
+    where: { number: '1' },
+    update: {},
+    create: {
       number: '1',
       title: 'Cash & Vault Management',
       level: 1,
