@@ -32,14 +32,14 @@ import type { AuditFinding, Branch, RiskLevelData, Auditor } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
-import { useState } from 'react';
-import { PlusCircle, Trash2, ShieldCheck, ChevronDown, CalendarIcon, Timer, Lock } from 'lucide-react';
-import { initialBranches, initialRiskLevels, initialAuditors } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
+import { PlusCircle, Trash2, ShieldCheck, ChevronDown, CalendarIcon, Timer, Lock, Loader2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
+import { getFindingFormData } from '@/app/actions/findings';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -90,9 +90,10 @@ type EditFindingFormProps = {
 
 export function EditFindingForm({ finding }: EditFindingFormProps) {
   const router = useRouter();
-  const [branches] = useState<Branch[]>(initialBranches);
-  const [riskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
-  const [auditors] = useState<Auditor[]>(initialAuditors);
+  const [isLoading, setIsLoading] = useState(true);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [riskLevels, setRiskLevels] = useState<RiskLevelData[]>([]);
+  const [auditors, setAuditors] = useState<Auditor[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -123,12 +124,37 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
     name: 'involvedAmounts',
   });
 
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const data = await getFindingFormData();
+        setBranches(data.branches as any);
+        setRiskLevels(data.riskLevels as any);
+        setAuditors(data.auditors as any);
+      } catch (error) {
+        console.error('Error loading edit form metadata:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log('Saving changes locally', values);
     router.push('/auditee-view');
   }
 
   const isAssignedDateLocked = !!finding.assignedDate;
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Synchronizing Metadata...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -161,7 +187,12 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                           </FormControl>
                           <SelectContent>
                             {auditors.map((auditor) => (
-                              <SelectItem key={auditor.id} value={auditor.fullName}>{auditor.fullName}</SelectItem>
+                              <SelectItem key={auditor.id} value={auditor.fullName}>
+                                <div className="flex flex-col items-start text-left">
+                                  <span className="font-medium">{auditor.fullName}</span>
+                                  <span className="text-[9px] text-muted-foreground uppercase leading-none">{auditor.role}</span>
+                                </div>
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -206,7 +237,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                             <ScrollArea className="h-64 p-2">
                               <div className="space-y-2">
                                 {auditors.map((auditor) => (
-                                  <div key={auditor.id} className="flex items-center space-x-2 p-1">
+                                  <div key={auditor.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded cursor-pointer">
                                     <Checkbox
                                       id={`edit-member-${auditor.id}`}
                                       checked={field.value?.includes(auditor.fullName)}
@@ -219,9 +250,10 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                                     />
                                     <label
                                       htmlFor={`edit-member-${auditor.id}`}
-                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer w-full"
+                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer w-full flex flex-col"
                                     >
-                                      {auditor.fullName}
+                                      <span className="font-semibold">{auditor.fullName}</span>
+                                      <span className="text-[9px] text-muted-foreground uppercase">{auditor.role}</span>
                                     </label>
                                   </div>
                                 ))}

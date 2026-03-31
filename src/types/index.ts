@@ -188,6 +188,7 @@ export type Auditor = {
   fullName: string;
   email: string;
   phone: string;
+  role?: string;
 };
 
 export type Notification = {

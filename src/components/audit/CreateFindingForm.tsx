@@ -410,7 +410,14 @@ function LeafDetailFields({
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Leader" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      {auditors.map(a => <SelectItem key={a.id} value={a.fullName}>{a.fullName}</SelectItem>)}
+                      {auditors.map(a => (
+                        <SelectItem key={a.id} value={a.fullName}>
+                          <div className="flex flex-col items-start text-left">
+                            <span className="font-medium">{a.fullName}</span>
+                            <span className="text-[9px] text-muted-foreground uppercase leading-none">{a.role}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -438,7 +445,7 @@ function LeafDetailFields({
                       <ScrollArea className="h-48 p-2">
                         <div className="space-y-1">
                           {auditors.map(a => (
-                            <div key={a.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded">
+                            <div key={a.id} className="flex items-center space-x-2 p-1 hover:bg-muted rounded group">
                               <Checkbox 
                                 id={`member-${prefix}-${a.id}`} 
                                 checked={field.value?.includes(a.fullName)}
@@ -447,7 +454,10 @@ function LeafDetailFields({
                                   field.onChange(newValue);
                                 }}
                               />
-                              <label htmlFor={`member-${prefix}-${a.id}`} className="text-xs cursor-pointer w-full">{a.fullName}</label>
+                              <label htmlFor={`member-${prefix}-${a.id}`} className="text-xs cursor-pointer w-full flex flex-col">
+                                <span className="font-semibold">{a.fullName}</span>
+                                <span className="text-[9px] text-muted-foreground uppercase">{a.role}</span>
+                              </label>
                             </div>
                           ))}
                         </div>

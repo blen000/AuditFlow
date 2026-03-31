@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma';
  */
 export async function getFindingFormData() {
   try {
-    const [hierarchy, branches, riskLevels, auditors] = await Promise.all([
+    const [hierarchy, branches, riskLevels, users] = await Promise.all([
       prisma.auditHierarchyNode.findMany({
         orderBy: [
           { level: 'asc' },
@@ -18,10 +18,10 @@ export async function getFindingFormData() {
       prisma.riskLevel.findMany({ orderBy: { name: 'asc' } }),
       prisma.user.findMany({
         where: {
-          status: 'Active',
-          role: {
-            name: { in: ['Auditor', 'Admin', 'Chief Auditor'] }
-          }
+          status: 'Active'
+        },
+        include: {
+          role: true
         },
         orderBy: { fullName: 'asc' }
       })
@@ -34,7 +34,13 @@ export async function getFindingFormData() {
       })),
       branches,
       riskLevels,
-      auditors
+      auditors: users.map(u => ({
+        id: u.id,
+        fullName: u.fullName,
+        email: u.email,
+        phone: 'N/A', // Not stored in User model currently
+        role: u.role.name
+      }))
     };
   } catch (error) {
     console.error('Failed to fetch finding form data:', error);
