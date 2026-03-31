@@ -8,11 +8,19 @@ import {
   FileText,
   ArrowRight,
   MessageSquare,
-  BarChart3
+  BarChart3,
+  Layers
 } from 'lucide-react';
 import Link from 'next/link';
 
 const reportModules = [
+  {
+    title: 'Consolidated Activity Report',
+    description: 'Hierarchical master report grouping all findings by organizational mission, subsections, and dynamic custom fields.',
+    icon: Layers,
+    href: '/reports/consolidated',
+    buttonText: 'View Consolidated Report'
+  },
   {
     title: 'Findings Frequency Analysis',
     description: 'Detailed breakdown of irregularities across branches, including case counts and organizational prevalence percentages.',
