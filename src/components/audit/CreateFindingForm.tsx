@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -40,7 +41,7 @@ import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
 import { PlusCircle, Trash2, ShieldCheck, ChevronDown, Layers, FileText, CalendarIcon, Timer, Info, Search, Settings2 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { initialBranches, initialRiskLevels, initialAuditors, initialHierarchy } from '@/lib/mock-data';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
@@ -49,7 +50,7 @@ import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
 
 const leafFindingSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters.'),
+  title: z.string(),
   details: z.string().min(20, 'Finding details must be at least 20 characters.'),
   riskLevel: z.string({ required_error: 'Select a risk level.' }),
   branchOrDepartment: z.string({ required_error: 'Select a branch/department.' }),
@@ -111,6 +112,18 @@ export function CreateFindingForm() {
   const selectedNodeId = form.watch('hierarchyNodeId');
   const selectedNode = hierarchy.find(n => n.id === selectedNodeId);
 
+  // Synchronize all finding titles whenever the selected hierarchy node changes
+  useEffect(() => {
+    if (selectedNode) {
+      const currentFindings = form.getValues('findings');
+      const updatedFindings = currentFindings.map(f => ({
+        ...f,
+        title: selectedNode.title
+      }));
+      form.setValue('findings', updatedFindings);
+    }
+  }, [selectedNode, form]);
+
   const filteredHierarchy = useMemo(() => {
     if (!searchQuery) return hierarchy;
     return hierarchy.filter(n => 
@@ -120,6 +133,13 @@ export function CreateFindingForm() {
   }, [hierarchy, searchQuery]);
 
   function onSubmit(values: FormValues) {
+    // Inject the final node title to ensure consistency across all sub-findings
+    if (selectedNode) {
+      values.findings = values.findings.map(f => ({
+        ...f,
+        title: selectedNode.title
+      }));
+    }
     console.log('Logging findings with dynamic values locally', values);
     router.push('/auditee-view');
   }
@@ -229,7 +249,7 @@ export function CreateFindingForm() {
                     size="sm" 
                     disabled={!selectedNodeId}
                     onClick={() => appendFinding({
-                      title: '',
+                      title: selectedNode?.title || '',
                       details: '',
                       teamLeader: '',
                       teamMembers: [],
@@ -258,26 +278,13 @@ export function CreateFindingForm() {
                     {findingFields.map((field, index) => (
                       <Card key={field.id} className="border-2 shadow-sm overflow-hidden bg-background">
                         <div className="p-4 bg-muted/20 border-b flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <Badge variant="secondary" className="font-mono font-bold">
                               {selectedNode?.number}.{index + 1}
                             </Badge>
-                            <FormField
-                              control={form.control}
-                              name={`findings.${index}.title`}
-                              render={({ field }) => (
-                                <FormItem className="space-y-0">
-                                  <FormControl>
-                                    <Input 
-                                      placeholder="Irregularity Title (e.g., Policy Non-Compliance)" 
-                                      className="h-8 text-sm font-bold bg-transparent border-none w-[400px] focus-visible:ring-0" 
-                                      {...field} 
-                                    />
-                                  </FormControl>
-                                  <FormMessage className="text-[10px]" />
-                                </FormItem>
-                              )}
-                            />
+                            <span className="text-sm font-bold text-foreground">
+                              {selectedNode?.title}
+                            </span>
                           </div>
                           {findingFields.length > 1 && (
                             <Button 
