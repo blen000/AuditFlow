@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { UserPlus, Mail, ShieldCheck, UserCheck, Lock } from 'lucide-react';
+import { UserPlus, Mail, ShieldCheck, UserCheck, Lock, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -25,7 +25,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { initialRoles } from '@/lib/mock-data';
+import { useEffect, useState } from 'react';
+import { getRoles, createUser } from '@/app/actions/users';
+import type { Role } from '@/types';
 
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name is required.'),
@@ -38,6 +40,9 @@ const formSchema = z.object({
 export default function UserRegistrationPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,23 +55,51 @@ export default function UserRegistrationPage() {
     },
   });
 
-  // Only show regular roles (isSpecial is false or undefined)
-  const regularRoles = initialRoles.filter(role => !role.isSpecial);
+  useEffect(() => {
+    async function loadRoles() {
+      try {
+        const data = await getRoles();
+        setRoles(data as any);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadRoles();
+  }, []);
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log('Registering user locally:', values);
-    toast({
-      title: "Registration Successful",
-      description: `${values.fullName} has been added to the system as ${values.role}.`,
-    });
-    router.push('/users');
+  const regularRoles = roles.filter(role => !role.isSpecial);
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    try {
+      const result = await createUser(values);
+      if (result.success) {
+        toast({ title: "Registration Successful", description: `${values.fullName} has been added to the system.` });
+        router.push('/users');
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to register user." });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Preparing Registry...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader 
         title="User Registration" 
-        description="Onboard new personnel and assign system privileges."
+        description="Onboard new personnel and assign system privileges in the live database."
         backHref="/settings"
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
@@ -186,8 +219,10 @@ export default function UserRegistrationPage() {
                   </div>
 
                   <div className="flex justify-end gap-3 pt-6 border-t">
-                    <Button type="button" variant="outline" onClick={() => router.push('/settings')}>Cancel</Button>
-                    <Button type="submit" className="px-8">Register User</Button>
+                    <Button type="button" variant="outline" onClick={() => router.push('/users')} disabled={isSubmitting}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Registering...</> : 'Register User'}
+                    </Button>
                   </div>
                 </form>
               </Form>

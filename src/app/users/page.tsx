@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -17,7 +17,8 @@ import {
   Calendar,
   FilterX,
   UserCog,
-  Pencil
+  Pencil,
+  Loader2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -26,20 +27,34 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { initialUsers } from '@/lib/mock-data';
 import type { User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { EditUserDialog } from '@/components/audit/EditUserDialog';
+import { getUsers, deleteUser, updateUser } from '@/app/actions/users';
 
 export default function UserManagementPage() {
   const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Edit State
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const data = await getUsers();
+        setUsers(data as any);
+      } catch (error) {
+        console.error('Error loading users:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadUsers();
+  }, []);
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => 
@@ -49,22 +64,32 @@ export default function UserManagementPage() {
     );
   }, [users, searchQuery]);
 
-  const handleDelete = (id: string) => {
-    setUsers(prev => prev.filter(u => u.id !== id));
-    toast({
-      title: "User Removed",
-      description: "The user account has been deleted from the system.",
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      const result = await deleteUser(id);
+      if (result.success) {
+        setUsers(prev => prev.filter(u => u.id !== id));
+        toast({ title: "User Removed", description: "The user account has been deleted from the system." });
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to remove user." });
+    }
   };
 
-  const toggleStatus = (id: string) => {
-    setUsers(prev => prev.map(u => 
-      u.id === id ? { ...u, status: u.status === 'Active' ? 'Inactive' : 'Active' } : u
-    ));
-    toast({
-      title: "Status Updated",
-      description: "User status has been toggled successfully.",
-    });
+  const toggleStatus = async (id: string) => {
+    const user = users.find(u => u.id === id);
+    if (!user) return;
+    
+    const newStatus = user.status === 'Active' ? 'Inactive' : 'Active';
+    try {
+      const result = await updateUser(id, { status: newStatus });
+      if (result.success) {
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, status: newStatus as any } : u));
+        toast({ title: "Status Updated", description: "User status has been toggled successfully." });
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to update status." });
+    }
   };
 
   const handleEditClick = (user: User) => {
@@ -72,24 +97,35 @@ export default function UserManagementPage() {
     setIsEditDialogOpen(true);
   };
 
-  const handleUpdateUser = (updatedData: Partial<User>) => {
+  const handleUpdateUser = async (updatedData: Partial<User>) => {
     if (editingUser) {
-      setUsers(prev => prev.map(u => 
-        u.id === editingUser.id ? { ...u, ...updatedData } : u
-      ));
-      toast({
-        title: "Profile Updated",
-        description: `${updatedData.fullName}'s information has been modified.`,
-      });
+      try {
+        const result = await updateUser(editingUser.id, updatedData);
+        if (result.success) {
+          setUsers(prev => prev.map(u => u.id === editingUser.id ? { ...u, ...updatedData } : u));
+          toast({ title: "Profile Updated", description: `${updatedData.fullName}'s information has been modified.` });
+        }
+      } catch (error) {
+        toast({ variant: "destructive", title: "Error", description: "Failed to update profile." });
+      }
     }
     setEditingUser(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Synchronizing Personnel Records...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader 
         title="User Management" 
-        description="Monitor system access and update personnel profiles."
+        description="Monitor system access and update personnel profiles from the live database."
         backHref="/settings"
       >
         <Button asChild>

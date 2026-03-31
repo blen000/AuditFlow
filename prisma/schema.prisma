@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,7 +10,7 @@ datasource db {
 model Role {
   id          String   @id @default(cuid())
   name        String   @unique
-  description String
+  description String?
   permissions String[]
   isSpecial   Boolean  @default(false)
   users       User[]
@@ -46,9 +43,76 @@ model Branch {
   district   District @relation(fields: [districtId], references: [id])
 }
 
-model Department {
-  id   String @id @default(cuid())
-  name String @unique
+model AuditHierarchyNode {
+  id           String               @id @default(cuid())
+  parentId     String?
+  parent       AuditHierarchyNode?  @relation("SubNodes", fields: [parentId], references: [id])
+  children     AuditHierarchyNode[] @relation("SubNodes")
+  level        Int
+  number       String
+  title        String
+  customFields Json? // Array of {id, name, type}
+  findings     AuditFinding[]
+}
+
+model AuditFinding {
+  id                 String             @id @default(cuid())
+  title              String
+  details            String
+  riskLevel          String
+  branchOrDepartment String
+  recommendation     String
+  status             String
+  revalidationDate   DateTime?
+  auditeeAgreement   String             @default("Pending")
+  mitigationDueDate  DateTime?
+  auditeeResponse    String?
+  progressUpdates    Json?              // Array of {id, date, details, attachmentFilename}
+  involvedAmounts    Json?              // Array of {name, amount}
+  involvedCases      Json?              // Array of {id, ownerName, status}
+  teamLeader         String
+  teamMembers        String[]
+  assignedDate       DateTime?
+  dateCommunicated   DateTime?
+  finalizationDate   DateTime?
+  tatDays            Int?
+  followUpStatus     String?
+  followUpRecommendations String?
+  isClosed           Boolean            @default(false)
+  hierarchyNodeId    String
+  hierarchyNode      AuditHierarchyNode @relation(fields: [hierarchyNodeId], references: [id])
+  dynamicValues      Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model SpecialAudit {
+  id                    String                   @id @default(cuid())
+  shortSummary          String
+  placement             String
+  placementValue        String
+  amountInvolved        Float
+  recovered             Float
+  pending               Float
+  actionDisciplinary    String
+  gapWitnessed          String
+  correctiveActionTaken String
+  auditCause            String?
+  auditEffect           String?
+  recommendation        String?
+  dateCreated           DateTime                 @default(now())
+  individuals           SpecialAuditIndividual[]
+}
+
+model SpecialAuditIndividual {
+  id             String       @id @default(cuid())
+  specialAuditId String
+  specialAudit   SpecialAudit @relation(fields: [specialAuditId], references: [id], onDelete: Cascade)
+  name           String
+  position       String
+  tenure         String
+  age            Int
+  sex            String
 }
 
 model RiskLevel {
@@ -61,82 +125,7 @@ model FindingStatus {
   name String @unique
 }
 
-model AuditHierarchyNode {
-  id           String               @id @default(cuid())
-  parentId     String?
-  parent       AuditHierarchyNode?  @relation("HierarchyNesting", fields: [parentId], references: [id])
-  children     AuditHierarchyNode[] @relation("HierarchyNesting")
-  level        Int
-  number       String
-  title        String
-  customFields Json?                @default("[]") // Array of CustomFieldDefinition
-  findings     AuditFinding[]
-}
-
-model AuditFinding {
-  id                         String             @id @default(cuid())
-  hierarchyNodeId            String
-  hierarchyNode              AuditHierarchyNode @relation(fields: [hierarchyNodeId], references: [id])
-  title                      String
-  category                   String?
-  details                    String
-  riskLevel                  String
-  branchOrDepartment         String
-  auditType                  String?
-  recommendation             String
-  status                     String
-  revalidationDate           DateTime?
-  auditeeAgreement           String             @default("Pending")
-  mitigationDueDate          DateTime?
-  auditeeResponse            String?
-  progressUpdates            Json?              @default("[]")
-  involvedAmounts            Json?              @default("[]")
-  involvedCases              Json?              @default("[]")
-  teamLeader                 String
-  teamMembers                String[]
-  assignedDate               DateTime?
-  dateCommunicated           DateTime?
-  finalizationDate           DateTime?
-  tatDays                    Int?
-  followUpStatus             String?            @default("Pending")
-  verbalComm                 Json?              @default("[]")
-  writtenComm                Json?              @default("[]")
-  esc1                       Json?              @default("[]")
-  esc2                       Json?              @default("[]")
-  followUpRecommendations    String?
-  isClosed                   Boolean            @default(false)
-  collaboratingWith          String?
-  forwardingHistory          Json?              @default("[]")
-  dynamicValues              Json?              @default("{}")
-  createdAt                  DateTime           @default(now())
-  updatedAt                  DateTime           @updatedAt
-}
-
-model SpecialAudit {
-  id                    String                   @id @default(cuid())
-  shortSummary          String
-  placement             String // Branch, District, H.O
-  placementValue        String
-  amountInvolved        Float
-  recovered             Float
-  pending               Float
-  individuals           SpecialAuditIndividual[]
-  actionDisciplinary    String
-  gapWitnessed          String
-  correctiveActionTaken String
-  auditCause            String?
-  auditEffect           String?
-  recommendation        String?
-  dateCreated           DateTime                 @default(now())
-}
-
-model SpecialAuditIndividual {
-  id             String       @id @default(cuid())
-  specialAuditId String
-  specialAudit   SpecialAudit @relation(fields: [specialAuditId], references: [id], onDelete: Cascade)
-  name           String
-  position       String
-  tenure         String
-  age            Int
-  sex            String
+model Department {
+  id   String @id @default(cuid())
+  name String @unique
 }

@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { UserPlus, Mail, ShieldCheck, UserCheck, Star, Lock } from 'lucide-react';
+import { ShieldCheck, Mail, UserCheck, Star, Lock, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -25,7 +25,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { initialRoles } from '@/lib/mock-data';
+import { useEffect, useState } from 'react';
+import { getRoles, createUser } from '@/app/actions/users';
+import type { Role } from '@/types';
 
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name is required.'),
@@ -38,6 +40,9 @@ const formSchema = z.object({
 export default function SpecialOnboardingPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,23 +55,51 @@ export default function SpecialOnboardingPage() {
     },
   });
 
-  // Only show high-level/special roles
-  const specialRoles = initialRoles.filter(role => role.isSpecial === true);
+  useEffect(() => {
+    async function loadRoles() {
+      try {
+        const data = await getRoles();
+        setRoles(data as any);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadRoles();
+  }, []);
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log('Registering special user locally:', values);
-    toast({
-      title: "Special Registration Successful",
-      description: `Executive account for ${values.fullName} created as ${values.role}.`,
-    });
-    router.push('/users');
+  const specialRoles = roles.filter(role => role.isSpecial === true);
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    try {
+      const result = await createUser(values);
+      if (result.success) {
+        toast({ title: "Special Registration Successful", description: `Executive account for ${values.fullName} created.` });
+        router.push('/users');
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to provision account." });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Initializing Executive Portal...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader 
         title="Special Onboarding" 
-        description="Register high-level organizational leadership and executive roles."
+        description="Register high-level organizational leadership and executive roles in the live database."
         backHref="/settings"
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
@@ -161,7 +194,7 @@ export default function SpecialOnboardingPage() {
                                   <SelectItem key={role.id} value={role.name}>{role.name}</SelectItem>
                                 ))
                               ) : (
-                                <div className="p-2 text-xs text-muted-foreground text-center">No special roles defined. Configure them in Role Management.</div>
+                                <div className="p-2 text-xs text-muted-foreground text-center">No special roles defined.</div>
                               )}
                             </SelectContent>
                           </Select>
@@ -194,8 +227,10 @@ export default function SpecialOnboardingPage() {
                   </div>
 
                   <div className="flex justify-end gap-3 pt-6 border-t">
-                    <Button type="button" variant="outline" onClick={() => router.push('/settings')}>Cancel</Button>
-                    <Button type="submit" className="px-8 bg-amber-600 hover:bg-amber-700 text-white">Provision Account</Button>
+                    <Button type="button" variant="outline" onClick={() => router.push('/users')} disabled={isSubmitting}>Cancel</Button>
+                    <Button type="submit" className="px-8 bg-amber-600 hover:bg-amber-700 text-white" disabled={isSubmitting}>
+                      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Provisioning...</> : 'Provision Account'}
+                    </Button>
                   </div>
                 </form>
               </Form>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,8 @@ import {
   Info,
   Lock,
   Pencil,
-  Star
+  Star,
+  Loader2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -22,10 +23,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { initialRoles } from '@/lib/mock-data';
 import type { Role, Permission } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { AddEditRoleDialog } from '@/components/audit/AddEditRoleDialog';
+import { getRoles, createRole, updateRole, deleteRole } from '@/app/actions/users';
 
 const permissionLabels: Record<string, { label: string, color: string }> = {
   audit_read: { label: 'Read Audits', color: 'bg-blue-100 text-blue-800' },
@@ -36,9 +37,24 @@ const permissionLabels: Record<string, { label: string, color: string }> = {
 
 export default function RoleManagementPage() {
   const { toast } = useToast();
-  const [roles, setRoles] = useState<Role[]>(initialRoles);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
+
+  useEffect(() => {
+    async function loadRoles() {
+      try {
+        const data = await getRoles();
+        setRoles(data as any);
+      } catch (error) {
+        console.error('Error loading roles:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadRoles();
+  }, []);
 
   const handleAddNew = () => {
     setEditingRole(null);
@@ -50,45 +66,59 @@ export default function RoleManagementPage() {
     setDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (id === 'ROL-1') {
-      toast({
-        variant: "destructive",
-        title: "Permission Denied",
-        description: "The primary administrator role cannot be deleted.",
-      });
+  const handleDelete = async (id: string) => {
+    if (roles.find(r => r.id === id)?.name === 'Admin') {
+      toast({ variant: "destructive", title: "Permission Denied", description: "The primary administrator role cannot be deleted." });
       return;
     }
-    setRoles(prev => prev.filter(r => r.id !== id));
-    toast({
-      title: "Role Removed",
-      description: "The organizational role has been successfully deleted.",
-    });
+    try {
+      const result = await deleteRole(id);
+      if (result.success) {
+        setRoles(prev => prev.filter(r => r.id !== id));
+        toast({ title: "Role Removed", description: "The organizational role has been successfully deleted." });
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to remove role." });
+    }
   };
 
-  const handleSubmit = (roleData: Omit<Role, 'id'>) => {
-    if (editingRole) {
-      setRoles(prev => prev.map(r => r.id === editingRole.id ? { ...r, ...roleData } : r));
-      toast({
-        title: "Role Updated",
-        description: `${roleData.name} permissions have been updated.`,
-      });
-    } else {
-      const newRole = { ...roleData, id: `ROL-${Date.now()}` };
-      setRoles(prev => [...prev, newRole]);
-      toast({
-        title: "Role Created",
-        description: `${roleData.name} is now available for user assignment.`,
-      });
+  const handleSubmit = async (roleData: Omit<Role, 'id'>) => {
+    try {
+      if (editingRole) {
+        const result = await updateRole(editingRole.id, roleData);
+        if (result.success) {
+          setRoles(prev => prev.map(r => r.id === editingRole.id ? { ...r, ...roleData } : r));
+          toast({ title: "Role Updated", description: `${roleData.name} permissions have been updated.` });
+        }
+      } else {
+        const result = await createRole(roleData);
+        if (result.success) {
+          // Re-fetch roles to get the ID
+          const data = await getRoles();
+          setRoles(data as any);
+          toast({ title: "Role Created", description: `${roleData.name} is now available for user assignment.` });
+        }
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to save role." });
     }
     setEditingRole(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Retrieving Access Profiles...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader 
         title="Role Management" 
-        description="Define and configure system permission profiles."
+        description="Define and configure system permission profiles in the live database."
         backHref="/settings"
       >
         <Button onClick={handleAddNew}>
@@ -134,9 +164,11 @@ export default function RoleManagementPage() {
                         <DropdownMenuItem onClick={() => handleEdit(role)}>
                           <Pencil className="mr-2 h-4 w-4" /> Edit Role
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(role.id)}>
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete Role
-                        </DropdownMenuItem>
+                        {role.name !== 'Admin' && (
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(role.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete Role
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </CardHeader>
@@ -169,15 +201,6 @@ export default function RoleManagementPage() {
                 <p className="text-muted-foreground">Click "Create Role" to establish your organizational access hierarchy.</p>
               </div>
             )}
-          </div>
-
-          <div className="p-6 bg-muted/20 border-l-4 border-primary rounded-r-lg">
-            <div className="flex gap-3">
-              <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-              <p className="text-sm leading-relaxed text-foreground">
-                <strong>Access Control Policy:</strong> System roles define the functional boundaries for users. Roles marked as <strong>Special</strong> are exclusive to the <strong>Special Onboarding</strong> flow for high-level executives.
-              </p>
-            </div>
           </div>
         </div>
       </main>
