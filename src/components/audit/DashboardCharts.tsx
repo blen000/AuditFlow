@@ -26,55 +26,55 @@ import {
   Cell,
   YAxis,
   ResponsiveContainer,
-  Tooltip,
-  Legend,
 } from 'recharts';
-import type { AuditFinding, SpecialAudit, FindingCategory, FollowUpStatus } from '@/types';
-import { cn } from '@/lib/utils';
+import { Tooltip, Legend } from 'recharts';
+import type { AuditFinding, SpecialAudit, AuditHierarchyNode } from '@/types';
 
 type DashboardChartsProps = {
   findings: AuditFinding[];
   specialAudits: SpecialAudit[];
+  hierarchy: AuditHierarchyNode[];
 };
 
-const CATEGORY_COLORS: Record<FindingCategory, string> = {
-  'Cash': '#1e3a8a', // Dark Blue
-  'Accounts': '#b91c1c', // Dark Red
-  'Negotiable Instruments': '#4d7c0f', // Olive Green
-  'Loans': '#5b21b6', // Deep Purple
-  'Deposits': '#0e7490', // Teal
-  'Fixed Assets': '#9a3412', // Rust Orange
-  'Card Banking': '#334155', // Slate
-  'Security': '#be123c', // Crimson
-  'Others': '#15803d', // Forest Green
-};
+const CATEGORY_COLORS = [
+  '#1e3a8a', '#b91c1c', '#4d7c0f', '#5b21b6', '#0e7490', 
+  '#9a3412', '#334155', '#be123c', '#15803d'
+];
 
 const STATUS_COLORS: Record<string, string> = {
-  'Pending': '#94a3b8', // Slate
-  'Rectified': '#16a34a', // Green
-  'Partially Rectified': '#f59e0b', // Amber
-  'Refereed': '#2563eb', // Blue
-  'Action Plan': '#7c3aed', // Violet
+  'Pending': '#94a3b8',
+  'Rectified': '#16a34a',
+  'Partially Rectified': '#f59e0b',
+  'Refereed': '#2563eb',
+  'Action Plan': '#7c3aed',
 };
 
-export function DashboardCharts({ findings, specialAudits }: DashboardChartsProps) {
+export function DashboardCharts({ findings, specialAudits, hierarchy }: DashboardChartsProps) {
   const router = useRouter();
   const totalFindings = findings.length;
   
-  // 1. Findings per Category (Pie Chart)
+  // Dynamic Categories from Level 1 Hierarchy
+  const rootMissions = hierarchy.filter(n => n.parentId === null);
+  
   const categoryCounts = findings.reduce((acc: Record<string, number>, finding) => {
-    acc[finding.category] = (acc[finding.category] || 0) + 1;
+    // Traverse up to find root mission title
+    let currentNode = hierarchy.find(n => n.id === finding.hierarchyNodeId);
+    while (currentNode && currentNode.parentId) {
+      currentNode = hierarchy.find(n => n.id === currentNode?.parentId);
+    }
+    const rootTitle = currentNode?.title || 'Uncategorized';
+    acc[rootTitle] = (acc[rootTitle] || 0) + 1;
     return acc;
   }, {});
 
-  const categoryData = Object.entries(categoryCounts).map(([name, count]) => ({
+  const categoryData = Object.entries(categoryCounts).map(([name, count], index) => ({
     name,
     count,
     percentage: totalFindings > 0 ? Math.round((count / totalFindings) * 100) : 0,
-    fill: CATEGORY_COLORS[name as FindingCategory] || '#888888',
+    fill: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
   })).sort((a, b) => b.count - a.count);
 
-  // 2. Findings Status Overview (Lifecycle Donut)
+  // Status Lifecycle
   const statusCounts = findings.reduce((acc: Record<string, number>, finding) => {
     const s = finding.followUpStatus || 'Pending';
     acc[s] = (acc[s] || 0) + 1;
@@ -93,14 +93,12 @@ export function DashboardCharts({ findings, specialAudits }: DashboardChartsProp
     };
   });
 
-  // 3. Findings by Risk Level
   const riskData = [
     { name: 'High', count: findings.filter((f) => f.riskLevel === 'High').length, fill: 'hsl(var(--destructive))' },
     { name: 'Medium', count: findings.filter((f) => f.riskLevel === 'Medium').length, fill: 'hsl(var(--accent))' },
     { name: 'Low', count: findings.filter((f) => f.riskLevel === 'Low').length, fill: 'hsl(var(--primary))' },
   ];
 
-  // 4. Special Audit Monetary Reconciliation
   const monetaryData = specialAudits.map(audit => ({
     name: audit.id,
     involved: audit.amountInvolved,
@@ -115,19 +113,14 @@ export function DashboardCharts({ findings, specialAudits }: DashboardChartsProp
     pending: { label: 'Pending (ETB)', color: 'hsl(var(--destructive))' },
   } satisfies ChartConfig;
 
-  const handleSliceClick = (data: any) => {
-    router.push(`/auditee-view?category=${encodeURIComponent(data.name)}`);
-  };
-
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      {/* Findings per Category - PIE CHART */}
       <Card className="shadow-sm border-none bg-card/50 overflow-hidden">
         <CardHeader className="pb-2 border-b bg-muted/10">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-lg font-bold uppercase tracking-tight">Findings per Category</CardTitle>
-              <CardDescription>Classification by operational banking units.</CardDescription>
+              <CardDescription>Dynamic mapping from official hierarchy missions.</CardDescription>
             </div>
             <div className="text-right">
               <span className="text-2xl font-black text-primary">{totalFindings}</span>
@@ -147,8 +140,7 @@ export function DashboardCharts({ findings, specialAudits }: DashboardChartsProp
                   outerRadius={100}
                   paddingAngle={5}
                   dataKey="count"
-                  onClick={handleSliceClick}
-                  className="cursor-pointer outline-none"
+                  className="outline-none"
                 >
                   {categoryData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} stroke="rgba(255,255,255,0.2)" strokeWidth={2} />
@@ -177,7 +169,7 @@ export function DashboardCharts({ findings, specialAudits }: DashboardChartsProp
                   content={({ payload }) => (
                     <ul className="flex flex-col gap-2 ml-4">
                       {payload?.map((entry: any, index: number) => (
-                        <li key={index} className="flex items-center gap-2 group cursor-pointer hover:opacity-80" onClick={() => handleSliceClick(entry.payload)}>
+                        <li key={index} className="flex items-center gap-2 group">
                           <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
                           <div className="flex flex-col -space-y-0.5">
                             <span className="text-[11px] font-bold truncate max-w-[120px]">{entry.value}</span>
@@ -196,15 +188,10 @@ export function DashboardCharts({ findings, specialAudits }: DashboardChartsProp
         </CardContent>
       </Card>
 
-      {/* Findings Status Overview - DONUT CHART */}
       <Card className="shadow-sm border-none bg-card/50 overflow-hidden">
         <CardHeader className="pb-2 border-b bg-muted/10">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg font-bold uppercase tracking-tight">Findings Status Overview</CardTitle>
-              <CardDescription>Remediation lifecycle distribution (Period-wise).</CardDescription>
-            </div>
-          </div>
+          <CardTitle className="text-lg font-bold uppercase tracking-tight">Findings Status Overview</CardTitle>
+          <CardDescription>Remediation lifecycle distribution (Live Database).</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="h-[350px] w-full relative">
@@ -267,7 +254,6 @@ export function DashboardCharts({ findings, specialAudits }: DashboardChartsProp
         </CardContent>
       </Card>
 
-      {/* Severity Distribution */}
       <Card className="shadow-sm border-none bg-card/50">
         <CardHeader className="pb-2 border-b bg-muted/10">
           <CardTitle className="text-lg font-bold uppercase tracking-tight">Severity Distribution</CardTitle>
@@ -277,16 +263,15 @@ export function DashboardCharts({ findings, specialAudits }: DashboardChartsProp
           <ChartContainer config={config} className="h-[300px] w-full">
             <BarChart data={riskData}>
               <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.3} />
-              <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={10} fontVariant="bold" />
+              <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={10} />
               <YAxis tickLine={false} axisLine={false} fontSize={10} />
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <Tooltip content={<ChartTooltipContent />} />
               <Bar dataKey="count" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ChartContainer>
         </CardContent>
       </Card>
 
-      {/* Special Audit Monetary Analysis */}
       <Card className="shadow-sm border-none bg-card/50">
         <CardHeader className="pb-2 border-b bg-muted/10">
           <CardTitle className="text-lg font-bold uppercase tracking-tight">Special Audit Monetary Reconciliation</CardTitle>
@@ -296,9 +281,9 @@ export function DashboardCharts({ findings, specialAudits }: DashboardChartsProp
           <ChartContainer config={config} className="h-[300px] w-full">
             <BarChart data={monetaryData}>
               <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.3} />
-              <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={10} fontVariant="mono" />
+              <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={10} />
               <YAxis fontSize={10} tickFormatter={(value) => `ETB ${value/1000}k`} />
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <Tooltip content={<ChartTooltipContent />} />
               <ChartLegend content={<ChartLegendContent />} />
               <Bar dataKey="involved" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               <Bar dataKey="recovered" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />

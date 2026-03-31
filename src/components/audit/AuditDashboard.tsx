@@ -1,25 +1,45 @@
 'use client';
-import { useState, useMemo } from 'react';
-import type { AuditFinding, SpecialAudit, AuditTypeCategory } from '@/types';
-import { initialFindings, initialSpecialAudits, initialBranches } from '@/lib/mock-data';
+import { useState, useMemo, useEffect } from 'react';
+import type { AuditFinding, SpecialAudit, AuditTypeCategory, AuditHierarchyNode, Branch } from '@/types';
 import { DashboardStats } from './DashboardStats';
 import { DashboardCharts } from './DashboardCharts';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Filter, Calendar, Building2, Layers, FilterX } from 'lucide-react';
+import { Filter, Calendar, Building2, Layers, FilterX, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { isWithinInterval, subMonths } from 'date-fns';
+import { getDashboardData } from '@/app/actions/dashboard';
 
 const auditTypes: AuditTypeCategory[] = ['Branch', 'District', 'Division', 'Department', 'Chief', 'CEO', 'Board'];
 
 export default function AuditDashboard() {
-  const [findings] = useState<AuditFinding[]>(initialFindings);
-  const [specialAudits] = useState<SpecialAudit[]>(initialSpecialAudits);
+  const [findings, setFindings] = useState<AuditFinding[]>([]);
+  const [specialAudits, setSpecialAudits] = useState<SpecialAudit[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [hierarchy, setHierarchy] = useState<AuditHierarchyNode[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Filter States
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const data = await getDashboardData();
+        setFindings(data.findings as any);
+        setSpecialAudits(data.specialAudits as any);
+        setBranches(data.branches as any);
+        setHierarchy(data.hierarchy as any);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const filteredFindings = useMemo(() => {
     return findings.filter(f => {
@@ -46,6 +66,15 @@ export default function AuditDashboard() {
     setSelectedPeriod('all');
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex h-[400px] w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground font-medium">Synchronizing with audit database...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Dashboard Filters */}
@@ -66,7 +95,7 @@ export default function AuditDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Branches</SelectItem>
-                    {initialBranches.map(b => <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>)}
+                    {branches.map(b => <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -115,7 +144,7 @@ export default function AuditDashboard() {
       <DashboardStats findings={filteredFindings} specialAudits={specialAudits} />
 
       {/* 2. Charts Row */}
-      <DashboardCharts findings={filteredFindings} specialAudits={specialAudits} />
+      <DashboardCharts findings={filteredFindings} specialAudits={specialAudits} hierarchy={hierarchy} />
       
       <div className="rounded-lg border bg-muted/30 p-8 text-center border-dashed border-primary/20">
         <p className="text-muted-foreground text-sm">
