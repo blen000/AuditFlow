@@ -11,7 +11,6 @@ import {
   MoreHorizontal, 
   Trash2, 
   CheckCircle, 
-  Info,
   Lock,
   Pencil,
   Star,
@@ -23,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { Role, Permission } from '@/types';
+import type { Role } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { AddEditRoleDialog } from '@/components/audit/AddEditRoleDialog';
 import { getRoles, createRole, updateRole, deleteRole } from '@/app/actions/users';
@@ -49,12 +48,13 @@ export default function RoleManagementPage() {
         setRoles(data as any);
       } catch (error) {
         console.error('Error loading roles:', error);
+        toast({ variant: "destructive", title: "Sync Error", description: "Could not retrieve role registry from database." });
       } finally {
         setIsLoading(false);
       }
     }
     loadRoles();
-  }, []);
+  }, [toast]);
 
   const handleAddNew = () => {
     setEditingRole(null);
@@ -67,18 +67,22 @@ export default function RoleManagementPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (roles.find(r => r.id === id)?.name === 'Admin') {
-      toast({ variant: "destructive", title: "Permission Denied", description: "The primary administrator role cannot be deleted." });
+    const roleToDelete = roles.find(r => r.id === id);
+    if (roleToDelete?.name === 'Admin') {
+      toast({ variant: "destructive", title: "Permission Denied", description: "The primary administrator role is locked and cannot be deleted." });
       return;
     }
+    
     try {
       const result = await deleteRole(id);
       if (result.success) {
         setRoles(prev => prev.filter(r => r.id !== id));
-        toast({ title: "Role Removed", description: "The organizational role has been successfully deleted." });
+        toast({ title: "Role Removed", description: "The organizational access profile has been deleted." });
+      } else {
+        throw new Error(result.error);
       }
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to remove role." });
+      toast({ variant: "destructive", title: "Delete Failed", description: "Ensure no users are currently assigned to this role before deletion." });
     }
   };
 
@@ -88,19 +92,18 @@ export default function RoleManagementPage() {
         const result = await updateRole(editingRole.id, roleData);
         if (result.success) {
           setRoles(prev => prev.map(r => r.id === editingRole.id ? { ...r, ...roleData } : r));
-          toast({ title: "Role Updated", description: `${roleData.name} permissions have been updated.` });
+          toast({ title: "Profile Updated", description: `${roleData.name} capabilities have been modified in the database.` });
         }
       } else {
         const result = await createRole(roleData);
         if (result.success) {
-          // Re-fetch roles to get the ID
           const data = await getRoles();
           setRoles(data as any);
-          toast({ title: "Role Created", description: `${roleData.name} is now available for user assignment.` });
+          toast({ title: "Role Defined", description: `New profile "${roleData.name}" is now active for personnel assignment.` });
         }
       }
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to save role." });
+      toast({ variant: "destructive", title: "Persistence Error", description: "An error occurred while communicating with the database." });
     }
     setEditingRole(null);
   };
@@ -109,7 +112,7 @@ export default function RoleManagementPage() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Retrieving Access Profiles...</p>
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Synchronizing Access Profiles...</p>
       </div>
     );
   }
@@ -117,13 +120,13 @@ export default function RoleManagementPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader 
-        title="Role Management" 
-        description="Define and configure system permission profiles in the live database."
+        title="Role & Permission Management" 
+        description="Establish standardized access levels and functional boundaries in the live database."
         backHref="/settings"
       >
         <Button onClick={handleAddNew}>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Create Role
+          Define New Role
         </Button>
       </PageHeader>
       
@@ -133,7 +136,7 @@ export default function RoleManagementPage() {
           <div className="grid grid-cols-1 gap-6">
             {roles.length > 0 ? (
               roles.map((role) => (
-                <Card key={role.id} className="shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+                <Card key={role.id} className="shadow-sm hover:shadow-md transition-shadow relative overflow-hidden border-l-4 border-l-primary/20">
                   {role.isSpecial && (
                     <div className="absolute top-0 right-0 h-16 w-16">
                       <div className="absolute transform rotate-45 bg-amber-500 text-amber-950 text-[8px] font-bold py-1 px-10 right-[-35px] top-[15px] shadow-sm text-center uppercase tracking-tighter">
@@ -141,18 +144,18 @@ export default function RoleManagementPage() {
                       </div>
                     </div>
                   )}
-                  <CardHeader className="flex flex-row items-start justify-between pb-2 bg-muted/10 border-b">
+                  <CardHeader className="flex flex-row items-start justify-between pb-2 bg-muted/5 border-b">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <CardTitle className="text-xl font-bold">{role.name}</CardTitle>
+                        <CardTitle className="text-xl font-black text-primary tracking-tight">{role.name}</CardTitle>
                         {role.name === 'Admin' && <Lock className="h-4 w-4 text-primary opacity-50" />}
                         {role.isSpecial && (
-                          <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200 gap-1 h-5 py-0">
+                          <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200 gap-1 h-5 py-0 font-bold uppercase text-[9px]">
                             <Star className="h-2.5 w-2.5 fill-amber-800" /> Executive
                           </Badge>
                         )}
                       </div>
-                      <CardDescription>{role.description}</CardDescription>
+                      <CardDescription className="text-xs font-medium leading-relaxed max-w-2xl">{role.description}</CardDescription>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -160,13 +163,13 @@ export default function RoleManagementPage() {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem onClick={() => handleEdit(role)}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit Role
+                          <Pencil className="mr-2 h-4 w-4" /> Edit Permissions
                         </DropdownMenuItem>
                         {role.name !== 'Admin' && (
                           <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(role.id)}>
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete Role
+                            <Trash2 className="mr-2 h-4 w-4" /> Purge Role
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
@@ -176,16 +179,16 @@ export default function RoleManagementPage() {
                     <div className="space-y-4">
                       <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                         <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                        Assigned System Capabilities
+                        Authorized System Capabilities
                       </h4>
                       <div className="flex flex-wrap gap-2">
                         {role.permissions.map((perm) => (
                           <Badge 
                             key={perm} 
                             variant="outline" 
-                            className={`flex items-center gap-1.5 py-1 px-2.5 font-semibold text-xs border-none ${permissionLabels[perm]?.color || 'bg-gray-100'}`}
+                            className={`flex items-center gap-1.5 py-1 px-3 font-bold text-[10px] border-none shadow-sm uppercase tracking-tighter ${permissionLabels[perm]?.color || 'bg-gray-100'}`}
                           >
-                            <CheckCircle className="h-3.5 w-3.5" />
+                            <CheckCircle className="h-3 w-3" />
                             {permissionLabels[perm]?.label || perm}
                           </Badge>
                         ))}
@@ -195,10 +198,13 @@ export default function RoleManagementPage() {
                 </Card>
               ))
             ) : (
-              <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/10">
-                <ShieldCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-                <h3 className="text-lg font-bold">No Roles Defined</h3>
-                <p className="text-muted-foreground">Click "Create Role" to establish your organizational access hierarchy.</p>
+              <div className="text-center py-24 border-2 border-dashed rounded-3xl bg-muted/5">
+                <ShieldCheck className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-10" />
+                <h3 className="text-xl font-bold">No Roles Found</h3>
+                <p className="text-muted-foreground text-sm max-w-xs mx-auto">Establish your organizational access hierarchy by defining the first functional role.</p>
+                <Button onClick={handleAddNew} className="mt-6">
+                  <PlusCircle className="mr-2 h-4 w-4" /> Define Initial Role
+                </Button>
               </div>
             )}
           </div>
