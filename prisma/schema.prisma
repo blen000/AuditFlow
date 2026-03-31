@@ -1,0 +1,239 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- User & Role Models ---
+
+model User {
+  id         String   @id @default(cuid())
+  fullName   String
+  email      String   @unique
+  role       String   // References Role.name
+  status     String   @default("Active") // "Active", "Inactive"
+  dateJoined DateTime @default(now())
+  branch     String?
+  district   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  permissions String[] // e.g., ["audit_read", "audit_write"]
+  isSpecial   Boolean  @default(false)
+}
+
+// --- Organizational Setup ---
+
+model District {
+  id       String   @id @default(cuid())
+  name     String   @unique
+  branches Branch[]
+}
+
+model Branch {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  districtId String
+  district   District @relation(fields: [districtId], references: [id])
+}
+
+model Department {
+  id   String @id @default(cuid())
+  name String @unique
+}
+
+model Chief {
+  id   String @id @default(cuid())
+  name String @unique
+}
+
+model CEO {
+  id   String @id @default(cuid())
+  name String @unique
+}
+
+model Board {
+  id   String @id @default(cuid())
+  name String @unique
+}
+
+model RiskLevel {
+  id   String @id @default(cuid())
+  name String @unique
+}
+
+model Status {
+  id   String @id @default(cuid())
+  name String @unique
+}
+
+model Auditor {
+  id       String @id @default(cuid())
+  fullName String
+  email    String @unique
+  phone    String
+}
+
+// --- Audit Hierarchy & Dynamic Fields ---
+
+model AuditHierarchyNode {
+  id           String                   @id @default(cuid())
+  parentId     String?
+  parent       AuditHierarchyNode?      @relation("HierarchyTree", fields: [parentId], references: [id])
+  children     AuditHierarchyNode[]     @relation("HierarchyTree")
+  level        Int
+  number       String                   // e.g., "1.1.1"
+  title        String
+  customFields CustomFieldDefinition[]
+  findings     AuditFinding[]
+}
+
+model CustomFieldDefinition {
+  id     String             @id @default(cuid())
+  nodeId String
+  node   AuditHierarchyNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  name   String             // e.g., "Involved Cash"
+  type   String             // "text" or "number"
+}
+
+// --- Standard Audit Findings ---
+
+model AuditFinding {
+  id                      String             @id @default(cuid())
+  hierarchyNodeId         String
+  hierarchyNode           AuditHierarchyNode @relation(fields: [hierarchyNodeId], references: [id])
+  
+  parentCaseNumber        String             // Level 1 Mission Number
+  parentSummary           String             // Level 1 Mission Title
+  subsectionId            String?            // Level 2 Ref
+  subsectionTitle         String?            // Level 2 Title
+  title                   String             // Level 3/Leaf Title
+  
+  category                String             // e.g., "Cash", "Security"
+  details                 String             @db.Text
+  riskLevel               String             // "High", "Medium", "Low"
+  branchOrDepartment      String
+  auditType               String             // "Branch", "District", etc.
+  recommendation          String             @db.Text
+  status                  String             // "Open", "Mitigated", etc.
+  
+  revalidationDate        DateTime?
+  auditeeAgreement        String             // "Pending", "Agreed", etc.
+  mitigationDueDate       DateTime?
+  auditeeResponse         String?            @db.Text
+  
+  auditCause              String?            @db.Text
+  auditEffect             String?            @db.Text
+  teamLeader              String
+  teamMembers             String[]
+  
+  assignedDate            DateTime?
+  dateCommunicated        DateTime?
+  finalizationDate        DateTime?
+  tatDays                 Int?
+  
+  followUpStatus          String?            // "Pending", "Rectified", etc.
+  followUpRecommendations String?            @db.Text
+  isClosed                Boolean            @default(false)
+  collaboratingWith       String?
+  
+  dynamicValues           Json?              // Stores mapping of custom field IDs to values
+  
+  involvedAmounts         InvolvedAmount[]
+  involvedCases           InvolvedCase[]
+  progressUpdates         ProgressUpdate[]
+  forwardingHistory       ForwardingEntry[]
+  communications          CommunicationEntry[]
+  
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+}
+
+model InvolvedAmount {
+  id        String       @id @default(cuid())
+  findingId String
+  finding   AuditFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  name      String
+  amount    Float
+}
+
+model InvolvedCase {
+  id        String       @id @default(cuid())
+  findingId String
+  finding   AuditFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  ownerName String
+  status    String       // "Open", "Resolved"
+}
+
+model ProgressUpdate {
+  id                 String       @id @default(cuid())
+  findingId          String
+  finding   AuditFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  date               DateTime     @default(now())
+  details            String       @db.Text
+  attachmentFilename String?
+}
+
+model CommunicationEntry {
+  id        String       @id @default(cuid())
+  findingId String
+  finding   AuditFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  type      String       // "verbal", "written", "esc1", "esc2"
+  date      DateTime?
+  meta      String?      // Staff names or Address/Ref
+}
+
+model ForwardingEntry {
+  id        String       @id @default(cuid())
+  findingId String
+  finding   AuditFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  from      String
+  to        String
+  date      DateTime     @default(now())
+  comments  String?      @db.Text
+}
+
+// --- Special Audit Missions ---
+
+model SpecialAudit {
+  id                    String                   @id @default(cuid())
+  shortSummary          String
+  placement             String                   // "Branch", "District", "H.O"
+  placementValue        String
+  amountInvolved        Float
+  recovered             Float
+  pending               Float
+  
+  actionDisciplinary    String                   @db.Text
+  gapWitnessed          String                   @db.Text
+  correctiveActionTaken String                   @db.Text
+  
+  auditCause            String?                  @db.Text
+  auditEffect           String?                  @db.Text
+  recommendation        String?                  @db.Text
+  
+  dateCreated           DateTime                 @default(now())
+  individuals           SpecialAuditIndividual[]
+}
+
+model SpecialAuditIndividual {
+  id             String       @id @default(cuid())
+  specialAuditId String
+  specialAudit   SpecialAudit @relation(fields: [specialAuditId], references: [id], onDelete: Cascade)
+  name           String
+  position       String
+  tenure         String
+  age            Int
+  sex            String       // "Male", "Female"
+}
