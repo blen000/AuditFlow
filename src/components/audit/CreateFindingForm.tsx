@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -40,14 +39,15 @@ import type { Branch, RiskLevelData, Auditor, AuditHierarchyNode } from '@/types
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
-import { PlusCircle, Trash2, ShieldCheck, ChevronDown, Layers, FileText, CalendarIcon, Timer, Info, Search, Settings2 } from 'lucide-react';
+import { PlusCircle, Trash2, ShieldCheck, ChevronDown, Layers, FileText, CalendarIcon, Timer, Info, Search, Settings2, Loader2 } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
-import { initialBranches, initialRiskLevels, initialAuditors, initialHierarchy } from '@/lib/mock-data';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
+import { getFindingFormData, submitFindings } from '@/app/actions/findings';
+import { useToast } from '@/hooks/use-toast';
 
 const leafFindingSchema = z.object({
   title: z.string(),
@@ -77,10 +77,13 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function CreateFindingForm() {
   const router = useRouter();
-  const [branches] = useState<Branch[]>(initialBranches);
-  const [riskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
-  const [auditors] = useState<Auditor[]>(initialAuditors);
-  const [hierarchy] = useState<AuditHierarchyNode[]>(initialHierarchy);
+  const { toast } = useToast();
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [riskLevels, setRiskLevels] = useState<RiskLevelData[]>([]);
+  const [auditors, setAuditors] = useState<Auditor[]>([]);
+  const [hierarchy, setHierarchy] = useState<AuditHierarchyNode[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const form = useForm<FormValues>({
@@ -109,10 +112,30 @@ export function CreateFindingForm() {
     name: 'findings',
   });
 
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const data = await getFindingFormData();
+        setHierarchy(data.hierarchy as any);
+        setBranches(data.branches as any);
+        setRiskLevels(data.riskLevels as any);
+        setAuditors(data.auditors as any);
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Synchronization Error",
+          description: "Could not load audit taxonomy from the database."
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [toast]);
+
   const selectedNodeId = form.watch('hierarchyNodeId');
   const selectedNode = hierarchy.find(n => n.id === selectedNodeId);
 
-  // Synchronize all finding titles whenever the selected hierarchy node changes
   useEffect(() => {
     if (selectedNode) {
       const currentFindings = form.getValues('findings');
@@ -132,16 +155,41 @@ export function CreateFindingForm() {
     );
   }, [hierarchy, searchQuery]);
 
-  function onSubmit(values: FormValues) {
-    // Inject the final node title to ensure consistency across all sub-findings
-    if (selectedNode) {
-      values.findings = values.findings.map(f => ({
-        ...f,
-        title: selectedNode.title
-      }));
+  async function onSubmit(values: FormValues) {
+    try {
+      if (selectedNode) {
+        values.findings = values.findings.map(f => ({
+          ...f,
+          title: selectedNode.title
+        }));
+      }
+      
+      const result = await submitFindings(values);
+      if (result.success) {
+        toast({
+          title: "Mission Logged",
+          description: "Audit findings have been successfully committed to the database."
+        });
+        router.push('/auditee-view');
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: "An error occurred while saving to the live database."
+      });
     }
-    console.log('Logging findings with dynamic values locally', values);
-    router.push('/auditee-view');
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Initializing Audit Taxonomy...</p>
+      </div>
+    );
   }
 
   return (
@@ -204,27 +252,31 @@ export function CreateFindingForm() {
                             </div>
                             <ScrollArea className="h-[350px]">
                               <div className="p-1">
-                                {filteredHierarchy.map((node) => (
-                                  <div 
-                                    key={node.id} 
-                                    className={cn(
-                                      "flex items-center gap-3 p-3 rounded-md cursor-pointer hover:bg-primary/5 transition-colors",
-                                      field.value === node.id && "bg-primary/10"
-                                    )}
-                                    onClick={() => {
-                                      field.onChange(node.id);
-                                      setSearchQuery('');
-                                    }}
-                                  >
-                                    <div className="flex items-center">
-                                      {Array.from({ length: node.level - 1 }).map((_, i) => (
-                                        <div key={i} className="w-3 border-l h-4 ml-1" />
-                                      ))}
-                                      <Badge variant="outline" className="font-mono text-[10px] h-5 py-0 min-w-8 flex justify-center">{node.number}</Badge>
+                                {filteredHierarchy.length > 0 ? (
+                                  filteredHierarchy.map((node) => (
+                                    <div 
+                                      key={node.id} 
+                                      className={cn(
+                                        "flex items-center gap-3 p-3 rounded-md cursor-pointer hover:bg-primary/5 transition-colors",
+                                        field.value === node.id && "bg-primary/10"
+                                      )}
+                                      onClick={() => {
+                                        field.onChange(node.id);
+                                        setSearchQuery('');
+                                      }}
+                                    >
+                                      <div className="flex items-center">
+                                        {Array.from({ length: node.level - 1 }).map((_, i) => (
+                                          <div key={i} className="w-3 border-l h-4 ml-1" />
+                                        ))}
+                                        <Badge variant="outline" className="font-mono text-[10px] h-5 py-0 min-w-8 flex justify-center">{node.number}</Badge>
+                                      </div>
+                                      <span className={cn("text-sm", node.level === 1 ? "font-bold" : "font-medium text-muted-foreground")}>{node.title}</span>
                                     </div>
-                                    <span className={cn("text-sm", node.level === 1 ? "font-bold" : "font-medium text-muted-foreground")}>{node.title}</span>
-                                  </div>
-                                ))}
+                                  ))
+                                ) : (
+                                  <div className="p-8 text-center text-xs text-muted-foreground">No matches found in taxonomy.</div>
+                                )}
                               </div>
                             </ScrollArea>
                           </PopoverContent>
