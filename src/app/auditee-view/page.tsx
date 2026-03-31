@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import PageHeader from '@/components/layout/PageHeader';
 import {
@@ -12,7 +12,7 @@ import {
 import { AuditFindingCard } from '@/components/audit/AuditFindingCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Filter, PlusCircle, Search, ShieldCheck, Layers, ChevronRight, ChevronDown, Building2, Briefcase, FilterX } from 'lucide-react';
+import { Filter, PlusCircle, Search, ShieldCheck, ChevronRight, ChevronDown, Building2, Briefcase, FilterX, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -23,20 +23,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import type { AuditFinding, Branch, RiskLevelData, StatusData, RiskLevel, FindingStatus, Department } from '@/types';
-import { initialBranches, initialFindings, initialRiskLevels, initialStatuses, initialDepartments } from '@/lib/mock-data';
 import { CaseReportDialog } from '@/components/audit/CaseReportDialog';
-import { cn } from '@/lib/utils';
+import { getAuditeeViewData } from '@/app/actions/auditee-view';
 
 export default function AuditeeViewPage() {
-  const [branches] = useState<Branch[]>(initialBranches);
-  const [departments] = useState<Department[]>(initialDepartments);
-  const [findings, setFindings] = useState<AuditFinding[]>(initialFindings);
+  const [isLoading, setIsLoading] = useState(true);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [findings, setFindings] = useState<AuditFinding[]>([]);
+  const [allRiskLevels, setAllRiskLevels] = useState<RiskLevelData[]>([]);
+  const [allStatuses, setAllStatuses] = useState<StatusData[]>([]);
   
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
-  
-  const [allRiskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
-  const [allStatuses] = useState<StatusData[]>(initialStatuses);
   const [riskFilter, setRiskFilter] = useState<RiskLevel[]>([]);
   const [statusFilter, setStatusFilter] = useState<FindingStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,6 +44,24 @@ export default function AuditeeViewPage() {
   // Expansion State
   const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
   const [expandedSubsections, setExpandedSubsections] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const data = await getAuditeeViewData();
+        setFindings(data.findings as any);
+        setBranches(data.branches as any);
+        setDepartments(data.departments as any);
+        setAllRiskLevels(data.riskLevels as any);
+        setAllStatuses(data.statuses as any);
+      } catch (error) {
+        console.error('Error loading auditee view data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const toggleCase = (caseNum: string) => {
     const next = new Set(expandedCases);
@@ -104,16 +121,15 @@ export default function AuditeeViewPage() {
     const searchMatch = searchQuery === '' ||
       finding.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       finding.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      finding.parentSummary.toLowerCase().includes(searchQuery.toLowerCase());
+      (finding.parentSummary || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const auditorMatch = auditorSearch === '' || 
-      finding.teamLeader.toLowerCase().includes(auditorSearch.toLowerCase()) ||
-      finding.teamMembers.some(m => m.toLowerCase().includes(auditorSearch.toLowerCase()));
+      (finding.teamLeader || '').toLowerCase().includes(auditorSearch.toLowerCase()) ||
+      (finding.teamMembers || []).some(m => m.toLowerCase().includes(auditorSearch.toLowerCase()));
 
     return branchMatch && deptMatch && riskMatch && statusMatch && searchMatch && auditorMatch;
   });
 
-  // Grouped Rendering: Case (L1) -> Subsection (L2) -> Findings (L3)
   const hierarchicalData = useMemo(() => {
     const cases: Record<string, { 
       summary: string, 
@@ -124,7 +140,7 @@ export default function AuditeeViewPage() {
     filteredFindings.forEach(f => {
       const caseNum = f.parentCaseNumber || '0';
       if (!cases[caseNum]) {
-        cases[caseNum] = { summary: f.parentSummary, allFindings: [], subsections: {} };
+        cases[caseNum] = { summary: f.parentSummary || 'Untitled Mission', allFindings: [], subsections: {} };
       }
       
       cases[caseNum].allFindings.push(f);
@@ -139,16 +155,27 @@ export default function AuditeeViewPage() {
       cases[caseNum].subsections[subKey].findings.push(f);
     });
     
-    return Object.entries(cases).sort((a, b) => a[0].localeCompare(b[0]));
+    return Object.entries(cases).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
   }, [filteredFindings]);
 
   const hasActiveFilters = selectedBranch !== 'all' || selectedDepartment !== 'all' || riskFilter.length > 0 || statusFilter.length > 0 || searchQuery !== '' || auditorSearch !== '';
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Synchronizing Mission Data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader
         title="Auditee Mission Control"
-        description="Filter by branch or department to manage hierarchical audit findings."
+        description="Filter by branch or department to manage hierarchical audit findings from live database."
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-7xl">
@@ -349,7 +376,7 @@ export default function AuditeeViewPage() {
                     <Search className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <h3 className="text-xl font-bold">No missions found</h3>
-                  <p className="text-muted-foreground">Adjust your filters to view hierarchical audit results.</p>
+                  <p className="text-muted-foreground">Adjust your filters to view hierarchical audit results from the live database.</p>
                 </div>
               )}
             </div>
