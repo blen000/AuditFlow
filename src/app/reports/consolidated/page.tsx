@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
-import { initialFindings, initialHierarchy } from '@/lib/mock-data';
 import { 
   Table, 
   TableBody, 
@@ -13,13 +12,30 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Printer, ShieldCheck, ChevronRight, Layers } from 'lucide-react';
+import { Printer, ShieldCheck, Loader2 } from 'lucide-react';
 import type { AuditFinding, AuditHierarchyNode } from '@/types';
 import { cn } from '@/lib/utils';
+import { getConsolidatedReportData } from '@/app/actions/reports';
 
 export default function ConsolidatedReportPage() {
-  const [findings] = useState<AuditFinding[]>(initialFindings);
-  const [hierarchy] = useState<AuditHierarchyNode[]>(initialHierarchy);
+  const [findings, setFindings] = useState<AuditFinding[]>([]);
+  const [hierarchy, setHierarchy] = useState<AuditHierarchyNode[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const data = await getConsolidatedReportData();
+        setFindings(data.findings as any);
+        setHierarchy(data.hierarchy as any);
+      } catch (error) {
+        console.error('Error loading consolidated report:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   // Group findings by hierarchy node
   const findingsByNode = useMemo(() => {
@@ -135,6 +151,15 @@ export default function ConsolidatedReportPage() {
       );
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Compiling Hierarchical Report...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">

@@ -7,23 +7,38 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Users, ShieldCheck, AlertCircle, Clock } from 'lucide-react';
-import { initialFindings, initialAuditors } from '@/lib/mock-data';
-import type { Auditor } from '@/types';
+import { Search, Users, ShieldCheck, AlertCircle, Clock, Loader2 } from 'lucide-react';
+import type { Auditor, AuditFinding } from '@/types';
 import { differenceInDays } from 'date-fns';
+import { getAssignmentReportData } from '@/app/actions/reports';
 
 export default function AssignmentsPage() {
   const [mounted, setMounted] = useState(false);
-  const [auditors] = useState<Auditor[]>(initialAuditors);
+  const [isLoading, setIsLoading] = useState(true);
+  const [auditors, setAuditors] = useState<Auditor[]>([]);
+  const [findings, setFindings] = useState<AuditFinding[]>([]);
+  
   const [selectedAuditor, setSelectedAuditor] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
     setMounted(true);
+    async function loadData() {
+      try {
+        const data = await getAssignmentReportData();
+        setFindings(data.findings as any);
+        setAuditors(data.auditors as any);
+      } catch (error) {
+        console.error('Error loading assignments:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
   }, []);
 
   const filteredFindings = useMemo(() => {
-    return initialFindings.filter(finding => {
+    return findings.filter(finding => {
       const auditorMatch = selectedAuditor === 'all' || 
                            finding.teamLeader === selectedAuditor ||
                            finding.teamMembers.includes(selectedAuditor);
@@ -35,22 +50,31 @@ export default function AssignmentsPage() {
       
       return auditorMatch && searchMatch;
     });
-  }, [selectedAuditor, searchQuery]);
+  }, [findings, selectedAuditor, searchQuery]);
 
   const auditorStats = useMemo(() => {
     if (selectedAuditor === 'all') return null;
     
-    const ledCount = initialFindings.filter(f => f.teamLeader === selectedAuditor).length;
-    const memberCount = initialFindings.filter(f => f.teamMembers.includes(selectedAuditor)).length;
+    const ledCount = findings.filter(f => f.teamLeader === selectedAuditor).length;
+    const memberCount = findings.filter(f => f.teamMembers.includes(selectedAuditor)).length;
     
     return { ledCount, memberCount };
-  }, [selectedAuditor]);
+  }, [findings, selectedAuditor]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Synchronizing Assignment Logs...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader 
         title="Audit Assignments" 
-        description="Official roles, team structures, and KPI performance tracking."
+        description="Official roles, team structures, and KPI performance tracking from database."
         backHref="/reports"
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">

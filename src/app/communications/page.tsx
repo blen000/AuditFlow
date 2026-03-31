@@ -7,26 +7,39 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MessageSquare, Calendar, Link as LinkIcon, History, FilterX, Info } from 'lucide-react';
-import { initialFindings } from '@/lib/mock-data';
-import type { AuditTypeCategory } from '@/types';
+import { Search, MessageSquare, Calendar, Link as LinkIcon, History, FilterX, Info, Loader2 } from 'lucide-react';
+import type { AuditTypeCategory, AuditFinding } from '@/types';
 import { format } from 'date-fns';
 import { AgreementBadge } from '@/components/audit/AgreementBadge';
 import { Button } from '@/components/ui/button';
+import { getCommunicationReportData } from '@/app/actions/reports';
 
 const auditTypes: AuditTypeCategory[] = ['Branch', 'District', 'Division', 'Department', 'Chief', 'CEO', 'Board'];
 
 export default function CommunicationsPage() {
   const [mounted, setMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [findings, setFindings] = useState<AuditFinding[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
 
   useEffect(() => {
     setMounted(true);
+    async function loadData() {
+      try {
+        const data = await getCommunicationReportData();
+        setFindings(data as any);
+      } catch (error) {
+        console.error('Error loading communications:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
   }, []);
 
   const filteredFindings = useMemo(() => {
-    return initialFindings.filter(finding => {
+    return findings.filter(finding => {
       const typeMatch = selectedType === 'all' || finding.auditType === selectedType;
       const searchMatch = searchQuery === '' || 
                           finding.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -34,7 +47,16 @@ export default function CommunicationsPage() {
                           finding.branchOrDepartment.toLowerCase().includes(searchQuery.toLowerCase());
       return typeMatch && searchMatch;
     });
-  }, [selectedType, searchQuery]);
+  }, [findings, selectedType, searchQuery]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Retrieving Communication History...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -118,16 +140,16 @@ export default function CommunicationsPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-xs font-medium pt-4">
-                            {mounted && finding.assignedDate ? format(finding.assignedDate as Date, 'MMM d, yyyy') : '--'}
+                            {mounted && finding.assignedDate ? format(new Date(finding.assignedDate as any), 'MMM d, yyyy') : '--'}
                           </TableCell>
                           <TableCell className="text-xs font-medium text-muted-foreground pt-4">
-                            {mounted && finding.dateCommunicated ? format(finding.dateCommunicated as Date, 'MMM d, yyyy') : 'Pending Response'}
+                            {mounted && finding.dateCommunicated ? format(new Date(finding.dateCommunicated as any), 'MMM d, yyyy') : 'Pending Response'}
                           </TableCell>
                           <TableCell className="pt-4">
                             {mounted && finding.mitigationDueDate ? (
                               <div className="flex items-center gap-2 text-xs font-bold text-foreground">
                                 <Calendar className="h-3 w-3 text-accent" />
-                                {format(finding.mitigationDueDate as Date, 'MMM d, yyyy')}
+                                {format(new Date(finding.mitigationDueDate as any), 'MMM d, yyyy')}
                               </div>
                             ) : (
                               <span className="text-xs text-muted-foreground italic">Not established</span>
