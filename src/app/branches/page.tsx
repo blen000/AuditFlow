@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, MapPin, Trash2, Edit } from 'lucide-react';
+import { PlusCircle, MapPin, Trash2, Edit, Loader2 } from 'lucide-react';
 import { AddEditBranchDialog } from '@/components/audit/AddEditBranchDialog';
 import PageHeader from '@/components/layout/PageHeader';
 import type { Branch, District } from '@/types';
-import { initialBranches, initialDistricts } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -16,14 +15,34 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
+import { getBranches, getDistricts, createBranch, updateBranch, deleteBranch } from '@/app/actions/settings';
 
 export default function BranchesPage() {
   const { toast } = useToast();
-  const [branches, setBranches] = useState<Branch[]>(initialBranches);
-  const [districts] = useState<District[]>(initialDistricts);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [branchData, districtData] = await Promise.all([
+          getBranches(),
+          getDistricts()
+        ]);
+        setBranches(branchData.map(b => ({ ...b, district: b.district.name })) as any);
+        setDistricts(districtData as any);
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Sync Error' });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [toast]);
 
   const handleAddNew = () => {
     setEditingBranch(null);
@@ -35,38 +54,47 @@ export default function BranchesPage() {
     setDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setBranches(prev => prev.filter(b => b.id !== id));
-    toast({
-      title: "Branch removed",
-      description: "The branch has been successfully deleted.",
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteBranch(id);
+      setBranches(prev => prev.filter(b => b.id !== id));
+      toast({ title: "Branch removed" });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Delete failed' });
+    }
   };
 
-  const handleSubmit = (branchData: Omit<Branch, 'id'>) => {
-    if (editingBranch && editingBranch.id) {
-      setBranches(prev => prev.map(b => b.id === editingBranch.id ? { ...b, ...branchData } : b));
-      toast({
-        title: "Branch updated",
-        description: `${branchData.name} has been updated.`,
-      });
-    } else {
-      const newBranch = { ...branchData, id: `BR-${Date.now()}` };
-      setBranches(prev => [...prev, newBranch]);
-      toast({
-        title: "Branch added",
-        description: `${branchData.name} is now registered.`,
-      });
+  const handleSubmit = async (branchData: Omit<Branch, 'id'>) => {
+    try {
+      if (editingBranch && editingBranch.id) {
+        await updateBranch(editingBranch.id, branchData);
+        toast({ title: "Branch updated" });
+      } else {
+        await createBranch(branchData);
+        toast({ title: "Branch added" });
+      }
+      const freshBranches = await getBranches();
+      setBranches(freshBranches.map(b => ({ ...b, district: b.district.name })) as any);
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Save failed' });
     }
     setEditingBranch(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="flex min-h-screen w-full flex-col bg-background">
         <PageHeader
           title="Branches Management"
-          description="View and manage your organization's physical bank branches."
+          description="View and manage your organization's physical bank branches from the live database."
           backHref="/settings"
         >
           <Button onClick={handleAddNew}>
@@ -121,7 +149,7 @@ export default function BranchesPage() {
                     ))
                   ) : (
                     <li className="p-8 text-center text-muted-foreground">
-                      No branches registered yet.
+                      No branches registered in database.
                     </li>
                   )}
                 </ul>

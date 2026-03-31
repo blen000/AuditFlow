@@ -24,8 +24,8 @@ model User {
   fullName   String
   email      String   @unique
   password   String
-  roleId     String
   role       Role     @relation(fields: [roleId], references: [id])
+  roleId     String
   status     String   @default("Active")
   dateJoined DateTime @default(now())
   branch     String?
@@ -41,8 +41,8 @@ model District {
 model Branch {
   id         String   @id @default(cuid())
   name       String   @unique
-  districtId String
   district   District @relation(fields: [districtId], references: [id])
+  districtId String
 }
 
 model Department {
@@ -68,59 +68,65 @@ model AuditHierarchyNode {
   level        Int
   number       String               @unique
   title        String
-  customFields Json?                // Store CustomFieldDefinition[]
-  findings     AuditFinding[]
+  customFields Json?                // Array of CustomFieldDefinition
 }
 
 model AuditFinding {
-  id                        String             @id @default(cuid()) // Hierarchical ID, e.g., "1.1.1"
-  hierarchyNodeId           String
-  hierarchyNode             AuditHierarchyNode @relation(fields: [hierarchyNodeId], references: [id])
-  title                     String             // Inherited from node
+  id                        String   @id @default(cuid())
+  parentCaseNumber          String
+  parentSummary             String
+  subsectionId              String?
+  subsectionTitle           String?
+  title                     String
   details                   String
   riskLevel                 String
   branchOrDepartment        String
-  status                    String
+  auditType                 String   @default("Branch")
   recommendation            String
-  auditeeAgreement          String             @default("Pending")
+  status                    String
+  revalidationDate          DateTime?
+  auditeeAgreement          String   @default("Pending")
+  mitigationDueDate         DateTime?
   auditeeResponse           String?
   auditeeAttachmentFilename String?
+  progressUpdates           Json?    // Array of ProgressUpdate
+  findingAttachments        String[]
+  recommendationAttachments  String[]
   auditCause                String?
+  auditCauseAttachments     String[]
   auditEffect               String?
-  involvedAmounts           Json?              // Store InvolvedAmount[]
-  involvedCases             Json?              // Store InvolvedCase[]
-  progressUpdates           Json?              // Store ProgressUpdate[]
+  auditEffectAttachments    String[]
+  involvedAmounts           Json?    // Array of InvolvedAmount
+  involvedCases             Json?    // Array of InvolvedCase
   teamLeader                String
   teamMembers               String[]
-  assignedDate              DateTime?
+  assignedDate              DateTime? @default(now())
   dateCommunicated          DateTime?
   finalizationDate          DateTime?
-  revalidationDate          DateTime?
-  mitigationDueDate         DateTime?
-  tatDays                   Int                @default(15)
-  followUpStatus            String?            @default("Pending")
-  verbalComm                Json?              // Store CommunicationEntry[]
-  writtenComm               Json?              // Store CommunicationEntry[]
-  esc1                      Json?              // Store CommunicationEntry[]
-  esc2                      Json?              // Store CommunicationEntry[]
+  tatDays                   Int?      @default(15)
+  followUpStatus            String?   @default("Pending")
+  verbalComm                Json?     // Array of CommunicationEntry
+  writtenComm               Json?     // Array of CommunicationEntry
+  esc1                      Json?     // Array of CommunicationEntry
+  esc2                      Json?     // Array of CommunicationEntry
   followUpRecommendations   String?
-  isClosed                  Boolean            @default(false)
+  isClosed                  Boolean   @default(false)
   collaboratingWith         String?
-  forwardingHistory         Json?              // Store ForwardingEntry[]
-  dynamicValues             Json?              // Store values for custom fields
-  createdAt                 DateTime           @default(now())
-  updatedAt                 DateTime           @updatedAt
+  forwardingHistory         Json?     // Array of ForwardingEntry
+  hierarchyNodeId           String?
+  dynamicValues             Json?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
 }
 
 model SpecialAudit {
   id                    String                   @id @default(cuid())
   shortSummary          String
-  placement             String                   // Branch, District, H.O
+  placement             String
   placementValue        String
   amountInvolved        Float
   recovered             Float
   pending               Float
-  individuals           SpecialAuditIndividual[]
   actionDisciplinary    String
   gapWitnessed          String
   correctiveActionTaken String
@@ -128,15 +134,16 @@ model SpecialAudit {
   auditEffect           String?
   recommendation        String?
   dateCreated           DateTime                 @default(now())
+  individuals           SpecialAuditIndividual[]
 }
 
 model SpecialAuditIndividual {
   id             String       @id @default(cuid())
-  specialAuditId String
-  specialAudit   SpecialAudit @relation(fields: [specialAuditId], references: [id], onDelete: Cascade)
   name           String
   position       String
   tenure         String
   age            Int
   sex            String
+  specialAudit   SpecialAudit @relation(fields: [specialAuditId], references: [id], onDelete: Cascade)
+  specialAuditId String
 }

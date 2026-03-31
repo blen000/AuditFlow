@@ -1,20 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Loader2 } from 'lucide-react';
 import { AddEditRiskLevelDialog } from '@/components/audit/AddEditRiskLevelDialog';
 import PageHeader from '@/components/layout/PageHeader';
 import type { RiskLevelData } from '@/types';
-import { initialRiskLevels } from '@/lib/mock-data';
+import { getRiskLevels, createRiskLevel, updateRiskLevel } from '@/app/actions/settings';
+import { useToast } from '@/hooks/use-toast';
 
 export default function RiskLevelsPage() {
-  const [riskLevels, setRiskLevels] = useState<RiskLevelData[]>(initialRiskLevels);
+  const { toast } = useToast();
+  const [riskLevels, setRiskLevels] = useState<RiskLevelData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isDialogOpen, setDialogOpen] = useState(false);
-  const [editingRiskLevel, setEditingRiskLevel] =
-    useState<RiskLevelData | null>(null);
+  const [editingRiskLevel, setEditingRiskLevel] = useState<RiskLevelData | null>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const data = await getRiskLevels();
+        setRiskLevels(data as any);
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Sync Error' });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [toast]);
 
   const handleAddNew = () => {
     setEditingRiskLevel(null);
@@ -26,22 +42,37 @@ export default function RiskLevelsPage() {
     setDialogOpen(true);
   };
 
-  const handleSubmit = (riskLevelData: RiskLevelData) => {
-    if (editingRiskLevel && editingRiskLevel.id) {
-      setRiskLevels(prev => prev.map(r => r.id === editingRiskLevel.id ? { ...r, ...riskLevelData } : r));
-    } else {
-      const newRiskLevel = { ...riskLevelData, id: `RISK-${Date.now()}` };
-      setRiskLevels(prev => [...prev, newRiskLevel]);
+  const handleSubmit = async (riskLevelData: RiskLevelData) => {
+    try {
+      if (editingRiskLevel && editingRiskLevel.id) {
+        await updateRiskLevel(editingRiskLevel.id, riskLevelData);
+        toast({ title: 'Risk Level updated' });
+      } else {
+        await createRiskLevel(riskLevelData);
+        toast({ title: 'Risk Level created' });
+      }
+      const freshData = await getRiskLevels();
+      setRiskLevels(freshData as any);
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Save failed' });
     }
     setEditingRiskLevel(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="flex min-h-screen w-full flex-col bg-background">
         <PageHeader
           title="Risk Levels"
-          description="View and manage your organization's risk levels."
+          description="View and manage your organization's risk levels in the live database."
           backHref="/settings"
         >
           <Button onClick={handleAddNew}>

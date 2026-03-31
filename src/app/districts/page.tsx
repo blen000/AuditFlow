@@ -1,19 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Loader2 } from 'lucide-react';
 import { AddEditDistrictDialog } from '@/components/audit/AddEditDistrictDialog';
 import PageHeader from '@/components/layout/PageHeader';
 import type { District } from '@/types';
-import { initialDistricts } from '@/lib/mock-data';
+import { getDistricts, createDistrict, updateDistrict } from '@/app/actions/settings';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DistrictsPage() {
-  const [districts, setDistricts] = useState<District[]>(initialDistricts);
+  const { toast } = useToast();
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingDistrict, setEditingDistrict] = useState<District | null>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const data = await getDistricts();
+        setDistricts(data as any);
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Sync Error' });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [toast]);
 
   const handleAddNew = () => {
     setEditingDistrict(null);
@@ -25,22 +42,37 @@ export default function DistrictsPage() {
     setDialogOpen(true);
   };
 
-  const handleSubmit = (districtData: District) => {
-    if (editingDistrict && editingDistrict.id) {
-      setDistricts(prev => prev.map(d => d.id === editingDistrict.id ? { ...d, ...districtData } : d));
-    } else {
-      const newDistrict = { ...districtData, id: `DIST-${Date.now()}` };
-      setDistricts(prev => [...prev, newDistrict]);
+  const handleSubmit = async (districtData: District) => {
+    try {
+      if (editingDistrict && editingDistrict.id) {
+        await updateDistrict(editingDistrict.id, districtData);
+        toast({ title: 'District updated' });
+      } else {
+        await createDistrict(districtData);
+        toast({ title: 'District created' });
+      }
+      const freshData = await getDistricts();
+      setDistricts(freshData as any);
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Save failed' });
     }
     setEditingDistrict(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="flex min-h-screen w-full flex-col bg-background">
         <PageHeader
           title="Districts"
-          description="View and manage your organization's districts."
+          description="View and manage your organization's districts from the live database."
           backHref="/settings"
         >
           <Button onClick={handleAddNew}>
