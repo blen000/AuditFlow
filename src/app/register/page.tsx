@@ -60,12 +60,14 @@ export default function UserRegistrationPage() {
       try {
         const data = await getRoles();
         setRoles(data as any);
+      } catch (error) {
+        toast({ variant: "destructive", title: "Sync Error", description: "Failed to load roles from database." });
       } finally {
         setIsLoading(false);
       }
     }
     loadRoles();
-  }, []);
+  }, [toast]);
 
   const regularRoles = roles.filter(role => !role.isSpecial);
 
@@ -74,13 +76,13 @@ export default function UserRegistrationPage() {
     try {
       const result = await createUser(values);
       if (result.success) {
-        toast({ title: "Registration Successful", description: `${values.fullName} has been added to the system.` });
+        toast({ title: "Registration Successful", description: `${values.fullName} has been added to the database.` });
         router.push('/users');
       } else {
         throw new Error(result.error);
       }
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to register user." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Registration Failed", description: error.message || "An unexpected error occurred." });
     } finally {
       setIsSubmitting(false);
     }
@@ -90,7 +92,7 @@ export default function UserRegistrationPage() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Preparing Registry...</p>
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Synchronizing Role Registry...</p>
       </div>
     );
   }
@@ -178,7 +180,7 @@ export default function UserRegistrationPage() {
                             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
                             Assigned Role
                           </FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select a role" />
@@ -201,7 +203,7 @@ export default function UserRegistrationPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Initial Status</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select status" />
@@ -221,7 +223,7 @@ export default function UserRegistrationPage() {
                   <div className="flex justify-end gap-3 pt-6 border-t">
                     <Button type="button" variant="outline" onClick={() => router.push('/users')} disabled={isSubmitting}>Cancel</Button>
                     <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Registering...</> : 'Register User'}
+                      {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Committing...</> : 'Register User'}
                     </Button>
                   </div>
                 </form>

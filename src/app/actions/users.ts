@@ -43,6 +43,7 @@ export async function createUser(data: any) {
       data: {
         fullName: data.fullName,
         email: data.email,
+        password: data.password,
         roleId: role.id,
         status: data.status || 'Active',
         branch: data.branch || 'Head Office',
@@ -51,6 +52,8 @@ export async function createUser(data: any) {
     });
 
     revalidatePath('/users');
+    revalidatePath('/register');
+    revalidatePath('/special-onboarding');
     return { success: true };
   } catch (error) {
     console.error('Failed to create user:', error);
