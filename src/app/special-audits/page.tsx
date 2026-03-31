@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,15 +37,15 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  History
+  History,
+  Loader2
 } from 'lucide-react';
-import { initialSpecialAudits } from '@/lib/mock-data';
 import type { SpecialAudit } from '@/types';
 import { AddEditSpecialAuditDialog } from '@/components/audit/AddEditSpecialAuditDialog';
 import { ViewSpecialAuditDialog } from '@/components/audit/ViewSpecialAuditDialog';
 import { useToast } from '@/hooks/use-toast';
 import { getMonth, getQuarter, getYear, format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { getSpecialAudits, deleteSpecialAudit, submitSpecialAudit } from '@/app/actions/special-audits';
 
 type SortConfig = {
   key: 'dateCreated' | 'amountInvolved' | 'id';
@@ -54,7 +54,9 @@ type SortConfig = {
 
 export default function SpecialAuditsPage() {
   const { toast } = useToast();
-  const [audits, setAudits] = useState<SpecialAudit[]>(initialSpecialAudits);
+  const [audits, setAudits] = useState<SpecialAudit[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingAudit, setEditingAudit] = useState<SpecialAudit | null>(null);
@@ -66,6 +68,24 @@ export default function SpecialAuditsPage() {
   const [filterQuarter, setFilterQuarter] = useState<string>('all');
   const [filterYear, setFilterYear] = useState<string>('all');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'dateCreated', direction: 'desc' });
+
+  useEffect(() => {
+    async function loadAudits() {
+      try {
+        const data = await getSpecialAudits();
+        setAudits(data as any);
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Synchronization Error",
+          description: "Could not retrieve special audit history from the live database."
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadAudits();
+  }, [toast]);
 
   const handleAddNew = () => {
     setEditingAudit(null);
@@ -82,12 +102,23 @@ export default function SpecialAuditsPage() {
     setIsViewDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setAudits(prev => prev.filter(a => a.id !== id));
-    toast({
-      title: "Report Deleted",
-      description: "Special audit report has been successfully removed.",
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      const result = await deleteSpecialAudit(id);
+      if (result.success) {
+        setAudits(prev => prev.filter(a => a.id !== id));
+        toast({
+          title: "Report Deleted",
+          description: "Special audit report has been successfully removed from the database.",
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Removal Failed",
+        description: "An error occurred while deleting from the server."
+      });
+    }
   };
 
   const clearFilters = () => {
@@ -134,18 +165,20 @@ export default function SpecialAuditsPage() {
     return result;
   }, [audits, searchQuery, filterMonth, filterQuarter, filterYear, sortConfig]);
 
-  const handleSubmit = (formData: Omit<SpecialAudit, 'id' | 'dateCreated'>) => {
-    if (editingAudit) {
-      setAudits(prev => prev.map(a => a.id === editingAudit.id ? { ...a, ...formData } : a));
-      toast({ title: "Report Updated", description: "Audit details have been modified." });
-    } else {
-      const newAudit: SpecialAudit = {
-        ...formData,
-        id: `SA-${Date.now()}`,
-        dateCreated: new Date().toISOString(),
-      };
-      setAudits(prev => [newAudit, ...prev]);
-      toast({ title: "Report Created", description: "New special audit has been logged." });
+  const handleSubmit = async (formData: Omit<SpecialAudit, 'id' | 'dateCreated'>) => {
+    try {
+      const result = await submitSpecialAudit(formData);
+      if (result.success) {
+        toast({ title: "Report Created", description: "New special audit has been logged to the live database." });
+        // Hard refresh to show new data
+        window.location.reload();
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Persistence Failed",
+        description: "Could not save the special audit to the database."
+      });
     }
   };
 
@@ -154,11 +187,20 @@ export default function SpecialAuditsPage() {
     return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />;
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Synchronizing Records...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader
         title="Special Audit Reports"
-        description="Formal tracking of specialized internal audit missions and monetary reconciliation."
+        description="Formal tracking of specialized internal audit missions and monetary reconciliation from live database."
         backHref="/reports"
       >
         <Button onClick={handleAddNew}>
@@ -251,7 +293,7 @@ export default function SpecialAuditsPage() {
 
           {/* Formal Structured Audit Table */}
           <div className="rounded-sm border-2 border-black overflow-hidden shadow-sm bg-white">
-            <Table className="border-collapse">
+            <Table>
               <TableHeader>
                 <TableRow className="bg-muted/80 hover:bg-muted/80 border-b-2 border-black divide-x-2 divide-black">
                   <TableHead className="w-16 text-center font-black text-black uppercase text-xs">S.No</TableHead>
@@ -321,9 +363,6 @@ export default function SpecialAuditsPage() {
                           <DropdownMenuContent align="end" className="w-40">
                             <DropdownMenuItem onClick={() => handleView(audit)}>
                               <Eye className="mr-2 h-4 w-4" /> View Report
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEdit(audit)}>
-                              <Edit className="mr-2 h-4 w-4" /> Edit Details
                             </DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(audit.id)}>
                               <Trash2 className="mr-2 h-4 w-4" /> Delete Report

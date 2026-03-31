@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -23,10 +24,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, UserPlus, FileText, CircleDollarSign, ShieldAlert, Scale } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Plus, Trash2, UserPlus, FileText, CircleDollarSign, ShieldAlert, Scale, Loader2, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { submitSpecialAudit, getSpecialAuditFormData } from '@/app/actions/special-audits';
+import type { Branch, District, Department } from '@/types';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 const individualSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -54,6 +59,15 @@ const formSchema = z.object({
 
 export default function NewSpecialAuditPage() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -78,16 +92,71 @@ export default function NewSpecialAuditPage() {
     name: 'individuals',
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log('Logging special audit locally', values);
-    router.push('/special-audits');
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const data = await getSpecialAuditFormData();
+        setBranches(data.branches as any);
+        setDistricts(data.districts as any);
+        setDepartments(data.departments as any);
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Synchronization Error",
+          description: "Could not retrieve organizational metadata."
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [toast]);
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    try {
+      const result = await submitSpecialAudit(values);
+      if (result.success) {
+        toast({
+          title: "Mission Committed",
+          description: "Special audit finding has been recorded in the live database."
+        });
+        router.push('/special-audits');
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Persistence Failed",
+        description: "An error occurred while saving the report."
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const selectedPlacement = form.watch('placement');
+  const filteredPlacementOptions = (() => {
+    const list = selectedPlacement === 'Branch' ? branches : selectedPlacement === 'District' ? districts : departments;
+    if (!searchQuery) return list;
+    return list.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  })();
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Initializing Special Audit Engine...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader 
         title="Log Special Audit" 
-        description="Capture findings for specialized audit missions and monetary reconciliation."
+        description="Capture real findings for specialized missions and monetary reconciliation."
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-4xl">
@@ -120,7 +189,7 @@ export default function NewSpecialAuditPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Placement Category</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={(v) => { field.onChange(v); form.setValue('placementValue', ''); }} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger><SelectValue placeholder="Select placement" /></SelectTrigger>
                             </FormControl>
@@ -140,7 +209,52 @@ export default function NewSpecialAuditPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Placement Detail (Name)</FormLabel>
-                          <FormControl><Input placeholder="Enter branch/district name..." {...field} /></FormControl>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={cn("w-full justify-between font-normal", !field.value && "text-muted-foreground")}
+                                >
+                                  {field.value || `Select ${selectedPlacement}...`}
+                                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                              <div className="p-2 border-b">
+                                <Input 
+                                  placeholder="Search..." 
+                                  className="h-8"
+                                  value={searchQuery}
+                                  onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                              </div>
+                              <ScrollArea className="h-48">
+                                <div className="p-1">
+                                  {filteredPlacementOptions.map((item) => (
+                                    <div
+                                      key={item.id}
+                                      className={cn(
+                                        "flex items-center px-3 py-2 text-sm rounded-sm cursor-pointer hover:bg-muted",
+                                        field.value === item.name && "bg-primary/10 font-bold"
+                                      )}
+                                      onClick={() => {
+                                        field.onChange(item.name);
+                                        setSearchQuery('');
+                                      }}
+                                    >
+                                      {item.name}
+                                    </div>
+                                  ))}
+                                  {filteredPlacementOptions.length === 0 && (
+                                    <div className="p-4 text-center text-xs text-muted-foreground">No matches found.</div>
+                                  )}
+                                </div>
+                              </ScrollArea>
+                            </PopoverContent>
+                          </Popover>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -155,7 +269,7 @@ export default function NewSpecialAuditPage() {
                     <CircleDollarSign className="h-5 w-5 text-accent" />
                     Monetary Value Tracking
                   </CardTitle>
-                  <CardDescription>Reconciliation of involved and recovered amounts.</CardDescription>
+                  <CardDescription>Reconciliation of involved and recovered amounts (ETB).</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -384,8 +498,10 @@ export default function NewSpecialAuditPage() {
               </Card>
 
               <div className="flex justify-end gap-3 pt-6 border-t">
-                <Button type="button" variant="outline" onClick={() => router.push('/special-audits')}>Cancel</Button>
-                <Button type="submit" size="lg">Submit Special Audit</Button>
+                <Button type="button" variant="outline" onClick={() => router.push('/special-audits')} disabled={isSubmitting}>Cancel</Button>
+                <Button type="submit" size="lg" disabled={isSubmitting}>
+                  {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Committing...</> : 'Submit Special Audit'}
+                </Button>
               </div>
             </form>
           </Form>

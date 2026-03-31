@@ -75,41 +75,24 @@ async function main() {
     }
   });
 
-  const sub1_1 = await prisma.auditHierarchyNode.create({
+  // 6. Special Audits
+  console.log('Seeding special audits...');
+  await prisma.specialAudit.create({
     data: {
-      number: '1.1',
-      title: 'Dual Control Protocols',
-      level: 2,
-      parentId: root1.id,
-      customFields: [
-        { id: 'cf-2', name: 'Dual Control Witness', type: 'text' }
-      ]
-    }
-  });
-
-  await prisma.auditHierarchyNode.create({
-    data: {
-      number: '1.1.1',
-      title: 'Vault Access Logs',
-      level: 3,
-      parentId: sub1_1.id,
-    }
-  });
-
-  const root2 = await prisma.auditHierarchyNode.create({
-    data: {
-      number: '2',
-      title: 'IT Systems & Cyber Security',
-      level: 1,
-    }
-  });
-
-  await prisma.auditHierarchyNode.create({
-    data: {
-      number: '2.1',
-      title: 'Identity & Access Management',
-      level: 2,
-      parentId: root2.id,
+      shortSummary: 'Financial Discrepancy in Cash Handling',
+      placement: 'Branch',
+      placementValue: 'Main Street Branch',
+      amountInvolved: 50000,
+      recovered: 30000,
+      pending: 20000,
+      actionDisciplinary: 'Suspension pending further investigation',
+      gapWitnessed: 'Lack of daily vault reconciliation',
+      correctiveActionTaken: 'Mandatory daily reconciliation policy implemented',
+      individuals: {
+        create: [
+          { name: 'John Doe', position: 'Cashier', tenure: '2 years', age: 28, sex: 'Male' }
+        ]
+      }
     }
   });
 
