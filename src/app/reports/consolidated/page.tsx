@@ -12,10 +12,11 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Printer, ShieldCheck, Loader2 } from 'lucide-react';
+import { Printer, ShieldCheck, Loader2, Info, Scale, AlertCircle, FileText, CircleDollarSign } from 'lucide-react';
 import type { AuditFinding, AuditHierarchyNode } from '@/types';
 import { cn } from '@/lib/utils';
 import { getConsolidatedReportData } from '@/app/actions/reports';
+import { Badge } from '@/components/ui/badge';
 
 export default function ConsolidatedReportPage() {
   const [findings, setFindings] = useState<AuditFinding[]>([]);
@@ -49,6 +50,13 @@ export default function ConsolidatedReportPage() {
     return map;
   }, [findings]);
 
+  // Check if a node or any of its descendants have findings
+  const nodeHasFindings = (nodeId: string): boolean => {
+    if (findingsByNode[nodeId]?.length > 0) return true;
+    const children = hierarchy.filter(n => n.parentId === nodeId);
+    return children.some(child => nodeHasFindings(child.id));
+  };
+
   // Recursively render hierarchy and their tables
   const renderHierarchy = (parentId: string | null = null, depth: number = 0) => {
     const nodes = hierarchy.filter(n => n.parentId === parentId)
@@ -58,9 +66,11 @@ export default function ConsolidatedReportPage() {
 
     return nodes.map(node => {
       const nodeFindings = findingsByNode[node.id] || [];
-      const hasContent = nodeFindings.length > 0 || hierarchy.some(n => n.parentId === node.id);
+      const hasDirectFindings = nodeFindings.length > 0;
+      const hasDescendantFindings = hierarchy.some(n => n.parentId === node.id && nodeHasFindings(n.id));
 
-      if (!hasContent) return null;
+      // Only show this node if it or its children have findings
+      if (!hasDirectFindings && !hasDescendantFindings) return null;
 
       return (
         <div key={node.id} className="space-y-6">
@@ -82,69 +92,117 @@ export default function ConsolidatedReportPage() {
             </h3>
           </div>
 
-          {nodeFindings.length > 0 && (
+          {hasDirectFindings && (
             <div className="rounded-sm border-2 border-black overflow-hidden shadow-sm bg-white mb-8">
               <Table className="border-collapse">
                 <TableHeader>
                   <TableRow className="bg-muted/80 hover:bg-muted/80 border-b-2 border-black divide-x-2 divide-black">
-                    <TableHead className="w-16 text-center font-black text-black uppercase text-xs">S.N</TableHead>
-                    <TableHead className="min-w-[150px] font-black text-black uppercase text-xs">Name of branch</TableHead>
+                    <TableHead className="w-12 text-center font-black text-black uppercase text-[10px]">S.N</TableHead>
+                    <TableHead className="min-w-[120px] font-black text-black uppercase text-[10px]">Branch / Unit</TableHead>
                     
-                    {/* Render Dynamic Columns for this node */}
+                    {/* Dynamic Taxonomy Columns */}
                     {node.customFields?.map(cf => (
-                      <TableHead key={cf.id} className="text-center font-black text-black uppercase text-xs">
+                      <TableHead key={cf.id} className="text-center font-black text-black uppercase text-[10px]">
                         {cf.name}
                       </TableHead>
                     ))}
 
-                    <TableHead className="min-w-[250px] font-black text-black uppercase text-xs">Impact / Recommendation</TableHead>
-                    <TableHead className="w-32 text-center font-black text-black uppercase text-xs">Branches Response</TableHead>
-                    <TableHead className="w-32 text-center font-black text-black uppercase text-xs">Status</TableHead>
-                    <TableHead className="w-24 text-center font-black text-black uppercase text-xs">Risk Level</TableHead>
+                    <TableHead className="min-w-[200px] font-black text-black uppercase text-[10px]">Finding Details</TableHead>
+                    <TableHead className="min-w-[180px] font-black text-black uppercase text-[10px]">Impact & Analysis</TableHead>
+                    <TableHead className="min-w-[180px] font-black text-black uppercase text-[10px]">Recommendation</TableHead>
+                    <TableHead className="w-24 text-center font-black text-black uppercase text-[10px]">Status</TableHead>
+                    <TableHead className="w-24 text-center font-black text-black uppercase text-[10px]">Risk</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y-2 divide-black">
-                  {nodeFindings.map((finding, idx) => (
-                    <TableRow key={finding.id} className="hover:bg-muted/30 transition-colors divide-x-2 divide-black">
-                      <TableCell className="text-center font-bold text-black align-top">{idx + 1}.</TableCell>
-                      <TableCell className="text-black font-bold align-top py-4">{finding.branchOrDepartment}</TableCell>
-                      
-                      {/* Render Dynamic Cell Values */}
-                      {node.customFields?.map(cf => (
-                        <TableCell key={cf.id} className="text-center font-medium text-black align-top py-4">
-                          {finding.dynamicValues?.[cf.id] ?? '-'}
+                  {nodeFindings.map((finding, idx) => {
+                    const totalInvolved = finding.involvedAmounts?.reduce((sum, item) => sum + item.amount, 0) || 0;
+                    
+                    return (
+                      <TableRow key={finding.id} className="hover:bg-muted/30 transition-colors divide-x-2 divide-black">
+                        <TableCell className="text-center font-bold text-black align-top py-4">{idx + 1}.</TableCell>
+                        <TableCell className="text-black font-bold align-top py-4 text-xs uppercase leading-tight">
+                          {finding.branchOrDepartment}
                         </TableCell>
-                      ))}
+                        
+                        {/* Dynamic Custom Data Cells */}
+                        {node.customFields?.map(cf => (
+                          <TableCell key={cf.id} className="text-center font-medium text-black align-top py-4 text-xs">
+                            {finding.dynamicValues?.[cf.id] !== undefined ? (
+                              cf.type === 'number' ? 
+                                Number(finding.dynamicValues[cf.id]).toLocaleString() : 
+                                finding.dynamicValues[cf.id]
+                            ) : '-'}
+                          </TableCell>
+                        ))}
 
-                      <TableCell className="text-black text-xs leading-relaxed align-top py-4 space-y-3">
-                        {finding.auditEffect && (
-                          <div>
-                            <span className="font-bold underline block mb-1">Effect:</span>
-                            <p className="italic">{finding.auditEffect}</p>
+                        <TableCell className="text-black text-xs leading-relaxed align-top py-4 space-y-2">
+                          <p className="font-medium">{finding.details}</p>
+                          {totalInvolved > 0 && (
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary bg-primary/5 px-2 py-1 rounded">
+                              <CircleDollarSign className="h-3 w-3" />
+                              INVOLVED: ETB {totalInvolved.toLocaleString()}
+                            </div>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="text-black text-xs leading-relaxed align-top py-4 space-y-3">
+                          {finding.auditCause && (
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
+                                <Info className="h-2.5 w-2.5" /> Root Cause
+                              </span>
+                              <p className="italic">{finding.auditCause}</p>
+                            </div>
+                          )}
+                          {finding.auditEffect && (
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
+                                <AlertCircle className="h-2.5 w-2.5" /> Effect
+                              </span>
+                              <p className="font-medium text-destructive">{finding.auditEffect}</p>
+                            </div>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="text-black text-xs leading-relaxed align-top py-4">
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase text-primary flex items-center gap-1">
+                              <Scale className="h-2.5 w-2.5" /> Remedial Measure
+                            </span>
+                            <p className="font-bold">{finding.recommendation}</p>
                           </div>
-                        )}
-                        <div>
-                          <span className="font-bold underline block mb-1">Recommendation:</span>
-                          <p>{finding.recommendation}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center text-xs font-bold text-black align-top py-4">
-                        {finding.auditeeAgreement}
-                      </TableCell>
-                      <TableCell className="text-center text-xs font-bold text-black align-top py-4">
-                        {finding.status}
-                      </TableCell>
-                      <TableCell className="text-center text-xs font-bold text-black align-top py-4">
-                        {finding.riskLevel}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+
+                        <TableCell className="text-center align-top py-4">
+                          <Badge variant="outline" className="text-[9px] font-black border-black text-black h-5 uppercase tracking-tighter">
+                            {finding.status}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="text-center align-top py-4">
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-[9px] font-black h-5 uppercase tracking-tighter",
+                              finding.riskLevel === 'High' ? "bg-red-600 text-white border-red-600" :
+                              finding.riskLevel === 'Medium' ? "bg-amber-500 text-black border-amber-500" :
+                              "bg-green-600 text-white border-green-600"
+                            )}
+                          >
+                            {finding.riskLevel}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
           )}
 
-          <div className="pl-6 border-l-2 border-muted-foreground/10">
+          {/* Render children nodes with indentation */}
+          <div className="pl-6 border-l-2 border-dashed border-muted-foreground/20">
             {renderHierarchy(node.id, depth + 1)}
           </div>
         </div>
@@ -156,7 +214,7 @@ export default function ConsolidatedReportPage() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Compiling Hierarchical Report...</p>
+        <p className="mt-4 text-sm font-bold uppercase tracking-widest text-muted-foreground">Compiling Hierarchical Master Report...</p>
       </div>
     );
   }
@@ -175,7 +233,7 @@ export default function ConsolidatedReportPage() {
       </PageHeader>
       
       <main className="flex-1 p-4 sm:p-6 md:p-12 print:p-0">
-        <div className="mx-auto max-w-7xl space-y-12">
+        <div className="mx-auto max-w-full space-y-12">
           
           {/* Official Memo Header */}
           <div className="text-center space-y-4 border-b-2 border-black pb-8">
@@ -197,16 +255,16 @@ export default function ConsolidatedReportPage() {
             {renderHierarchy()}
           </div>
 
-          {/* Report Footer */}
-          <div className="mt-24 pt-8 border-t-2 border-black/10 flex justify-between items-end">
+          {/* Report Footer for Print */}
+          <div className="mt-24 pt-8 border-t-2 border-black flex justify-between items-end">
             <div className="space-y-1">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Audit Management System</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Audit Flow Platform</p>
               <p className="text-xs font-mono">Ref: CAR-SYS-{Date.now()}</p>
             </div>
             <div className="text-right space-y-1">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Review & Approval</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Authorized Review</p>
               <div className="h-12 w-48 border-b-2 border-dotted border-black mb-1"></div>
-              <p className="text-[10px] font-bold uppercase">Chief Audit Executive</p>
+              <p className="text-[10px] font-bold uppercase tracking-tighter">Chief Audit Executive</p>
             </div>
           </div>
         </div>
