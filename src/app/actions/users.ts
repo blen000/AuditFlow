@@ -1,7 +1,43 @@
+
 'use server';
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+
+export async function loginUser(credentials: any) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: credentials.email },
+      include: { role: true },
+    });
+
+    if (!user || user.password !== credentials.password) {
+      return { success: false, error: 'Invalid email or password.' };
+    }
+
+    if (user.status !== 'Active') {
+      return { success: false, error: 'Account is inactive. Contact administrator.' };
+    }
+
+    // Return sanitized user object with permissions
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role.name,
+        permissions: user.role.permissions,
+        branch: user.branch,
+        district: user.district,
+        dateJoined: user.dateJoined.toISOString().split('T')[0],
+      }
+    };
+  } catch (error) {
+    console.error('Login error:', error);
+    return { success: false, error: 'Authentication failed.' };
+  }
+}
 
 export async function getUsers() {
   try {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { ShieldCheck, Mail, Lock, Eye, EyeOff, Info } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, Eye, EyeOff, Info, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,7 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { initialUsers } from '@/lib/mock-data';
+import { loginUser } from '@/app/actions/users';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
@@ -29,6 +30,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -38,30 +40,39 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof loginSchema>) => {
-    // Check if user exists in our mock data
-    const userExists = initialUsers.find(u => u.email.toLowerCase() === values.email.toLowerCase());
+  const onSubmit = async (values: z.infer<typeof loginSchema>) => {
+    setIsSubmitting(true);
+    try {
+      const result = await loginUser(values);
 
-    if (!userExists) {
+      if (result.success && result.user) {
+        // Set authentication flag and user info in localStorage
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('currentUser', JSON.stringify(result.user));
+        
+        toast({
+          title: "Access Granted",
+          description: `Welcome back, ${result.user.fullName}.`,
+        });
+        
+        // Use window.location for a harder refresh to initialize layout with user state
+        window.location.href = '/';
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: result.error || "Invalid credentials.",
+        });
+      }
+    } catch (error) {
       toast({
         variant: "destructive",
-        title: "Access Denied",
-        description: "User not found in system. Try using the demo credentials.",
+        title: "System Error",
+        description: "An unexpected error occurred during authentication.",
       });
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Set authentication flag in localStorage
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('userEmail', values.email);
-    
-    toast({
-      title: "Welcome back!",
-      description: `Authentication successful for ${userExists.fullName}.`,
-    });
-    
-    // Use window.location for a harder refresh to clear layout state
-    window.location.href = '/';
   };
 
   return (
@@ -148,9 +159,10 @@ export default function LoginPage() {
 
               <Button 
                 type="submit" 
+                disabled={isSubmitting}
                 className="w-full h-14 text-lg font-bold rounded-xl bg-[#8b4513] hover:bg-[#6d350f] text-white shadow-xl shadow-[#8b4513]/20 transition-all active:scale-[0.98]"
               >
-                Log In Securely
+                {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Verifying...</> : 'Log In Securely'}
               </Button>
             </form>
           </Form>
@@ -158,10 +170,9 @@ export default function LoginPage() {
           {/* Demo Credentials Helper */}
           <div className="mt-8 p-4 rounded-xl bg-muted/30 border border-dashed text-[11px] text-muted-foreground">
             <div className="flex items-center gap-2 mb-1 font-bold text-primary uppercase tracking-tight">
-              <Info className="h-3 w-3" /> Demo Credentials
+              <Info className="h-3 w-3" /> System Access Note
             </div>
-            <p>Admin Email: <span className="font-mono font-bold select-all">admin@auditflow.com</span></p>
-            <p>Demo Password: <span className="font-mono font-bold select-all">password</span></p>
+            <p className="leading-relaxed">Use your registered organizational email and password. Access is restricted to authorized personnel only.</p>
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-100 text-center">
