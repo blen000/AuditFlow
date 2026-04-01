@@ -4,9 +4,12 @@ import { prisma } from '@/lib/prisma';
 
 export async function getAuditeeViewData() {
   try {
-    const [findings, branches, departments, riskLevels, statuses] = await Promise.all([
+    const [findings, hierarchy, branches, departments, riskLevels, statuses] = await Promise.all([
       prisma.auditFinding.findMany({
         orderBy: { createdAt: 'desc' },
+      }),
+      prisma.auditHierarchyNode.findMany({
+        orderBy: [{ level: 'asc' }, { number: 'asc' }],
       }),
       prisma.branch.findMany({ orderBy: { name: 'asc' } }),
       prisma.department.findMany({ orderBy: { name: 'asc' } }),
@@ -31,6 +34,7 @@ export async function getAuditeeViewData() {
 
     return {
       findings: formattedFindings,
+      hierarchy: hierarchy.map(h => ({ ...h, customFields: (h.customFields as any[]) || [] })),
       branches,
       departments,
       riskLevels,

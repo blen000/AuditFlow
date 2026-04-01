@@ -12,7 +12,7 @@ import {
 import { AuditFindingCard } from '@/components/audit/AuditFindingCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Filter, PlusCircle, Search, ShieldCheck, ChevronRight, ChevronDown, Building2, Briefcase, FilterX, Loader2 } from 'lucide-react';
+import { Filter, PlusCircle, Search, ShieldCheck, ChevronRight, ChevronDown, Building2, Briefcase, FilterX, Loader2, ListTree } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import type { AuditFinding, Branch, RiskLevelData, StatusData, RiskLevel, FindingStatus, Department } from '@/types';
+import type { AuditFinding, Branch, RiskLevelData, StatusData, RiskLevel, FindingStatus, Department, AuditHierarchyNode } from '@/types';
 import { CaseReportDialog } from '@/components/audit/CaseReportDialog';
 import { getAuditeeViewData } from '@/app/actions/auditee-view';
 
@@ -31,6 +31,7 @@ export default function AuditeeViewPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [findings, setFindings] = useState<AuditFinding[]>([]);
+  const [hierarchy, setHierarchy] = useState<AuditHierarchyNode[]>([]);
   const [allRiskLevels, setAllRiskLevels] = useState<RiskLevelData[]>([]);
   const [allStatuses, setAllStatuses] = useState<StatusData[]>([]);
   
@@ -50,6 +51,7 @@ export default function AuditeeViewPage() {
       try {
         const data = await getAuditeeViewData();
         setFindings(data.findings as any);
+        setHierarchy(data.hierarchy as any);
         setBranches(data.branches as any);
         setDepartments(data.departments as any);
         setAllRiskLevels(data.riskLevels as any);
@@ -63,18 +65,18 @@ export default function AuditeeViewPage() {
     loadData();
   }, []);
 
-  const toggleCase = (caseNum: string) => {
+  const toggleCase = (caseId: string) => {
     const next = new Set(expandedCases);
-    if (next.has(caseNum)) {
-      next.delete(caseNum);
+    if (next.has(caseId)) {
+      next.delete(caseId);
     } else {
-      next.add(caseNum);
+      next.add(caseId);
     }
     setExpandedCases(next);
   };
 
-  const toggleSubsection = (caseNum: string, subId: string) => {
-    const key = `${caseNum}-${subId}`;
+  const toggleSubsection = (caseId: string, subId: string) => {
+    const key = `${caseId}-${subId}`;
     const next = new Set(expandedSubsections);
     if (next.has(key)) {
       next.delete(key);
@@ -120,8 +122,7 @@ export default function AuditeeViewPage() {
     const statusMatch = statusFilter.length === 0 || statusFilter.includes(finding.status);
     const searchMatch = searchQuery === '' ||
       finding.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      finding.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (finding.parentSummary || '').toLowerCase().includes(searchQuery.toLowerCase());
+      finding.title.toLowerCase().includes(searchQuery.toLowerCase());
 
     const auditorMatch = auditorSearch === '' || 
       (finding.teamLeader || '').toLowerCase().includes(auditorSearch.toLowerCase()) ||
@@ -131,32 +132,59 @@ export default function AuditeeViewPage() {
   });
 
   const hierarchicalData = useMemo(() => {
-    const cases: Record<string, { 
-      summary: string, 
-      allFindings: AuditFinding[], 
-      subsections: Record<string, { title: string, findings: AuditFinding[] }> 
-    }> = {};
-    
+    if (hierarchy.length === 0) return [];
+
+    const nodesWithFindings = new Map<string, AuditFinding[]>();
     filteredFindings.forEach(f => {
-      const caseNum = f.parentCaseNumber || '0';
-      if (!cases[caseNum]) {
-        cases[caseNum] = { summary: f.parentSummary || 'Untitled Mission', allFindings: [], subsections: {} };
-      }
-      
-      cases[caseNum].allFindings.push(f);
-      
-      const subKey = f.subsectionId || 'default';
-      const subTitle = f.subsectionTitle || 'General Subsection';
-      
-      if (!cases[caseNum].subsections[subKey]) {
-        cases[caseNum].subsections[subKey] = { title: subTitle, findings: [] };
-      }
-      
-      cases[caseNum].subsections[subKey].findings.push(f);
+      const list = nodesWithFindings.get(f.hierarchyNodeId) || [];
+      list.push(f);
+      nodesWithFindings.set(f.hierarchyNodeId, list);
     });
+
+    const level1Nodes = hierarchy.filter(n => n.level === 1);
     
-    return Object.entries(cases).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
-  }, [filteredFindings]);
+    return level1Nodes.map(mission => {
+      const missionFindings: AuditFinding[] = [];
+      const subsections: Record<string, { title: string, findings: AuditFinding[] }> = {};
+
+      // Find all findings that belong to this Level 1 tree
+      hierarchy.forEach(node => {
+        let isDescendant = false;
+        let current: AuditHierarchyNode | undefined = node;
+        while (current) {
+          if (current.id === mission.id) {
+            isDescendant = true;
+            break;
+          }
+          current = hierarchy.find(h => h.id === current?.parentId);
+        }
+
+        if (isDescendant) {
+          const findingsAtNode = nodesWithFindings.get(node.id) || [];
+          if (findingsAtNode.length > 0) {
+            missionFindings.push(...findingsAtNode);
+            
+            // For Level 2+ nodes, group them as subsections
+            if (node.level >= 2) {
+              const subId = node.number;
+              if (!subsections[subId]) {
+                subsections[subId] = { title: node.title, findings: [] };
+              }
+              subsections[subId].findings.push(...findingsAtNode);
+            }
+          }
+        }
+      });
+
+      return {
+        id: mission.id,
+        number: mission.number,
+        title: mission.title,
+        allFindings: missionFindings,
+        subsections: Object.entries(subsections).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
+      };
+    }).filter(m => m.allFindings.length > 0);
+  }, [filteredFindings, hierarchy]);
 
   const hasActiveFilters = selectedBranch !== 'all' || selectedDepartment !== 'all' || riskFilter.length > 0 || statusFilter.length > 0 || searchQuery !== '' || auditorSearch !== '';
 
@@ -175,7 +203,7 @@ export default function AuditeeViewPage() {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader
         title="Auditee Mission Control"
-        description="Filter by branch or department to manage hierarchical audit findings from live database."
+        description="Dynamic hierarchical management of audit findings from the live database."
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-7xl">
@@ -230,7 +258,7 @@ export default function AuditeeViewPage() {
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight">Mission Oversight</h2>
                   <p className="text-sm text-muted-foreground">
-                    Hierarchical management for filtered organizational units. Click headers to expand findings.
+                    Hierarchical findings grouped by Level 1 Missions defined in System Settings.
                   </p>
                 </div>
                 <Button asChild>
@@ -246,7 +274,7 @@ export default function AuditeeViewPage() {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Search Reference, Summary or Title..."
+                    placeholder="Search Reference or Title..."
                     className="pl-8 bg-background"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -299,46 +327,47 @@ export default function AuditeeViewPage() {
 
             <div className="space-y-8">
               {hierarchicalData.length > 0 ? (
-                hierarchicalData.map(([caseNum, caseGroup]) => {
-                  const isCaseExpanded = expandedCases.has(caseNum);
+                hierarchicalData.map((mission) => {
+                  const isCaseExpanded = expandedCases.has(mission.id);
                   
                   return (
-                    <div key={caseNum} className="space-y-4">
-                      {/* Level 1: Mission */}
+                    <div key={mission.id} className="space-y-4">
+                      {/* Level 1 Header: Mission */}
                       <div 
                         className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-primary/5 p-4 rounded-xl border border-primary/20 hover:bg-primary/10 transition-colors cursor-pointer group" 
-                        onClick={() => toggleCase(caseNum)}
+                        onClick={() => toggleCase(mission.id)}
                       >
                         <div className="flex items-center gap-4">
                           {isCaseExpanded ? <ChevronDown className="h-5 w-5 text-primary" /> : <ChevronRight className="h-5 w-5 text-primary" />}
                           <Badge className="h-10 w-14 rounded-lg flex items-center justify-center text-xl font-bold bg-primary text-primary-foreground font-mono">
-                            {caseNum}
+                            {mission.number}
                           </Badge>
                           <div className="flex flex-col">
-                            <h3 className="text-2xl font-black tracking-tight text-foreground uppercase">{caseGroup.summary}</h3>
-                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Main Audit Mission Case #{caseNum}</p>
+                            <h3 className="text-xl font-black tracking-tight text-foreground uppercase">{mission.title}</h3>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Main Mission Taxonomy #{mission.number}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
                           <CaseReportDialog 
-                            caseNum={caseNum} 
-                            caseSummary={caseGroup.summary} 
-                            findings={caseGroup.allFindings} 
+                            caseNum={mission.number} 
+                            caseSummary={mission.title} 
+                            findings={mission.allFindings} 
                           />
                         </div>
                       </div>
 
-                      {/* Level 2: Subsections */}
+                      {/* Level 2: Subsections & Findings */}
                       {isCaseExpanded && (
                         <div className="space-y-6 pl-4 border-l-2 border-dashed border-muted ml-7 animate-in slide-in-from-top-2 duration-200">
-                          {Object.entries(caseGroup.subsections).map(([subId, subGroup]) => {
-                            const isSubExpanded = expandedSubsections.has(`${caseNum}-${subId}`);
+                          {mission.subsections.map(([subId, subGroup]) => {
+                            const subKey = `${mission.id}-${subId}`;
+                            const isSubExpanded = expandedSubsections.has(subKey);
                             
                             return (
                               <div key={subId} className="space-y-4">
                                 <div 
                                   className="flex items-center gap-3 cursor-pointer group hover:opacity-80 transition-opacity"
-                                  onClick={() => toggleSubsection(caseNum, subId)}
+                                  onClick={() => toggleSubsection(mission.id, subId)}
                                 >
                                   {isSubExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                                   <Badge variant="secondary" className="px-3 py-0.5 text-xs font-bold font-mono">
@@ -349,7 +378,7 @@ export default function AuditeeViewPage() {
                                   </h4>
                                 </div>
                                 
-                                {/* Level 3: Detailed Findings */}
+                                {/* Level 3: Detailed Finding Cards */}
                                 {isSubExpanded && (
                                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pl-7 animate-in fade-in zoom-in-95 duration-200">
                                     {subGroup.findings.map(finding => (
@@ -373,10 +402,10 @@ export default function AuditeeViewPage() {
               ) : (
                 <div className="py-24 text-center">
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                    <Search className="h-8 w-8 text-muted-foreground" />
+                    <ListTree className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <h3 className="text-xl font-bold">No missions found</h3>
-                  <p className="text-muted-foreground">Adjust your filters to view hierarchical audit results from the live database.</p>
+                  <p className="text-muted-foreground">Logged findings will automatically appear here grouped by their institutional hierarchy titles.</p>
                 </div>
               )}
             </div>

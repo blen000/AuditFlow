@@ -10,6 +10,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String   @id @default(cuid())
+  fullName      String
+  email         String   @unique
+  password      String
+  roleId        String
+  role          Role     @relation(fields: [roleId], references: [id])
+  status        String   @default("Active")
+  branch        String?
+  district      String?
+  dateJoined    DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 model Role {
   id          String   @id @default(cuid())
   name        String   @unique
@@ -17,32 +32,21 @@ model Role {
   permissions String[]
   isSpecial   Boolean  @default(false)
   users       User[]
-}
-
-model User {
-  id         String   @id @default(cuid())
-  fullName   String
-  email      String   @unique
-  password   String
-  role       Role     @relation(fields: [roleId], references: [id])
-  roleId     String
-  status     String   @default("Active")
-  dateJoined DateTime @default(now())
-  branch     String?
-  district   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model District {
-  id       String   @id @default(cuid())
-  name     String   @unique
-  branches Branch[]
+  id        String   @id @default(cuid())
+  name      String   @unique
+  branches  Branch[]
 }
 
 model Branch {
   id         String   @id @default(cuid())
   name       String   @unique
-  district   District @relation(fields: [districtId], references: [id])
   districtId String
+  district   District @relation(fields: [districtId], references: [id])
 }
 
 model Department {
@@ -69,58 +73,55 @@ model AuditHierarchyNode {
   number       String               @unique
   title        String
   customFields Json?                // Array of CustomFieldDefinition
+  findings     AuditFinding[]
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
 }
 
 model AuditFinding {
-  id                        String   @id @default(cuid())
-  parentCaseNumber          String
-  parentSummary             String
-  subsectionId              String?
-  subsectionTitle           String?
-  title                     String
-  details                   String
-  riskLevel                 String
-  branchOrDepartment        String
-  auditType                 String   @default("Branch")
-  recommendation            String
-  status                    String
-  revalidationDate          DateTime?
-  auditeeAgreement          String   @default("Pending")
-  mitigationDueDate         DateTime?
-  auditeeResponse           String?
+  id                String   @id @default(cuid())
+  title             String   // Title from the hierarchy node at time of creation
+  details           String
+  riskLevel         String
+  branchOrDepartment String
+  recommendation    String
+  status            String   @default("Open")
+  auditeeAgreement  String   @default("Pending")
+  
+  auditCause        String?
+  auditEffect       String?
+  
+  involvedAmounts   Json?    // Array of InvolvedAmount
+  involvedCases     Json?    // Array of InvolvedCase
+  
+  teamLeader        String?
+  teamMembers       Json?    // Array of strings
+  
+  assignedDate      DateTime?
+  dateCommunicated  DateTime?
+  finalizationDate  DateTime?
+  tatDays           Int?     @default(15)
+  
+  revalidationDate  DateTime?
+  mitigationDueDate DateTime?
+  auditeeResponse   String?
   auditeeAttachmentFilename String?
-  progressUpdates           Json?    // Array of ProgressUpdate
-  findingAttachments        String[]
-  recommendationAttachments  String[]
-  auditCause                String?
-  auditCauseAttachments     String[]
-  auditEffect               String?
-  auditEffectAttachments    String[]
-  involvedAmounts           Json?    // Array of InvolvedAmount
-  involvedCases             Json?    // Array of InvolvedCase
-  teamLeader                String
-  teamMembers               String[]
-  assignedDate              DateTime? @default(now())
-  dateCommunicated          DateTime?
-  finalizationDate          DateTime?
-  tatDays                   Int?      @default(15)
-  followUpStatus            String?   @default("Pending")
-  verbalComm                Json?     // Array of CommunicationEntry
-  writtenComm               Json?     // Array of CommunicationEntry
-  esc1                      Json?     // Array of CommunicationEntry
-  esc2                      Json?     // Array of CommunicationEntry
-  followUpRecommendations   String?
-  isClosed                  Boolean   @default(false)
-  collaboratingWith         String?
-  forwardingHistory         Json?     // Array of ForwardingEntry
-  hierarchyNodeId           String?
-  dynamicValues             Json?
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
+  
+  progressUpdates   Json?    // Array of ProgressUpdate
+  dynamicValues     Json?    // Key-value pairs for node-specific fields
+  
+  hierarchyNodeId   String
+  hierarchyNode     AuditHierarchyNode @relation(fields: [hierarchyNodeId], references: [id])
+  
+  isClosed          Boolean  @default(false)
+  followUpStatus    String?  @default("Pending")
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model SpecialAudit {
-  id                    String                   @id @default(cuid())
+  id                    String   @id @default(cuid())
   shortSummary          String
   placement             String
   placementValue        String
@@ -133,7 +134,7 @@ model SpecialAudit {
   auditCause            String?
   auditEffect           String?
   recommendation        String?
-  dateCreated           DateTime                 @default(now())
+  dateCreated           DateTime @default(now())
   individuals           SpecialAuditIndividual[]
 }
 
@@ -144,6 +145,6 @@ model SpecialAuditIndividual {
   tenure         String
   age            Int
   sex            String
-  specialAudit   SpecialAudit @relation(fields: [specialAuditId], references: [id], onDelete: Cascade)
   specialAuditId String
+  specialAudit   SpecialAudit @relation(fields: [specialAuditId], references: [id], onDelete: Cascade)
 }
