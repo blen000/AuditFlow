@@ -18,7 +18,7 @@ export type FindingCategory =
   | 'Others';
 
 export type CommunicationEntry = {
-  date?: Date | Timestamp;
+  date?: Date | Timestamp | string;
   meta?: string; // Individuals for verbal, Address for others
 };
 
@@ -26,7 +26,7 @@ export type ForwardingEntry = {
   id: string;
   from: string;
   to: string;
-  date: Date | Timestamp;
+  date: Date | Timestamp | string;
   comments?: string;
 };
 
@@ -34,7 +34,7 @@ export type FollowUpStatus = 'Pending' | 'Partially Rectified' | 'Rectified' | '
 
 export type ProgressUpdate = {
   id: string;
-  date: Date | Timestamp;
+  date: Date | Timestamp | string;
   details: string;
   attachmentFilename?: string;
 };
@@ -72,23 +72,25 @@ export type AuditFinding = {
   auditType: AuditTypeCategory;
   recommendation: string;
   status: FindingStatus;
-  revalidationDate?: Date | Timestamp;
+  revalidationDate?: Date | Timestamp | string;
   auditeeAgreement: AuditeeAgreement;
-  mitigationDueDate?: Date | Timestamp;
+  mitigationDueDate?: Date | Timestamp | string;
   auditeeResponse?: string;
   progressUpdates?: ProgressUpdate[];
   findingAttachments?: string[];
   recommendationAttachments?: string[];
   auditCause?: string;
+  auditCauseAttachments?: string[];
   auditEffect?: string;
+  auditEffectAttachments?: string[];
   involvedAmounts?: InvolvedAmount[];
   involvedCases?: InvolvedCase[];
   teamLeader: string;
   teamMembers: string[];
   // KPI Fields
-  assignedDate?: Date | Timestamp;
-  dateCommunicated?: Date | Timestamp;
-  finalizationDate?: Date | Timestamp;
+  assignedDate?: Date | Timestamp | string;
+  dateCommunicated?: Date | Timestamp | string;
+  finalizationDate?: Date | Timestamp | string;
   tatDays?: number;
   // Follow-up Fields
   followUpStatus?: FollowUpStatus;
@@ -102,7 +104,7 @@ export type AuditFinding = {
   collaboratingWith?: string;
   forwardingHistory?: ForwardingEntry[];
   // Reference to Settings Hierarchy
-  hierarchyNodeId?: string;
+  hierarchyNodeId: string;
   // Dynamic Custom Values
   dynamicValues?: Record<string, any>;
 };
