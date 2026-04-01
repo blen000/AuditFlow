@@ -332,10 +332,15 @@ export function CreateFindingForm() {
                         <div className="p-4 bg-muted/20 border-b flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <Badge variant="secondary" className="font-mono font-bold">
-                              {selectedNode?.number}.{index + 1}
+                              {selectedNode?.number}
                             </Badge>
-                            <span className="text-sm font-bold text-foreground">
+                            <span className="text-sm font-bold text-foreground flex items-center gap-2">
                               {selectedNode?.title}
+                              {findingFields.length > 1 && (
+                                <Badge variant="outline" className="text-[10px] uppercase font-bold text-muted-foreground bg-background">
+                                  Entry #{index + 1}
+                                </Badge>
+                              )}
                             </span>
                           </div>
                           {findingFields.length > 1 && (
