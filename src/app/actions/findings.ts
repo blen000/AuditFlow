@@ -1,3 +1,4 @@
+
 'use server';
 
 import { prisma } from '@/lib/prisma';
@@ -18,7 +19,10 @@ export async function getFindingFormData() {
       prisma.riskLevel.findMany({ orderBy: { name: 'asc' } }),
       prisma.user.findMany({
         where: {
-          status: 'Active'
+          status: 'Active',
+          role: {
+            name: 'Auditee'
+          }
         },
         include: {
           role: true
