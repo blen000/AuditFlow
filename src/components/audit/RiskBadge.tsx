@@ -22,10 +22,16 @@ const riskConfig = {
     className:
       'bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-500/30',
   },
+  default: {
+    label: 'Unknown',
+    icon: ShieldCheck,
+    className:
+      'bg-gray-100 text-gray-800 hover:bg-gray-100 dark:bg-gray-900/20 dark:text-gray-300 border-gray-200 dark:border-gray-500/30',
+  },
 };
 
 export function RiskBadge({ riskLevel }: { riskLevel: RiskLevel }) {
-  const config = riskConfig[riskLevel];
+  const config = riskConfig[riskLevel] || riskConfig.default;
   const Icon = config.icon;
 
   return (

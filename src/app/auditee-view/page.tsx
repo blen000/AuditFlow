@@ -121,8 +121,8 @@ export default function AuditeeViewPage() {
     const riskMatch = riskFilter.length === 0 || riskFilter.includes(finding.riskLevel);
     const statusMatch = statusFilter.length === 0 || statusFilter.includes(finding.status);
     const searchMatch = searchQuery === '' ||
-      finding.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      finding.title.toLowerCase().includes(searchQuery.toLowerCase());
+      String(finding.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (finding.title || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const auditorMatch = auditorSearch === '' || 
       (finding.teamLeader || '').toLowerCase().includes(auditorSearch.toLowerCase()) ||
@@ -151,7 +151,9 @@ export default function AuditeeViewPage() {
       hierarchy.forEach(node => {
         let isDescendant = false;
         let current: AuditHierarchyNode | undefined = node;
-        while (current) {
+        const visited = new Set<string>();
+        while (current && !visited.has(current.id)) {
+          visited.add(current.id);
           if (current.id === mission.id) {
             isDescendant = true;
             break;
@@ -166,9 +168,9 @@ export default function AuditeeViewPage() {
             
             // For Level 2+ nodes, group them as subsections
             if (node.level >= 2) {
-              const subId = node.number;
+              const subId = String(node.number ?? node.id);
               if (!subsections[subId]) {
-                subsections[subId] = { title: node.title, findings: [] };
+                subsections[subId] = { title: node.title || 'Untitled', findings: [] };
               }
               subsections[subId].findings.push(...findingsAtNode);
             }
@@ -181,7 +183,7 @@ export default function AuditeeViewPage() {
         number: mission.number,
         title: mission.title,
         allFindings: missionFindings,
-        subsections: Object.entries(subsections).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
+        subsections: Object.entries(subsections).sort((a, b) => String(a[0] ?? '').localeCompare(String(b[0] ?? ''), undefined, { numeric: true }))
       };
     }).filter(m => m.allFindings.length > 0);
   }, [filteredFindings, hierarchy]);
