@@ -40,7 +40,7 @@ import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { AgreementBadge } from './AgreementBadge';
@@ -71,6 +71,12 @@ export function AuditFindingCard({
   const [isFollowUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const [allStatuses] = useState<StatusData[]>(initialStatuses);
 
+  const safeDate = (d: any): Date | null => {
+    if (!d) return null;
+    const date = new Date(d);
+    return isValid(date) ? date : null;
+  };
+
   const handleStatusChange = (status: FindingStatus) => {
     onUpdate(finding.id, { status });
   };
@@ -96,20 +102,19 @@ export function AuditFindingCard({
   };
 
   const allAttachments = [
-    ...(finding.findingAttachments || []),
-    ...(finding.auditCauseAttachments || []),
-    ...(finding.auditEffectAttachments || []),
-    ...(finding.recommendationAttachments || []),
-    ...(finding.auditeeAttachmentFilename
-      ? [finding.auditeeAttachmentFilename]
-      : []),
+    ...(Array.isArray(finding.findingAttachments) ? finding.findingAttachments : []),
+    ...(Array.isArray(finding.auditCauseAttachments) ? finding.auditCauseAttachments : []),
+    ...(Array.isArray(finding.auditEffectAttachments) ? finding.auditEffectAttachments : []),
+    ...(Array.isArray(finding.recommendationAttachments) ? finding.recommendationAttachments : []),
+    ...(finding.auditeeAttachmentFilename ? [finding.auditeeAttachmentFilename] : []),
   ];
 
-  const totalAmount =
-    finding.involvedAmounts?.reduce((sum, item) => sum + item.amount, 0) || 0;
+  const totalAmount = Array.isArray(finding.involvedAmounts)
+    ? finding.involvedAmounts.reduce((sum, item) => sum + (item.amount || 0), 0)
+    : 0;
     
-  const revalidationDate = finding.revalidationDate as Date | undefined;
-  const mitigationDueDate = finding.mitigationDueDate as Date | undefined;
+  const revalDate = safeDate(finding.revalidationDate);
+  const dueMitigationDate = safeDate(finding.mitigationDueDate);
 
   return (
     <>
@@ -200,7 +205,7 @@ export function AuditFindingCard({
               <ShieldCheck className="h-3.5 w-3.5 text-primary" />
               <span>Team Leader: <span className="font-bold">{finding.teamLeader}</span></span>
             </div>
-            {finding.teamMembers && finding.teamMembers.length > 0 && (
+            {finding.teamMembers && Array.isArray(finding.teamMembers) && finding.teamMembers.length > 0 && (
               <div className="flex items-start gap-2 text-xs font-medium text-foreground">
                 <Users className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
                 <div className="flex flex-wrap gap-1">
@@ -211,10 +216,10 @@ export function AuditFindingCard({
                 </div>
               </div>
             )}
-            {mitigationDueDate && (
+            {dueMitigationDate && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-                <span>Due {format(mitigationDueDate, 'MMM d, yyyy')}</span>
+                <span>Due {format(dueMitigationDate, 'MMM d, yyyy')}</span>
               </div>
             )}
           </div>
@@ -229,7 +234,7 @@ export function AuditFindingCard({
                 <span>involved</span>
               </div>
             )}
-            {finding.involvedCases && finding.involvedCases.length > 0 && (
+            {finding.involvedCases && Array.isArray(finding.involvedCases) && finding.involvedCases.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" />
                 <span className="font-semibold text-foreground">
@@ -257,7 +262,7 @@ export function AuditFindingCard({
             </div>
           )}
 
-          {finding.progressUpdates && finding.progressUpdates.length > 0 && (
+          {finding.progressUpdates && Array.isArray(finding.progressUpdates) && finding.progressUpdates.length > 0 && (
             <Collapsible className="mt-2 space-y-2 pt-2">
               <CollapsibleTrigger asChild>
                 <Button
@@ -275,23 +280,30 @@ export function AuditFindingCard({
               <CollapsibleContent>
                 <div className="mt-2 space-y-3 rounded-md border bg-muted/50 p-3">
                   {[...finding.progressUpdates]
-                    .sort((a, b) => new Date(b.date as Date).getTime() - new Date(a.date as Date).getTime())
-                    .map((update) => (
-                      <div key={update.id} className="text-xs">
-                        <p className="font-semibold text-foreground">
-                          {format(update.date as Date, 'MMM d, yyyy')}:{' '}
-                          <span className="font-normal text-muted-foreground">
-                            {update.details}
-                          </span>
-                        </p>
-                        {update.attachmentFilename && (
-                          <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                            <Paperclip className="h-3 w-3" />
-                            <span>{update.attachmentFilename}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                    .sort((a, b) => {
+                      const d1 = safeDate(a.date);
+                      const d2 = safeDate(b.date);
+                      return (d2?.getTime() || 0) - (d1?.getTime() || 0);
+                    })
+                    .map((update) => {
+                      const updateDate = safeDate(update.date);
+                      return (
+                        <div key={update.id} className="text-xs">
+                          <p className="font-semibold text-foreground">
+                            {updateDate ? format(updateDate, 'MMM d, yyyy') : 'Date missing'}:{' '}
+                            <span className="font-normal text-muted-foreground">
+                              {update.details}
+                            </span>
+                          </p>
+                          {update.attachmentFilename && (
+                            <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                              <Paperclip className="h-3 w-3" />
+                              <span>{update.attachmentFilename}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
               </CollapsibleContent>
             </Collapsible>
@@ -301,11 +313,11 @@ export function AuditFindingCard({
           <div className="flex shrink-0 items-center gap-2">
             <Bell className="h-4 w-4" />
             <span className="whitespace-nowrap">
-              {revalidationDate ? `Re-validate by` : 'No reminder set'}
+              {revalDate ? `Re-validate by` : 'No reminder set'}
             </span>
-            {revalidationDate && (
+            {revalDate && (
               <span className="whitespace-nowrap font-medium text-foreground">
-                {format(revalidationDate, 'MMM d, yyyy')}
+                {format(revalDate, 'MMM d, yyyy')}
               </span>
             )}
           </div>
@@ -316,12 +328,12 @@ export function AuditFindingCard({
                 size="sm"
                 className={cn(
                   'h-8 justify-start text-left font-normal',
-                  !revalidationDate && 'text-muted-foreground'
+                  !revalDate && 'text-muted-foreground'
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {revalidationDate ? (
-                  format(revalidationDate, 'MMM d, yyyy')
+                {revalDate ? (
+                  format(revalDate, 'MMM d, yyyy')
                 ) : (
                   <span>Set Date</span>
                 )}
@@ -330,7 +342,7 @@ export function AuditFindingCard({
             <PopoverContent className="w-auto p-0" align="end">
               <Calendar
                 mode="single"
-                selected={revalidationDate}
+                selected={revalDate || undefined}
                 onSelect={handleDateSelect}
                 initialFocus
               />

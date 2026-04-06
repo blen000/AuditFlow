@@ -1,7 +1,7 @@
-
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 /**
  * Fetches all necessary metadata for the audit logging form.
@@ -42,7 +42,7 @@ export async function getFindingFormData() {
         id: u.id,
         fullName: u.fullName,
         email: u.email,
-        phone: 'N/A', // Not stored in User model currently
+        phone: 'N/A',
         role: u.role.name
       }))
     };
@@ -59,18 +59,34 @@ export async function submitFindings(data: any) {
   try {
     const { hierarchyNodeId, findings } = data;
 
-    // In a real implementation, we would use prisma.auditFinding.createMany
-    // and correctly map all fields including parent case info.
-    // For this prototype context, we simulate the DB write.
-    console.log('Server Action: Writing findings to DB', data);
-    
-    // Example logic for a single write (placeholder)
-    /*
-    await prisma.auditFinding.create({
-      data: { ... }
-    });
-    */
+    // Persist all findings within a transaction
+    await prisma.$transaction(
+      findings.map((f: any) => 
+        prisma.auditFinding.create({
+          data: {
+            title: f.title,
+            details: f.details,
+            riskLevel: f.riskLevel,
+            branchOrDepartment: f.branchOrDepartment,
+            recommendation: f.recommendation || '',
+            status: 'Open',
+            auditeeAgreement: 'Pending',
+            auditCause: f.auditCause,
+            auditEffect: f.auditEffect,
+            involvedAmounts: f.involvedAmounts || [],
+            teamLeader: f.teamLeader,
+            teamMembers: f.teamMembers,
+            assignedDate: f.assignedDate,
+            tatDays: parseInt(f.tatDays),
+            hierarchyNodeId: hierarchyNodeId,
+            dynamicValues: f.dynamicValues || {},
+          }
+        })
+      )
+    );
 
+    revalidatePath('/auditee-view');
+    revalidatePath('/');
     return { success: true };
   } catch (error) {
     console.error('Failed to submit findings:', error);
