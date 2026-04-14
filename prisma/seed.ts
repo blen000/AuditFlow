@@ -1,4 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -25,19 +29,25 @@ async function main() {
 
   // 2. Users
   if (adminRole) {
+    const adminPassword = process.env.ADMIN_PASSWORD ?? 'password';
     await prisma.user.upsert({
       where: { email: 'admin@auditflow.com' },
-      update: {},
+      update: {
+        roleId: adminRole.id,
+        status: 'Active',
+      },
       create: {
         fullName: 'System Administrator',
         email: 'admin@auditflow.com',
-        password: 'password', // In a real app, hash this!
+        password: adminPassword, // NOTE: demo uses plaintext; hash in production
         roleId: adminRole.id,
         status: 'Active',
         branch: 'Head Office',
         district: 'HQ',
       }
     });
+
+    console.log(`Admin user ensured (email=admin@auditflow.com)`);
   }
 
   // 3. Risk Levels & Statuses
