@@ -38,30 +38,44 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof loginSchema>) => {
-    // Check if user exists in our mock data
-    const userExists = initialUsers.find(u => u.email.toLowerCase() === values.email.toLowerCase());
-
-    if (!userExists) {
-      toast({
-        variant: "destructive",
-        title: "Access Denied",
-        description: "User not found in system. Try using the demo credentials.",
+  const onSubmit = async (values: z.infer<typeof loginSchema>) => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
       });
-      return;
-    }
 
-    // Set authentication flag in localStorage
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('userEmail', values.email);
-    
-    toast({
-      title: "Welcome back!",
-      description: `Authentication successful for ${userExists.fullName}.`,
-    });
-    
-    // Use window.location for a harder refresh to clear layout state
-    window.location.href = '/';
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        toast({
+          variant: 'destructive',
+          title: 'Access Denied',
+          description: data?.error || 'User not found in system. Try using the demo credentials.',
+        });
+        return;
+      }
+
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userEmail', data.user.email);
+      localStorage.setItem('userFullName', data.user.fullName);
+
+      toast({
+        title: 'Welcome back!',
+        description: `Authentication successful for ${data.user.fullName}.`,
+      });
+
+      // Use window.location for a harder refresh to clear layout state
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: 'Unable to reach authentication service. Try again later.',
+      });
+    }
   };
 
   return (

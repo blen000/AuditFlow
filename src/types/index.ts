@@ -224,5 +224,6 @@ export type Role = {
   name: string;
   description: string;
   permissions: Permission[];
+  sidebarAccess: string[];
   isSpecial?: boolean;
 };

@@ -128,13 +128,15 @@ export const initialUsers: User[] = [
   { id: 'USR-4', fullName: 'InActive Auditor', email: 'inactive@bank.com', role: 'Auditor', status: 'Inactive', dateJoined: '2024-01-20', branch: 'Park Avenue Branch', district: 'Southern District' },
 ];
 
+import { sidebarMenuItems } from './sidebar-access';
+
 export const initialRoles: Role[] = [
-  { id: 'ROL-1', name: 'Admin', description: 'Full system access including user and settings management.', permissions: ['audit_read', 'audit_write', 'reports_read', 'settings_manage'], isSpecial: false },
-  { id: 'ROL-2', name: 'Auditor', description: 'Can create and manage audit findings and view reports.', permissions: ['audit_read', 'audit_write', 'reports_read'], isSpecial: false },
-  { id: 'ROL-3', name: 'Auditee', description: 'Can view findings related to their branch and provide responses.', permissions: ['audit_read'], isSpecial: false },
-  { id: 'ROL-4', name: 'Management', description: 'View-only access to all audit reports and high-level dashboards.', permissions: ['audit_read', 'reports_read'], isSpecial: false },
-  { id: 'ROL-5', name: 'CEO', description: 'Executive level oversight and organizational strategy review.', permissions: ['audit_read', 'reports_read'], isSpecial: true },
-  { id: 'ROL-6', name: 'Chief Auditor', description: 'Top level audit executive with departmental governance responsibilities.', permissions: ['audit_read', 'audit_write', 'reports_read', 'settings_manage'], isSpecial: true },
+  { id: 'ROL-1', name: 'Admin', description: 'Full system access including user and settings management.', permissions: ['audit_read', 'audit_write', 'reports_read', 'settings_manage'], sidebarAccess: sidebarMenuItems.map(i => i.id), isSpecial: false },
+  { id: 'ROL-2', name: 'Auditor', description: 'Can create and manage audit findings and view reports.', permissions: ['audit_read', 'audit_write', 'reports_read'], sidebarAccess: ['dashboard', 'auditee-view', 'findings-new', 'special-audits-new', 'reports'], isSpecial: false },
+  { id: 'ROL-3', name: 'Auditee', description: 'Can view findings related to their branch and provide responses.', permissions: ['audit_read'], sidebarAccess: ['dashboard', 'auditee-view', 'reports'], isSpecial: false },
+  { id: 'ROL-4', name: 'Management', description: 'View-only access to all audit reports and high-level dashboards.', permissions: ['audit_read', 'reports_read'], sidebarAccess: ['dashboard', 'reports'], isSpecial: false },
+  { id: 'ROL-5', name: 'CEO', description: 'Executive level oversight and organizational strategy review.', permissions: ['audit_read', 'reports_read'], sidebarAccess: ['dashboard', 'reports'], isSpecial: true },
+  { id: 'ROL-6', name: 'Chief Auditor', description: 'Top level audit executive with departmental governance responsibilities.', permissions: ['audit_read', 'audit_write', 'reports_read', 'settings_manage'], sidebarAccess: sidebarMenuItems.map(i => i.id), isSpecial: true },
 ];
 
 export const initialFindings: AuditFinding[] = [

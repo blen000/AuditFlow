@@ -29,6 +29,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Role, Permission } from '@/types';
 import { ShieldAlert, Star } from 'lucide-react';
+import { sidebarMenuItems, sidebarMenuGroups } from '@/lib/sidebar-access';
 
 const permissionOptions: { value: Permission; label: string; description: string }[] = [
   { value: 'audit_read', label: 'Read Audits', description: 'Can view audit findings and case details.' },
@@ -41,6 +42,7 @@ const formSchema = z.object({
   name: z.string().min(2, 'Role name is required.'),
   description: z.string().min(5, 'Description is required.'),
   permissions: z.array(z.string()).min(1, 'Select at least one permission.'),
+  sidebarAccess: z.array(z.string()).min(1, 'Select at least one menu item.'),
   isSpecial: z.boolean().default(false),
 });
 
@@ -63,6 +65,7 @@ export function AddEditRoleDialog({
       name: '',
       description: '',
       permissions: [],
+      sidebarAccess: [],
       isSpecial: false,
     },
   });
@@ -74,10 +77,11 @@ export function AddEditRoleDialog({
           name: role.name,
           description: role.description,
           permissions: role.permissions,
+          sidebarAccess: role.sidebarAccess || [],
           isSpecial: role.isSpecial || false,
         });
       } else {
-        form.reset({ name: '', description: '', permissions: [], isSpecial: false });
+        form.reset({ name: '', description: '', permissions: [], sidebarAccess: [], isSpecial: false });
       }
     }
   }, [role, form, open]);
@@ -89,7 +93,7 @@ export function AddEditRoleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none gap-0">
+      <DialogContent className="w-full max-w-5xl h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none gap-0">
         <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
           <DialogTitle>
             {role ? 'Edit Organizational Role' : 'Create New Role'}
@@ -104,8 +108,8 @@ export function AddEditRoleDialog({
             onSubmit={form.handleSubmit(handleFormSubmit)}
             className="flex-1 flex flex-col min-h-0"
           >
-            <ScrollArea className="flex-1">
-              <div className="p-6 space-y-6">
+            <ScrollArea className="flex-1 px-2 md:px-8 py-2">
+              <div className="space-y-8">
                 <div className="flex flex-row items-center justify-between rounded-lg border p-4 bg-amber-50/30 border-amber-100">
                   <div className="space-y-0.5">
                     <FormLabel className="text-base flex items-center gap-2">
@@ -194,6 +198,49 @@ export function AddEditRoleDialog({
                           </FormItem>
                         )}
                       />
+                    ))}
+                  </div>
+                  <FormMessage />
+                </div>
+
+                <div className="space-y-4">
+                  <FormLabel className="text-xs font-bold uppercase tracking-widest text-primary">Sidebar/Menu Access</FormLabel>
+                  <div className="space-y-2">
+                    {Object.entries(sidebarMenuGroups).map(([groupId, groupLabel]) => (
+                      <div key={groupId} className="mb-2">
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{groupLabel}</div>
+                        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                          {sidebarMenuItems.filter(item => item.group === groupId).map(item => (
+                            <FormField
+                              key={item.id}
+                              control={form.control}
+                              name="sidebarAccess"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3 hover:bg-muted/30 transition-colors cursor-pointer">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(item.id)}
+                                      onCheckedChange={(checked) => {
+                                        return checked
+                                          ? field.onChange([...field.value, item.id])
+                                          : field.onChange(field.value?.filter((value) => value !== item.id))
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel className="text-sm font-bold cursor-pointer">
+                                      {item.label}
+                                    </FormLabel>
+                                    <p className="text-xs text-muted-foreground">
+                                      {item.description}
+                                    </p>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                   <FormMessage />
