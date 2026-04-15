@@ -59,6 +59,12 @@ export async function submitFindings(data: any) {
   try {
     const { hierarchyNodeId, findings } = data;
 
+    // Ensure the selected node is a leaf (has no children)
+    const childCount = await prisma.auditHierarchyNode.count({ where: { parentId: hierarchyNodeId } });
+    if (childCount > 0) {
+      return { success: false, error: 'Selected hierarchy node is not a final taxonomy node.' };
+    }
+
     // Persist all findings within a transaction
     await prisma.$transaction(
       findings.map((f: any) => 
