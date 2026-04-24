@@ -35,65 +35,63 @@ export default function RootLayout({
     const user = userJson ? JSON.parse(userJson) : null;
     
     setIsAuthenticated(authStatus);
+    
     if (user) {
+      const roleName = user.role || '';
+      setUserRole(roleName);
       setUserPermissions(user.permissions || []);
-      setUserRole(user.role || null);
+      
+      // ADMIN OVERRIDE: Check for admin role name case-insensitively
+      const isAdmin = roleName.trim().toLowerCase() === 'admin';
+
+      if (!authStatus && pathname !== '/login') {
+        router.push('/login');
+        return;
+      }
+
+      if (authStatus && pathname === '/login') {
+        router.push('/');
+        return;
+      }
+
+      // 2. Permission-Based Route Guarding
+      const isDashboard = pathname === '/';
+      const isProfile = pathname === '/profile';
+
+      // Public for all authenticated users
+      if (isDashboard || isProfile || isAdmin) return;
+
+      // Define Path -> Required Permission Mapping
+      const routeRequirements: Record<string, string> = {
+        '/auditee-view': 'audit_read',
+        '/findings/new': 'audit_write',
+        '/special-audits/new': 'audit_write',
+        '/reports': 'reports_read',
+        '/assignments': 'reports_read',
+        '/communications': 'reports_read',
+        '/users': 'settings_manage',
+        '/roles': 'settings_manage',
+        '/register': 'settings_manage',
+        '/special-onboarding': 'settings_manage',
+        '/settings': 'settings_manage',
+        '/branches': 'settings_manage',
+        '/districts': 'settings_manage',
+        '/departments': 'settings_manage',
+        '/risk-levels': 'settings_manage',
+        '/statuses': 'settings_manage'
+      };
+
+      const requiredPermission = Object.entries(routeRequirements).find(([route]) => 
+        pathname.startsWith(route)
+      )?.[1];
+
+      if (requiredPermission && !user.permissions?.includes(requiredPermission)) {
+        console.warn(`Unauthorized access attempt to ${pathname}. Required: ${requiredPermission}`);
+        router.push('/');
+      }
+    } else if (authStatus === false && pathname !== '/login') {
+      router.push('/login');
     }
-
-    if (!authStatus) {
-      if (pathname !== '/login') router.push('/login');
-      return;
-    }
-
-    if (authStatus && pathname === '/login') {
-      router.push('/');
-      return;
-    }
-
-    // 2. Permission-Based Route Guarding
-    const role = localStorage.getItem('userRole');
-    const storedPerms = localStorage.getItem('userPermissions');
-    const permissions: string[] = storedPerms ? JSON.parse(storedPerms) : [];
-
-    const isDashboard = pathname === '/';
-    const isProfile = pathname === '/profile';
-
-    // Public for all authenticated users
-    if (isDashboard || isProfile) return;
-
-    // ADMIN OVERRIDE: Admin role has access to everything
-    if (role === 'Admin') return;
-
-    // Define Path -> Required Permission Mapping
-    const routeRequirements: Record<string, string> = {
-      '/auditee-view': 'audit_read',
-      '/findings/new': 'audit_write',
-      '/special-audits/new': 'audit_write',
-      '/reports': 'reports_read',
-      '/assignments': 'reports_read',
-      '/communications': 'reports_read',
-      '/users': 'settings_manage',
-      '/roles': 'settings_manage',
-      '/register': 'settings_manage',
-      '/special-onboarding': 'settings_manage',
-      '/settings': 'settings_manage',
-      '/branches': 'settings_manage',
-      '/districts': 'settings_manage',
-      '/departments': 'settings_manage',
-      '/risk-levels': 'settings_manage',
-      '/statuses': 'settings_manage'
-    };
-
-    // Check if the current path (or any of its parents) requires a permission
-    const requiredPermission = Object.entries(routeRequirements).find(([route]) => 
-      pathname.startsWith(route)
-    )?.[1];
-
-    if (requiredPermission && !permissions.includes(requiredPermission)) {
-      console.warn(`Unauthorized access attempt to ${pathname}. Required: ${requiredPermission}`);
-      router.push('/'); // Redirect unauthorized users to dashboard
-    }
-
   }, [pathname, router]);
 
   const isLoginPage = pathname === '/login';

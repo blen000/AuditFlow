@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -18,21 +17,38 @@ import { useEffect, useState } from "react";
 
 export function UserNav() {
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const userJson = localStorage.getItem('currentUser');
     if (userJson) {
-      setCurrentUser(JSON.parse(userJson));
+      try {
+        setCurrentUser(JSON.parse(userJson));
+      } catch (e) {
+        console.error("Failed to parse current user session", e);
+      }
     }
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userPermissions');
     window.location.href = '/login';
   };
 
-  if (!currentUser) return null;
+  // Prevent hydration flicker but ensure button appears
+  if (!mounted || !currentUser) {
+    return (
+      <Button variant="ghost" className="relative h-9 w-9 rounded-full opacity-50">
+        <Avatar className="h-9 w-9">
+          <AvatarFallback><UserCircle className="h-6 w-6" /></AvatarFallback>
+        </Avatar>
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>

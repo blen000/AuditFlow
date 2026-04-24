@@ -29,8 +29,12 @@ type SidebarNavProps = {
 export function SidebarNav({ permissions = [], role = '' }: SidebarNavProps) {
   const pathname = usePathname();
 
-  // Admin override: role name check is case-sensitive as per seed data
-  const hasPermission = (p: string) => role === 'Admin' || permissions.includes(p);
+  // Admin override: robust case-insensitive check
+  const hasPermission = (p: string) => {
+    if (!role) return permissions.includes(p);
+    const normalizedRole = role.toString().trim().toLowerCase();
+    return normalizedRole === 'admin' || permissions.includes(p);
+  };
 
   return (
     <SidebarMenu>
