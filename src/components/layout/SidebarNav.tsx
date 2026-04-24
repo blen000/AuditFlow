@@ -25,20 +25,24 @@ import { usePathname } from 'next/navigation';
 export function SidebarNav() {
   const pathname = usePathname();
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load permissions from localStorage on mount
-    const stored = localStorage.getItem('userPermissions');
-    if (stored) {
+    // Load permissions and role from localStorage on mount
+    const storedPerms = localStorage.getItem('userPermissions');
+    const storedRole = localStorage.getItem('userRole');
+    
+    setRole(storedRole);
+    if (storedPerms) {
       try {
-        setPermissions(JSON.parse(stored));
+        setPermissions(JSON.parse(storedPerms));
       } catch (e) {
         console.error('Failed to parse user permissions');
       }
     }
   }, []);
 
-  const hasPermission = (p: string) => permissions.includes(p);
+  const hasPermission = (p: string) => role === 'Admin' || permissions.includes(p);
 
   return (
     <SidebarMenu>

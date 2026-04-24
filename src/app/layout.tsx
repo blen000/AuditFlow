@@ -43,6 +43,7 @@ export default function RootLayout({
 
     // 2. Permission-Based Route Guarding
     const storedPerms = localStorage.getItem('userPermissions');
+    const userRole = localStorage.getItem('userRole');
     const permissions: string[] = storedPerms ? JSON.parse(storedPerms) : [];
 
     const isDashboard = pathname === '/';
@@ -50,6 +51,9 @@ export default function RootLayout({
 
     // Public for all authenticated users
     if (isDashboard || isProfile) return;
+
+    // ADMIN OVERRIDE: Admin role has access to everything
+    if (userRole === 'Admin') return;
 
     // Define Path -> Required Permission Mapping
     const routeRequirements: Record<string, string> = {
