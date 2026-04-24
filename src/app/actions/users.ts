@@ -3,6 +3,49 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+/**
+ * Verifies user credentials and returns full profile with role-based permissions.
+ */
+export async function loginUser(data: any) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: data.email },
+      include: { 
+        role: true 
+      }
+    });
+
+    if (!user) {
+      return { success: false, error: 'User record not found.' };
+    }
+
+    if (user.password !== data.password) {
+      return { success: false, error: 'Invalid security credentials.' };
+    }
+
+    if (user.status !== 'Active') {
+      return { success: false, error: 'Account is currently inactive. Contact Admin.' };
+    }
+
+    // Return serializable user data
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role.name,
+        permissions: user.role.permissions, // e.g. ['audit_read', 'reports_read']
+        branch: user.branch,
+        district: user.district
+      }
+    };
+  } catch (error) {
+    console.error('Login verification error:', error);
+    return { success: false, error: 'Database connection failed during authentication.' };
+  }
+}
+
 export async function getUsers() {
   try {
     const users = await prisma.user.findMany({

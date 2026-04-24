@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { ShieldCheck, Mail, Lock, Eye, EyeOff, Info } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, Eye, EyeOff, Info, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,7 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { initialUsers } from '@/lib/mock-data';
+import { loginUser } from '@/app/actions/users';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
@@ -29,6 +29,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -38,30 +39,43 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof loginSchema>) => {
-    // Check if user exists in our mock data
-    const userExists = initialUsers.find(u => u.email.toLowerCase() === values.email.toLowerCase());
+  const onSubmit = async (values: z.infer<typeof loginSchema>) => {
+    setIsSubmitting(true);
+    try {
+      const result = await loginUser(values);
 
-    if (!userExists) {
+      if (!result.success) {
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: result.error || "Invalid credentials.",
+        });
+        return;
+      }
+
+      // Set authentication flags in localStorage
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userEmail', result.user?.email || '');
+      localStorage.setItem('userFullName', result.user?.fullName || '');
+      localStorage.setItem('userRole', result.user?.role || '');
+      localStorage.setItem('userPermissions', JSON.stringify(result.user?.permissions || []));
+      
+      toast({
+        title: "Welcome back!",
+        description: `Authentication successful for ${result.user?.fullName}.`,
+      });
+      
+      // Force hard refresh to clear potential stale layout states
+      window.location.href = '/';
+    } catch (error) {
       toast({
         variant: "destructive",
-        title: "Access Denied",
-        description: "User not found in system. Try using the demo credentials.",
+        title: "System Error",
+        description: "Authentication service unavailable.",
       });
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Set authentication flag in localStorage
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('userEmail', values.email);
-    
-    toast({
-      title: "Welcome back!",
-      description: `Authentication successful for ${userExists.fullName}.`,
-    });
-    
-    // Use window.location for a harder refresh to clear layout state
-    window.location.href = '/';
   };
 
   return (
@@ -105,9 +119,10 @@ export default function LoginPage() {
                         <div className="relative">
                           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <Input 
-                            placeholder="e.g., admin@auditflow.com" 
+                            placeholder="e.g., user@nibbank.com" 
                             className="h-14 pl-12 rounded-xl bg-gray-50 border-gray-100 focus:ring-[#8b4513] focus:border-[#8b4513]" 
                             {...field} 
+                            disabled={isSubmitting}
                           />
                         </div>
                       </FormControl>
@@ -130,11 +145,13 @@ export default function LoginPage() {
                             placeholder="••••••••" 
                             className="h-14 pl-12 pr-12 rounded-xl bg-gray-50 border-gray-100 focus:ring-[#8b4513] focus:border-[#8b4513]" 
                             {...field} 
+                            disabled={isSubmitting}
                           />
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            disabled={isSubmitting}
                           >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
@@ -149,8 +166,9 @@ export default function LoginPage() {
               <Button 
                 type="submit" 
                 className="w-full h-14 text-lg font-bold rounded-xl bg-[#8b4513] hover:bg-[#6d350f] text-white shadow-xl shadow-[#8b4513]/20 transition-all active:scale-[0.98]"
+                disabled={isSubmitting}
               >
-                Log In Securely
+                {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Verifying...</> : 'Log In Securely'}
               </Button>
             </form>
           </Form>
@@ -158,17 +176,16 @@ export default function LoginPage() {
           {/* Demo Credentials Helper */}
           <div className="mt-8 p-4 rounded-xl bg-muted/30 border border-dashed text-[11px] text-muted-foreground">
             <div className="flex items-center gap-2 mb-1 font-bold text-primary uppercase tracking-tight">
-              <Info className="h-3 w-3" /> Demo Credentials
+              <Info className="h-3 w-3" /> System Access Note
             </div>
-            <p>Admin Email: <span className="font-mono font-bold select-all">admin@auditflow.com</span></p>
-            <p>Demo Password: <span className="font-mono font-bold select-all">password</span></p>
+            <p className="leading-relaxed">Use the credentials registered in the database. Ensure your account is <strong>Active</strong> and assigned to a specific organizational role.</p>
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-100 text-center">
             <div className="flex items-center justify-center gap-2">
               <ShieldCheck className="h-4 w-4 text-yellow-600" />
               <span className="text-[9px] font-black uppercase tracking-[0.15em] text-gray-400">
-                Your information is securely encrypted.
+                Authorized Personnel Only.
               </span>
             </div>
           </div>

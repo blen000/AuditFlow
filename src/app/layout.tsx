@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -28,19 +27,60 @@ export default function RootLayout({
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Check authentication state from localStorage
+    // 1. Core Auth Check
     const authStatus = localStorage.getItem('isAuthenticated') === 'true';
     setIsAuthenticated(authStatus);
 
-    // Redirect to login if not authenticated and trying to access protected pages
-    if (!authStatus && pathname !== '/login') {
-      router.push('/login');
+    if (!authStatus) {
+      if (pathname !== '/login') router.push('/login');
+      return;
     }
-    
-    // Redirect to home if authenticated and trying to access login page
+
     if (authStatus && pathname === '/login') {
       router.push('/');
+      return;
     }
+
+    // 2. Permission-Based Route Guarding
+    const storedPerms = localStorage.getItem('userPermissions');
+    const permissions: string[] = storedPerms ? JSON.parse(storedPerms) : [];
+
+    const isDashboard = pathname === '/';
+    const isProfile = pathname === '/profile';
+
+    // Public for all authenticated users
+    if (isDashboard || isProfile) return;
+
+    // Define Path -> Required Permission Mapping
+    const routeRequirements: Record<string, string> = {
+      '/auditee-view': 'audit_read',
+      '/findings/new': 'audit_write',
+      '/special-audits/new': 'audit_write',
+      '/reports': 'reports_read',
+      '/assignments': 'reports_read',
+      '/communications': 'reports_read',
+      '/users': 'settings_manage',
+      '/roles': 'settings_manage',
+      '/register': 'settings_manage',
+      '/special-onboarding': 'settings_manage',
+      '/settings': 'settings_manage',
+      '/branches': 'settings_manage',
+      '/districts': 'settings_manage',
+      '/departments': 'settings_manage',
+      '/risk-levels': 'settings_manage',
+      '/statuses': 'settings_manage'
+    };
+
+    // Check if the current path (or any of its parents) requires a permission
+    const requiredPermission = Object.entries(routeRequirements).find(([route]) => 
+      pathname.startsWith(route)
+    )?.[1];
+
+    if (requiredPermission && !permissions.includes(requiredPermission)) {
+      console.warn(`Unauthorized access attempt to ${pathname}. Required: ${requiredPermission}`);
+      router.push('/'); // Redirect unauthorized users to dashboard
+    }
+
   }, [pathname, router]);
 
   const isLoginPage = pathname === '/login';
