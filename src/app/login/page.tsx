@@ -178,7 +178,11 @@ export default function LoginPage() {
             <div className="flex items-center gap-2 mb-1 font-bold text-primary uppercase tracking-tight">
               <Info className="h-3 w-3" /> System Access Note
             </div>
-            <p className="leading-relaxed">Use the credentials registered in the database. Ensure your account is <strong>Active</strong> and assigned to a specific organizational role.</p>
+            <div className="space-y-1">
+              <p className="leading-relaxed">Use the credentials registered in the database:</p>
+              <p className="font-mono text-[10px]"><strong>Email:</strong> admin@auditflow.com</p>
+              <p className="font-mono text-[10px]"><strong>Password:</strong> password</p>
+            </div>
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-100 text-center">
