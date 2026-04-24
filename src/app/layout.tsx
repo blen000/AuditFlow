@@ -26,6 +26,7 @@ export default function RootLayout({
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     // 1. Core Auth Check
@@ -36,6 +37,7 @@ export default function RootLayout({
     setIsAuthenticated(authStatus);
     if (user) {
       setUserPermissions(user.permissions || []);
+      setUserRole(user.role || null);
     }
 
     if (!authStatus) {
@@ -49,8 +51,8 @@ export default function RootLayout({
     }
 
     // 2. Permission-Based Route Guarding
+    const role = localStorage.getItem('userRole');
     const storedPerms = localStorage.getItem('userPermissions');
-    const userRole = localStorage.getItem('userRole');
     const permissions: string[] = storedPerms ? JSON.parse(storedPerms) : [];
 
     const isDashboard = pathname === '/';
@@ -60,7 +62,7 @@ export default function RootLayout({
     if (isDashboard || isProfile) return;
 
     // ADMIN OVERRIDE: Admin role has access to everything
-    if (userRole === 'Admin') return;
+    if (role === 'Admin') return;
 
     // Define Path -> Required Permission Mapping
     const routeRequirements: Record<string, string> = {
@@ -141,7 +143,7 @@ export default function RootLayout({
                 </Button>
               </SidebarHeader>
               <SidebarContent>
-                <SidebarNav permissions={userPermissions} />
+                <SidebarNav permissions={userPermissions} role={userRole || ''} />
               </SidebarContent>
             </Sidebar>
           )}

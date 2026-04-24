@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import {
   SidebarMenu,
   SidebarMenuItem,
@@ -24,29 +23,14 @@ import { usePathname } from 'next/navigation';
 
 type SidebarNavProps = {
   permissions?: string[];
+  role?: string;
 };
 
-export function SidebarNav({ permissions: initialPermissions = [] }: SidebarNavProps) {
+export function SidebarNav({ permissions = [], role = '' }: SidebarNavProps) {
   const pathname = usePathname();
-  const [activePermissions, setActivePermissions] = useState<string[]>(initialPermissions);
-  const [role, setRole] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Load permissions and role from localStorage on mount to ensure fresh state
-    const storedPerms = localStorage.getItem('userPermissions');
-    const storedRole = localStorage.getItem('userRole');
-    
-    setRole(storedRole);
-    if (storedPerms) {
-      try {
-        setActivePermissions(JSON.parse(storedPerms));
-      } catch (e) {
-        console.error('Failed to parse user permissions');
-      }
-    }
-  }, []);
-
-  const hasPermission = (p: string) => role === 'Admin' || activePermissions.includes(p);
+  // Admin override: role name check is case-sensitive as per seed data
+  const hasPermission = (p: string) => role === 'Admin' || permissions.includes(p);
 
   return (
     <SidebarMenu>
