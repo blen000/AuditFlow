@@ -155,6 +155,12 @@ export function CreateFindingForm() {
     );
   }, [hierarchy, searchQuery]);
 
+  // Determine which nodes are leaves (no other node has them as parent)
+  const leafIds = useMemo(() => {
+    const parentIds = new Set(hierarchy.map(h => h.parentId).filter(Boolean) as string[]);
+    return new Set(hierarchy.filter(h => !parentIds.has(h.id)).map(h => h.id));
+  }, [hierarchy]);
+
   async function onSubmit(values: FormValues) {
     try {
       if (selectedNode) {
@@ -253,27 +259,43 @@ export function CreateFindingForm() {
                             <ScrollArea className="h-[350px]">
                               <div className="p-1">
                                 {filteredHierarchy.length > 0 ? (
-                                  filteredHierarchy.map((node) => (
-                                    <div 
-                                      key={node.id} 
-                                      className={cn(
-                                        "flex items-center gap-3 p-3 rounded-md cursor-pointer hover:bg-primary/5 transition-colors",
-                                        field.value === node.id && "bg-primary/10"
-                                      )}
-                                      onClick={() => {
-                                        field.onChange(node.id);
-                                        setSearchQuery('');
-                                      }}
-                                    >
-                                      <div className="flex items-center">
-                                        {Array.from({ length: node.level - 1 }).map((_, i) => (
-                                          <div key={i} className="w-3 border-l h-4 ml-1" />
-                                        ))}
-                                        <Badge variant="outline" className="font-mono text-[10px] h-5 py-0 min-w-8 flex justify-center">{node.number}</Badge>
+                                  filteredHierarchy.map((node) => {
+                                    const isLeaf = leafIds.has(node.id);
+                                    return (
+                                      <div 
+                                        key={node.id} 
+                                        className={cn(
+                                          "flex items-center gap-3 p-3 rounded-md transition-colors",
+                                          isLeaf ? "cursor-pointer hover:bg-primary/5" : "opacity-60 cursor-not-allowed",
+                                          field.value === node.id && "bg-primary/10"
+                                        )}
+                                        onClick={() => {
+                                          if (!isLeaf) {
+                                            toast({
+                                              title: "Invalid Selection",
+                                              description: "Only final (leaf) taxonomy nodes can be chosen for a finding."
+                                            });
+                                            return;
+                                          }
+                                          field.onChange(node.id);
+                                          setSearchQuery('');
+                                        }}
+                                      >
+                                        <div className="flex items-center">
+                                          {Array.from({ length: node.level - 1 }).map((_, i) => (
+                                            <div key={i} className="w-3 border-l h-4 ml-1" />
+                                          ))}
+                                          <Badge variant="outline" className="font-mono text-[10px] h-5 py-0 min-w-8 flex justify-center">{node.number}</Badge>
+                                        </div>
+                                        <div className="flex items-center w-full">
+                                          <span className={cn("text-sm truncate", node.level === 1 ? "font-bold" : "font-medium text-muted-foreground")}>{node.title}</span>
+                                          {!isLeaf && (
+                                            <span className="text-[11px] text-muted-foreground ml-auto uppercase">Category</span>
+                                          )}
+                                        </div>
                                       </div>
-                                      <span className={cn("text-sm", node.level === 1 ? "font-bold" : "font-medium text-muted-foreground")}>{node.title}</span>
-                                    </div>
-                                  ))
+                                    );
+                                  })
                                 ) : (
                                   <div className="p-8 text-center text-xs text-muted-foreground">No matches found in taxonomy.</div>
                                 )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { 
   Table, 
@@ -75,7 +75,7 @@ export default function ConsolidatedReportPage() {
       const hasDirectFindings = nodeFindings.length > 0;
       const hasContent = nodeHasFindings(node.id);
 
-      if (!hasContent) return null;
+      if (!isVisible) return null;
 
       return (
         <div key={node.id} className="space-y-4">
@@ -219,6 +219,8 @@ export default function ConsolidatedReportPage() {
       </div>
     );
   }
+
+  const totalFindingsCount = findings.length;
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">

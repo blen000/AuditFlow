@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -22,7 +23,11 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export function SidebarNav() {
+type SidebarNavProps = {
+  permissions?: string[];
+};
+
+export function SidebarNav({ permissions = [] }: SidebarNavProps) {
   const pathname = usePathname();
   const [permissions, setPermissions] = useState<string[]>([]);
   const [role, setRole] = useState<string | null>(null);
@@ -62,6 +67,19 @@ export function SidebarNav() {
           </Link>
         </SidebarMenuItem>
 
+        {hasPermission('audit_read') && (
+          <SidebarMenuItem>
+            <Link href="/auditee-view">
+              <SidebarMenuButton
+                isActive={pathname === '/auditee-view'}
+                tooltip="Auditee View"
+              >
+                <Users />
+                <span>Auditee View</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+        )}
         {hasPermission('audit_read') && (
           <SidebarMenuItem>
             <Link href="/auditee-view">
@@ -117,8 +135,81 @@ export function SidebarNav() {
             </Link>
           </SidebarMenuItem>
         )}
+        {hasPermission('reports_read') && (
+          <SidebarMenuItem>
+            <Link href="/reports">
+              <SidebarMenuButton
+                isActive={pathname.startsWith('/reports')}
+                tooltip="Audit Reports"
+              >
+                <FileText />
+                <span>Audit Reports Hub</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+        )}
       </SidebarGroup>
 
+      {hasPermission('settings_manage') && (
+        <SidebarGroup>
+          <SidebarGroupLabel>Administration</SidebarGroupLabel>
+          <SidebarMenuItem>
+            <Link href="/users">
+              <SidebarMenuButton
+                isActive={pathname === '/users'}
+                tooltip="User Management"
+              >
+                <Users />
+                <span>User Management</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/roles">
+              <SidebarMenuButton
+                isActive={pathname === '/roles'}
+                tooltip="Role Management"
+              >
+                <ShieldCheck />
+                <span>Role Management</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/register">
+              <SidebarMenuButton
+                isActive={pathname === '/register'}
+                tooltip="Register User"
+              >
+                <UserPlus />
+                <span>Register User</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/special-onboarding">
+              <SidebarMenuButton
+                isActive={pathname === '/special-onboarding'}
+                tooltip="Special Onboarding"
+              >
+                <Star className="text-amber-500" />
+                <span>Special Onboarding</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Link href="/settings">
+              <SidebarMenuButton
+                isActive={pathname === '/settings'}
+                tooltip="System Settings"
+              >
+                <Settings />
+                <span>System Settings</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+        </SidebarGroup>
+      )}
       {hasPermission('settings_manage') && (
         <SidebarGroup>
           <SidebarGroupLabel>Administration</SidebarGroupLabel>

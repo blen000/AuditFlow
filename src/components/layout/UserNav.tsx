@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -10,42 +11,52 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, UserCircle } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { User, LogOut, UserCircle, BadgeCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export function UserNav() {
-  const [email, setEmail] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    setEmail(localStorage.getItem('userEmail'));
+    const userJson = localStorage.getItem('currentUser');
+    if (userJson) {
+      setCurrentUser(JSON.parse(userJson));
+    }
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userEmail');
+    localStorage.removeItem('currentUser');
     window.location.href = '/login';
   };
+
+  if (!currentUser) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-offset-background transition-all hover:ring-2 hover:ring-primary/20">
           <Avatar className="h-9 w-9 border border-muted-foreground/20">
-            <AvatarImage src="" alt="User profile avatar" />
             <AvatarFallback className="bg-primary/5">
               <UserCircle className="h-6 w-6 text-primary" />
             </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-64" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-bold leading-none">Admin User</p>
-            <p className="text-[10px] font-mono leading-none text-muted-foreground uppercase">
-              {email || 'admin@auditflow.com'}
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold leading-none">{currentUser.fullName}</p>
+              <div className="flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary uppercase">
+                <BadgeCheck className="h-2.5 w-2.5" />
+                {currentUser.role}
+              </div>
+            </div>
+            <p className="text-[10px] font-mono leading-none text-muted-foreground">
+              {currentUser.email}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -54,7 +65,7 @@ export function UserNav() {
           <Link href="/profile">
             <DropdownMenuItem className="cursor-pointer">
               <User className="mr-2 h-4 w-4 text-primary" />
-              <span>View Profile</span>
+              <span>Identity Profile</span>
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>

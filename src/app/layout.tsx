@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/layout/SidebarNav';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function RootLayout({
@@ -25,11 +25,18 @@ export default function RootLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
 
   useEffect(() => {
     // 1. Core Auth Check
     const authStatus = localStorage.getItem('isAuthenticated') === 'true';
+    const userJson = localStorage.getItem('currentUser');
+    const user = userJson ? JSON.parse(userJson) : null;
+    
     setIsAuthenticated(authStatus);
+    if (user) {
+      setUserPermissions(user.permissions || []);
+    }
 
     if (!authStatus) {
       if (pathname !== '/login') router.push('/login');
@@ -90,6 +97,16 @@ export default function RootLayout({
   const isLoginPage = pathname === '/login';
   const showShell = isAuthenticated && !isLoginPage;
 
+  if (isAuthenticated === null) {
+    return (
+      <html lang="en">
+        <body className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -110,34 +127,28 @@ export default function RootLayout({
         className={cn('font-body antialiased', 'min-h-screen bg-background')}
         suppressHydrationWarning
       >
-        {isAuthenticated !== null ? (
-          <SidebarProvider>
-            {showShell && (
-              <Sidebar>
-                <SidebarHeader>
-                  <Button variant="ghost" className="h-fit w-full justify-start p-0 hover:bg-transparent">
-                    <Link href="/" className="flex items-center gap-3 p-2 group">
-                      <ShieldCheck className="h-7 w-7 text-accent transition-colors group-hover:text-accent/80" />
-                      <span className="text-2xl font-bold tracking-tight text-accent transition-colors group-hover:text-accent/80">
-                        Nib Audit
-                      </span>
-                    </Link>
-                  </Button>
-                </SidebarHeader>
-                <SidebarContent>
-                  <SidebarNav />
-                </SidebarContent>
-              </Sidebar>
-            )}
-            <SidebarInset className={cn(!showShell && "m-0 ml-0 p-0 shadow-none border-none bg-transparent")}>
-              {children}
-            </SidebarInset>
-          </SidebarProvider>
-        ) : (
-          <div className="min-h-screen bg-background flex items-center justify-center">
-            {/* Loading state or empty to prevent flash */}
-          </div>
-        )}
+        <SidebarProvider>
+          {showShell && (
+            <Sidebar>
+              <SidebarHeader>
+                <Button variant="ghost" className="h-fit w-full justify-start p-0 hover:bg-transparent">
+                  <Link href="/" className="flex items-center gap-3 p-2 group">
+                    <ShieldCheck className="h-7 w-7 text-accent transition-colors group-hover:text-accent/80" />
+                    <span className="text-2xl font-bold tracking-tight text-accent transition-colors group-hover:text-accent/80">
+                      Nib Audit
+                    </span>
+                  </Link>
+                </Button>
+              </SidebarHeader>
+              <SidebarContent>
+                <SidebarNav permissions={userPermissions} />
+              </SidebarContent>
+            </Sidebar>
+          )}
+          <SidebarInset className={cn(!showShell && "m-0 ml-0 p-0 shadow-none border-none bg-transparent")}>
+            {children}
+          </SidebarInset>
+        </SidebarProvider>
         <Toaster />
       </body>
     </html>
