@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { 
   Building2, 
   MapPin, 
-  Calendar, 
   Lock, 
   LogOut,
   UserCircle,
@@ -18,27 +17,13 @@ import {
 } from 'lucide-react';
 import { ChangePasswordDialog } from '@/components/audit/ChangePasswordDialog';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ProfilePage() {
-  const [mounted, setMounted] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { user: currentUser, logout } = useAuth();
   const [isPassDialogOpen, setPassDialogOpen] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    const userJson = localStorage.getItem('currentUser');
-    if (userJson) {
-      setCurrentUser(JSON.parse(userJson));
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('currentUser');
-    window.location.href = '/login';
-  };
-
-  if (!mounted || !currentUser) return null;
+  if (!currentUser) return null;
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -74,7 +59,7 @@ export default function ProfilePage() {
                       <Lock className="h-4 w-4 text-muted-foreground" />
                       Change Password
                     </Button>
-                    <Button variant="ghost" className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleLogout}>
+                    <Button variant="ghost" className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={logout}>
                       <LogOut className="h-4 w-4" />
                       Logout Securely
                     </Button>

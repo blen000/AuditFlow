@@ -11,33 +11,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, LogOut, UserCircle, BadgeCheck } from "lucide-react";
+import { User as UserIcon, LogOut, UserCircle, BadgeCheck } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export function UserNav() {
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const userJson = localStorage.getItem('currentUser');
-    if (userJson) {
-      try {
-        setCurrentUser(JSON.parse(userJson));
-      } catch (e) {
-        console.error("Failed to parse current user session", e);
-      }
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userPermissions');
-    window.location.href = '/login';
-  };
+  const { user: currentUser, logout } = useAuth();
 
   // Prevent hydration flicker but ensure button appears
   if (!mounted || !currentUser) {
@@ -80,7 +59,7 @@ export function UserNav() {
         <DropdownMenuGroup>
           <Link href="/profile">
             <DropdownMenuItem className="cursor-pointer">
-              <User className="mr-2 h-4 w-4 text-primary" />
+              <UserIcon className="mr-2 h-4 w-4 text-primary" />
               <span>Identity Profile</span>
             </DropdownMenuItem>
           </Link>
@@ -88,7 +67,7 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuItem 
           className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer" 
-          onClick={handleLogout}
+          onClick={logout}
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span className="font-bold">Logout Securely</span>

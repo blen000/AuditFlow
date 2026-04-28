@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -16,54 +16,46 @@ import { SidebarNav } from '@/components/layout/SidebarNav';
 import { Button } from '@/components/ui/button';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 
-export default function RootLayout({
+function LayoutContent({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [userPermissions, setUserPermissions] = useState<string[]>([]);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { user, permissions, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    // 1. Core Auth Check
+    // Check authentication state from localStorage
     const authStatus = localStorage.getItem('isAuthenticated') === 'true';
     const userJson = localStorage.getItem('currentUser');
     const user = userJson ? JSON.parse(userJson) : null;
     
     setIsAuthenticated(authStatus);
-    
     if (user) {
-      const roleName = user.role || '';
-      setUserRole(roleName);
       setUserPermissions(user.permissions || []);
+    }
+
+    // Redirect to login if not authenticated and trying to access protected pages
+    if (!authStatus && pathname !== '/login') {
+      router.push('/login');
+      return;
+    }
+    
+    // Redirect to home if authenticated and trying to access login page
+    if (authStatus && pathname === '/login') {
+      router.push('/');
+      return;
+    }
+
+    // Role-Based Route Guard
+    if (authStatus && user) {
+      const permissions = user.permissions || [];
       
-      // ADMIN OVERRIDE: Check for admin role name case-insensitively
-      const isAdmin = roleName.trim().toLowerCase() === 'admin';
-
-      if (!authStatus && pathname !== '/login') {
-        router.push('/login');
-        return;
-      }
-
-      if (authStatus && pathname === '/login') {
-        router.push('/');
-        return;
-      }
-
-      // 2. Permission-Based Route Guarding
-      const isDashboard = pathname === '/';
-      const isProfile = pathname === '/profile';
-
-      // Public for all authenticated users
-      if (isDashboard || isProfile || isAdmin) return;
-
-      // Define Path -> Required Permission Mapping
-      const routeRequirements: Record<string, string> = {
-        '/auditee-view': 'audit_read',
+      // Define restricted paths and their required permissions
+      const restrictions: Record<string, string> = {
         '/findings/new': 'audit_write',
         '/special-audits/new': 'audit_write',
         '/reports': 'reports_read',
@@ -92,21 +84,50 @@ export default function RootLayout({
     } else if (authStatus === false && pathname !== '/login') {
       router.push('/login');
     }
-  }, [pathname, router]);
+  }, [pathname, router, isAuthenticated, isLoading, user, permissions]);
 
   const isLoginPage = pathname === '/login';
-  const showShell = isAuthenticated && !isLoginPage;
+  const showShell = !isLoginPage; // Always show shell unless it's login page
 
-  if (isAuthenticated === null) {
+  if (isLoading && pathname !== '/login') {
     return (
-      <html lang="en">
-        <body className="min-h-screen bg-background flex items-center justify-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </body>
-      </html>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
     );
   }
 
+  return (
+    <SidebarProvider>
+      {showShell && (
+        <Sidebar>
+          <SidebarHeader>
+            <Button variant="ghost" className="h-fit w-full justify-start p-0 hover:bg-transparent">
+              <Link href="/" className="flex items-center gap-3 p-2 group">
+                <ShieldCheck className="h-7 w-7 text-accent transition-colors group-hover:text-accent/80" />
+                <span className="text-2xl font-bold tracking-tight text-accent transition-colors group-hover:text-accent/80">
+                  Nib Audit
+                </span>
+              </Link>
+            </Button>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarNav permissions={permissions} />
+          </SidebarContent>
+        </Sidebar>
+      )}
+      <SidebarInset className={cn(!showShell && "m-0 ml-0 p-0 shadow-none border-none bg-transparent")}>
+        {children}
+      </SidebarInset>
+    </SidebarProvider>
+  );
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -141,7 +162,7 @@ export default function RootLayout({
                 </Button>
               </SidebarHeader>
               <SidebarContent>
-                <SidebarNav permissions={userPermissions} role={userRole || ''} />
+                <SidebarNav permissions={userPermissions} />
               </SidebarContent>
             </Sidebar>
           )}

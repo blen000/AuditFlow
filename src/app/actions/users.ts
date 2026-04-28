@@ -3,6 +3,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 
 /**
  * Verifies user credentials and returns full profile with role-based permissions.
@@ -28,22 +29,75 @@ export async function loginUser(data: any) {
       return { success: false, error: 'Account is currently inactive. Contact Admin.' };
     }
 
-    // Return serializable user data
+    // Return sanitized user object with permissions
+    const userData = {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role.name,
+      permissions: user.role.permissions,
+      branch: user.branch,
+      district: user.district,
+      dateJoined: user.dateJoined.toISOString().split('T')[0],
+    };
+
+    // Set session cookie
+    const cookieStore = await cookies();
+    cookieStore.set('session', JSON.stringify(userData), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+    });
+
     return {
       success: true,
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role.name,
-        permissions: user.role.permissions, // e.g. ['audit_read', 'reports_read']
-        branch: user.branch,
-        district: user.district
-      }
+      user: userData
     };
   } catch (error) {
     console.error('Login verification error:', error);
     return { success: false, error: 'Database connection failed during authentication.' };
+  }
+}
+
+export async function logoutUser() {
+  const cookieStore = await cookies();
+  cookieStore.delete('session');
+  return { success: true };
+}
+
+export async function getCurrentUser() {
+  try {
+    const cookieStore = await cookies();
+    const session = cookieStore.get('session');
+
+    if (!session) return null;
+
+    return JSON.parse(session.value);
+  } catch (error) {
+    console.error('Error fetching session user:', error);
+    return null;
+  }
+}
+
+export async function logoutUser() {
+  const cookieStore = await cookies();
+  cookieStore.delete('session');
+  return { success: true };
+}
+
+export async function getCurrentUser() {
+  try {
+    const cookieStore = await cookies();
+    const session = cookieStore.get('session');
+
+    if (!session) return null;
+
+    return JSON.parse(session.value);
+  } catch (error) {
+    console.error('Error fetching session user:', error);
+    return null;
   }
 }
 

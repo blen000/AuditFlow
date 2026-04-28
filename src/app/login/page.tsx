@@ -18,7 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { loginUser } from '@/app/actions/users';
+import { useAuth } from '@/context/AuthContext';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
@@ -28,6 +28,7 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,39 +42,34 @@ export default function LoginPage() {
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsSubmitting(true);
+    setIsSubmitting(true);
     try {
-      const result = await loginUser(values);
+      const result = await login(values);
 
-      if (!result.success) {
+      if (result.success) {
         toast({
-          variant: "destructive",
-          title: "Access Denied",
-          description: result.error || "Invalid credentials.",
+          title: 'Welcome back!',
+          description: `Authentication successful.`,
         });
-        return;
+        
+        // Use router.push and refresh to initialize layout with user state
+        router.push('/');
+        router.refresh();
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Access Denied',
+          description: result.error || 'Invalid credentials. Try using the demo credentials.',
+        });
       }
-
-      // Set authentication flags in localStorage
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('currentUser', JSON.stringify(result.user));
-      localStorage.setItem('userEmail', result.user?.email || '');
-      localStorage.setItem('userFullName', result.user?.fullName || '');
-      localStorage.setItem('userRole', result.user?.role || '');
-      localStorage.setItem('userPermissions', JSON.stringify(result.user?.permissions || []));
-      
-      toast({
-        title: "Welcome back!",
-        description: `Authentication successful for ${result.user?.fullName}.`,
-      });
-      
-      // Force hard refresh to clear potential stale layout states
-      window.location.href = '/';
     } catch (error) {
       toast({
-        variant: "destructive",
-        title: "System Error",
-        description: "Authentication service unavailable.",
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: 'An unexpected error occurred during authentication.',
       });
+    } finally {
+      setIsSubmitting(false);
     } finally {
       setIsSubmitting(false);
     }
