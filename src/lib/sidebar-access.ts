@@ -1,26 +1,110 @@
-export type SidebarGroup = 'core' | 'administration';
+import { 
+  LayoutDashboard, 
+  PlusCircle, 
+  Settings, 
+  FileWarning, 
+  FileText,
+  Users,
+  ShieldCheck,
+  UserPlus,
+  Star
+} from 'lucide-react';
 
-export interface SidebarItem {
-  id: string;
-  label: string;
-  group: SidebarGroup;
-  description: string;
-}
-
-export const sidebarMenuGroups: Record<SidebarGroup, string> = {
+export const sidebarMenuGroups = {
   core: 'Core Actions',
-  administration: 'Administration',
+  admin: 'Administration',
+  general: 'General',
 };
 
-export const sidebarMenuItems: SidebarItem[] = [
-  { id: 'dashboard', label: 'Dashboard', group: 'core', description: 'Overview of audit metrics and activity.' },
-  { id: 'auditee-view', label: 'Auditee View', group: 'core', description: 'Mission oversight and finding management.' },
-  { id: 'findings-new', label: 'Log New Finding', group: 'core', description: 'Record standard audit observations.' },
-  { id: 'special-audits-new', label: 'Log Special Audit', group: 'core', description: 'Record specialized missions and monetary reconciliation.' },
-  { id: 'reports', label: 'Audit Reports Hub', group: 'core', description: 'Access to all consolidated and analysis reports.' },
-  { id: 'users', label: 'User Management', group: 'administration', description: 'Manage system users and access.' },
-  { id: 'roles', label: 'Role Management', group: 'administration', description: 'Configure roles and permissions.' },
-  { id: 'register', label: 'Register User', group: 'administration', description: 'Onboard new personnel.' },
-  { id: 'special-onboarding', label: 'Special Onboarding', group: 'administration', description: 'Executive account provisioning.' },
-  { id: 'settings', label: 'System Settings', group: 'administration', description: 'Configure organizational structure and taxonomy.' },
+export const sidebarMenuItems = [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    description: 'Main operational overview and KPIs.',
+    icon: LayoutDashboard,
+    path: '/',
+    permission: 'audit_read',
+    group: 'core',
+  },
+  {
+    id: 'auditee-view',
+    label: 'Auditee View',
+    description: 'Specialized view for auditees to respond to findings.',
+    icon: Users,
+    path: '/auditee-view',
+    permission: 'audit_read',
+    group: 'core',
+  },
+  {
+    id: 'findings-new',
+    label: 'Log New Finding',
+    description: 'Create a new audit finding record.',
+    icon: PlusCircle,
+    path: '/findings/new',
+    permission: 'audit_write',
+    group: 'core',
+  },
+  {
+    id: 'special-audits-new',
+    label: 'Log Special Audit',
+    description: 'Initiate a special audit investigation.',
+    icon: FileWarning,
+    path: '/special-audits/new',
+    permission: 'audit_write',
+    group: 'core',
+  },
+  {
+    id: 'reports',
+    label: 'Audit Reports Hub',
+    description: 'Access consolidated and frequency reports.',
+    icon: FileText,
+    path: '/reports',
+    permission: 'reports_read',
+    group: 'core',
+  },
+  {
+    id: 'users',
+    label: 'User Management',
+    description: 'Manage system users and their profiles.',
+    icon: Users,
+    path: '/users',
+    permission: 'settings_manage',
+    group: 'admin',
+  },
+  {
+    id: 'roles',
+    label: 'Role Management',
+    description: 'Configure roles and system permissions.',
+    icon: ShieldCheck,
+    path: '/roles',
+    permission: 'settings_manage',
+    group: 'admin',
+  },
+  {
+    id: 'register',
+    label: 'Register User',
+    description: 'Onboard new system users.',
+    icon: UserPlus,
+    path: '/register',
+    permission: 'settings_manage',
+    group: 'admin',
+  },
+  {
+    id: 'special-onboarding',
+    label: 'Special Onboarding',
+    description: 'Configure executive level access.',
+    icon: Star,
+    path: '/special-onboarding',
+    permission: 'settings_manage',
+    group: 'admin',
+  },
+  {
+    id: 'settings',
+    label: 'System Settings',
+    description: 'Global application configuration.',
+    icon: Settings,
+    path: '/settings',
+    permission: 'settings_manage',
+    group: 'admin',
+  },
 ];
