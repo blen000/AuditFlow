@@ -25,17 +25,17 @@ function LayoutContent({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, permissions, isAuthenticated, isLoading } = useAuth();
+  const { user, permissions, isAuthenticated, isLoading, setUserPermissions, setIsAuthenticated } = useAuth();
 
   useEffect(() => {
     // Check authentication state from localStorage
     const authStatus = localStorage.getItem('isAuthenticated') === 'true';
     const userJson = localStorage.getItem('currentUser');
-    const user = userJson ? JSON.parse(userJson) : null;
-    
+    const parsedUser = userJson ? JSON.parse(userJson) : null;
+
     setIsAuthenticated(authStatus);
-    if (user) {
-      setUserPermissions(user.permissions || []);
+    if (parsedUser) {
+      setUserPermissions(parsedUser.permissions || []);
     }
 
     // Redirect to login if not authenticated and trying to access protected pages
@@ -73,7 +73,7 @@ function LayoutContent({
         '/statuses': 'settings_manage'
       };
 
-      const requiredPermission = Object.entries(routeRequirements).find(([route]) => 
+      const requiredPermission = Object.entries(restrictions).find(([route]) => 
         pathname.startsWith(route)
       )?.[1];
 
@@ -129,49 +129,30 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <title>Nib Audit | AuditFlow</title>
-        <meta name="description" content="Secure Internal Audit Platform" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body
-        className={cn('font-body antialiased', 'min-h-screen bg-background')}
-        suppressHydrationWarning
-      >
-        <SidebarProvider>
-          {showShell && (
-            <Sidebar>
-              <SidebarHeader>
-                <Button variant="ghost" className="h-fit w-full justify-start p-0 hover:bg-transparent">
-                  <Link href="/" className="flex items-center gap-3 p-2 group">
-                    <ShieldCheck className="h-7 w-7 text-accent transition-colors group-hover:text-accent/80" />
-                    <span className="text-2xl font-bold tracking-tight text-accent transition-colors group-hover:text-accent/80">
-                      Nib Audit
-                    </span>
-                  </Link>
-                </Button>
-              </SidebarHeader>
-              <SidebarContent>
-                <SidebarNav permissions={userPermissions} />
-              </SidebarContent>
-            </Sidebar>
-          )}
-          <SidebarInset className={cn(!showShell && "m-0 ml-0 p-0 shadow-none border-none bg-transparent")}>
-            {children}
-          </SidebarInset>
-        </SidebarProvider>
-        <Toaster />
-      </body>
-    </html>
+    <AuthProvider>
+      <html lang="en" suppressHydrationWarning>
+        <head>
+          <title>Nib Audit | AuditFlow</title>
+          <meta name="description" content="Secure Internal Audit Platform" />
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link
+            rel="preconnect"
+            href="https://fonts.gstatic.com"
+            crossOrigin="anonymous"
+          />
+          <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+          />
+        </head>
+        <body
+          className={cn('font-body antialiased', 'min-h-screen bg-background')}
+          suppressHydrationWarning
+        >
+          <LayoutContent>{children}</LayoutContent>
+          <Toaster />
+        </body>
+      </html>
+    </AuthProvider>
   );
 }

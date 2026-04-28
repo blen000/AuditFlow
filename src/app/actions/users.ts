@@ -81,26 +81,6 @@ export async function getCurrentUser() {
   }
 }
 
-export async function logoutUser() {
-  const cookieStore = await cookies();
-  cookieStore.delete('session');
-  return { success: true };
-}
-
-export async function getCurrentUser() {
-  try {
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session');
-
-    if (!session) return null;
-
-    return JSON.parse(session.value);
-  } catch (error) {
-    console.error('Error fetching session user:', error);
-    return null;
-  }
-}
-
 export async function getUsers() {
   try {
     const users = await prisma.user.findMany({

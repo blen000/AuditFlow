@@ -42,7 +42,6 @@ export default function LoginPage() {
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsSubmitting(true);
-    setIsSubmitting(true);
     try {
       const result = await login(values);
 
@@ -68,8 +67,6 @@ export default function LoginPage() {
         title: 'Login Failed',
         description: 'An unexpected error occurred during authentication.',
       });
-    } finally {
-      setIsSubmitting(false);
     } finally {
       setIsSubmitting(false);
     }

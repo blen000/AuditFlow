@@ -13,10 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User as UserIcon, LogOut, UserCircle, BadgeCheck } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from 'react';
 import { useAuth } from "@/context/AuthContext";
 
 export function UserNav() {
   const { user: currentUser, logout } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Prevent hydration flicker but ensure button appears
   if (!mounted || !currentUser) {
