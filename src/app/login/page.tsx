@@ -19,6 +19,11 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import {
+  withAdminPermissions,
+  AUDIT_REPORTS_HUB_PERMISSIONS,
+  SYSTEM_SETTINGS_PERMISSIONS,
+} from '@/lib/permissions';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
@@ -68,7 +73,28 @@ export default function LoginPage() {
         description: `Authentication successful.`,
       });
 
-      router.push('/');
+      // Compute first allowed path for this user and redirect there.
+      const effectivePermissions = withAdminPermissions(
+        result.user.role,
+        result.user.permissions || []
+      );
+
+      const getFirstAllowed = () => {
+        if (effectivePermissions.includes('dashboard_access')) return '/dashboard';
+        if (effectivePermissions.includes('auditee_view_access')) return '/auditee-view';
+        if (AUDIT_REPORTS_HUB_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/reports';
+        if (effectivePermissions.includes('findings_new_access')) return '/findings/new';
+        if (effectivePermissions.includes('special_audits_new_access')) return '/special-audits/new';
+        if (effectivePermissions.includes('users_manage_access')) return '/users';
+        if (effectivePermissions.includes('roles_manage_access')) return '/roles';
+        if (effectivePermissions.includes('register_user_access')) return '/register';
+        if (effectivePermissions.includes('special_onboarding_access')) return '/special-onboarding';
+        if (SYSTEM_SETTINGS_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/settings';
+        return '/dashboard';
+      };
+
+      const redirectPath = getFirstAllowed();
+      router.replace(redirectPath);
       router.refresh();
     } catch (error) {
       toast({

@@ -46,9 +46,9 @@ export function SidebarNav({ permissions = [], role = '' }: SidebarNavProps) {
           <SidebarMenu>
             <SidebarMenuItem>
               {hasPermission('dashboard_access') && (
-                <Link href="/">
+                <Link href="/dashboard">
                   <SidebarMenuButton
-                    isActive={pathname === '/'}
+                    isActive={pathname === '/dashboard'}
                     tooltip="Dashboard"
                   >
                     <LayoutDashboard />
