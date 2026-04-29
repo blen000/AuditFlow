@@ -51,9 +51,9 @@ function LayoutContent({
       return;
     }
     
-    // Redirect to home if authenticated and trying to access login page
+    // Redirect to dashboard if authenticated and trying to access login page
     if (authStatus && pathname === '/login') {
-      router.push('/');
+      router.push('/dashboard');
       return;
     }
 
@@ -62,8 +62,8 @@ function LayoutContent({
       const effectivePermissions = withAdminPermissions(parsedUser.role, parsedUser.permissions || []);
 
       const requiredPermissions: PermissionKey[] = (() => {
-        // Core pages
-        if (pathname === '/') return ['dashboard_access'];
+      // Core pages
+      if (pathname === '/dashboard') return ['dashboard_access'];
         if (pathname.startsWith('/auditee-view')) return ['auditee_view_access'];
         if (pathname.startsWith('/findings/new')) return ['findings_new_access'];
         if (pathname.startsWith('/special-audits/new')) return ['special_audits_new_access'];
@@ -101,7 +101,7 @@ function LayoutContent({
 
       if (!isAllowed) {
         const getFallbackPath = () => {
-          if (effectivePermissions.includes('dashboard_access')) return '/';
+          if (effectivePermissions.includes('dashboard_access')) return '/dashboard';
           if (effectivePermissions.includes('auditee_view_access')) return '/auditee-view';
           if (AUDIT_REPORTS_HUB_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/reports';
           if (effectivePermissions.includes('findings_new_access')) return '/findings/new';
@@ -111,7 +111,7 @@ function LayoutContent({
           if (effectivePermissions.includes('register_user_access')) return '/register';
           if (effectivePermissions.includes('special_onboarding_access')) return '/special-onboarding';
           if (SYSTEM_SETTINGS_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/settings';
-          return '/';
+          return '/dashboard';
         };
 
         console.warn(
@@ -142,7 +142,7 @@ function LayoutContent({
         <Sidebar>
           <SidebarHeader>
             <Button variant="ghost" className="h-fit w-full justify-start p-0 hover:bg-transparent">
-              <Link href="/" className="flex items-center gap-3 p-2 group">
+              <Link href="/dashboard" className="flex items-center gap-3 p-2 group">
                 <ShieldCheck className="h-7 w-7 text-accent transition-colors group-hover:text-accent/80" />
                 <span className="text-2xl font-bold tracking-tight text-accent transition-colors group-hover:text-accent/80">
                   Nib Audit

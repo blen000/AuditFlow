@@ -396,7 +396,7 @@ export function CreateFindingForm() {
               </div>
 
               <div className="flex justify-end gap-3 pt-6 border-t">
-                <Button type="button" variant="outline" onClick={() => router.push('/')}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => router.push('/dashboard')}>Cancel</Button>
                 <Button type="submit" size="lg" disabled={!selectedNodeId}>Log Standardized Audit Findings</Button>
               </div>
             </form>

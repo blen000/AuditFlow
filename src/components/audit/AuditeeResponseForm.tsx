@@ -51,7 +51,7 @@ export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
       disagreementReason,
       attachmentName: attachment?.name
     });
-    router.push('/');
+    router.push('/dashboard');
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,7 +155,7 @@ export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
         )}
       </CardContent>
       <CardFooter className="justify-end gap-2">
-        <Button variant="outline" onClick={() => router.push('/')}>
+        <Button variant="outline" onClick={() => router.push('/dashboard')}>
           Cancel
         </Button>
         <Button onClick={handleSubmit}>Submit Response</Button>
