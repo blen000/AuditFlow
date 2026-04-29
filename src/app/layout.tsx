@@ -171,7 +171,7 @@ export default function RootLayout({
     <AuthProvider>
       <html lang="en" suppressHydrationWarning>
         <head>
-          <title>Nib Audit | AuditFlow</title>
+          <title>Nib Audit </title>
           <meta name="description" content="Secure Internal Audit Platform" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link
