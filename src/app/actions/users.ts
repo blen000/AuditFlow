@@ -4,6 +4,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import { normalizePermissions } from '@/lib/permissions';
 
 /**
  * Verifies user credentials and returns full profile with role-based permissions.
@@ -100,9 +101,15 @@ export async function getUsers() {
 
 export async function getRoles() {
   try {
-    return await prisma.role.findMany({
+    const roles = await prisma.role.findMany({
       orderBy: { name: 'asc' },
     });
+
+    // Normalize legacy role permission keys to the current granular permission model.
+    return roles.map((r) => ({
+      ...r,
+      permissions: normalizePermissions(r.permissions as unknown as string[]),
+    }));
   } catch (error) {
     console.error('Failed to fetch roles:', error);
     throw new Error('Database connection failed');

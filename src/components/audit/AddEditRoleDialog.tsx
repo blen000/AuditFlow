@@ -27,18 +27,14 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Role, Permission } from '@/types';
+import type { Role } from '@/types';
 import { ShieldAlert, Star } from 'lucide-react';
-import { sidebarMenuItems, sidebarMenuGroups } from '@/lib/sidebar-access';
-
-// System capability options removed from the role editor per request.
+import { PERMISSION_DEFINITIONS } from '@/lib/permissions';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Role name is required.'),
   description: z.string().min(5, 'Description is required.'),
-  // permissions are optional in the editor; capability options were removed from UI
   permissions: z.array(z.string()),
-  sidebarAccess: z.array(z.string()).min(1, 'Select at least one menu item.'),
   isSpecial: z.boolean().default(false),
 });
 
@@ -61,7 +57,6 @@ export function AddEditRoleDialog({
       name: '',
       description: '',
       permissions: [],
-      sidebarAccess: [],
       isSpecial: false,
     },
   });
@@ -73,11 +68,10 @@ export function AddEditRoleDialog({
           name: role.name,
           description: role.description,
           permissions: role.permissions,
-          sidebarAccess: role.sidebarAccess || [],
           isSpecial: role.isSpecial || false,
         });
       } else {
-        form.reset({ name: '', description: '', permissions: [], sidebarAccess: [], isSpecial: false });
+        form.reset({ name: '', description: '', permissions: [], isSpecial: false });
       }
     }
   }, [role, form, open]);
@@ -159,49 +153,53 @@ export function AddEditRoleDialog({
                   )}
                 />
                 
-                {/* Assigned System Capabilities removed from UI */}
-
                 <div className="space-y-4">
-                  <FormLabel className="text-xs font-bold uppercase tracking-widest text-primary">Sidebar/Menu Access</FormLabel>
-                  <div className="space-y-2">
-                    {Object.entries(sidebarMenuGroups).map(([groupId, groupLabel]) => (
-                      <div key={groupId} className="mb-2">
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{groupLabel}</div>
+                  <FormLabel className="text-xs font-bold uppercase tracking-widest text-primary">
+                    Granular Permissions
+                  </FormLabel>
+                  <div className="space-y-4">
+                    {Array.from(new Set(PERMISSION_DEFINITIONS.map((p) => p.group))).map((group) => (
+                      <div key={group}>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                          {group}
+                        </div>
                         <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-                          {sidebarMenuItems.filter(item => item.group === groupId).map(item => (
+                          {PERMISSION_DEFINITIONS.filter((p) => p.group === group).map((p) => (
                             <FormField
-                              key={item.id}
+                              key={p.key}
                               control={form.control}
-                              name="sidebarAccess"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3 hover:bg-muted/30 transition-colors cursor-pointer">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(item.id)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...field.value, item.id])
-                                          : field.onChange(field.value?.filter((value) => value !== item.id))
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel className="text-sm font-bold cursor-pointer">
-                                      {item.label}
-                                    </FormLabel>
-                                    <p className="text-xs text-muted-foreground">
-                                      {item.description}
-                                    </p>
-                                  </div>
-                                </FormItem>
-                              )}
+                              name="permissions"
+                              render={({ field }) => {
+                                const current = field.value || [];
+                                const isChecked = current.includes(p.key);
+
+                                return (
+                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3 hover:bg-muted/30 transition-colors cursor-pointer">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={isChecked}
+                                        onCheckedChange={(checked) => {
+                                          return checked
+                                            ? field.onChange(Array.from(new Set([...current, p.key])))
+                                            : field.onChange(current.filter((value) => value !== p.key));
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                      <FormLabel className="text-sm font-bold cursor-pointer">
+                                        {p.label}
+                                      </FormLabel>
+                                      <p className="text-xs text-muted-foreground">{p.description}</p>
+                                    </div>
+                                  </FormItem>
+                                );
+                              }}
                             />
                           ))}
                         </div>
                       </div>
                     ))}
                   </div>
-                  <FormMessage />
                 </div>
               </div>
             </ScrollArea>

@@ -1,4 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
+import type { PermissionKey } from '@/lib/permissions';
 
 export type RiskLevel = 'High' | 'Medium' | 'Low' | string;
 export type FindingStatus = string;
@@ -217,13 +218,12 @@ export type User = {
   district?: string;
 };
 
-export type Permission = 'audit_read' | 'audit_write' | 'reports_read' | 'settings_manage';
+export type Permission = PermissionKey;
 
 export type Role = {
   id: string;
   name: string;
   description: string;
   permissions: Permission[];
-  sidebarAccess: string[];
   isSpecial?: boolean;
 };

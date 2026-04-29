@@ -303,7 +303,9 @@ export function CreateFindingForm() {
                             </ScrollArea>
                           </PopoverContent>
                         </Popover>
-                        <FormDescription>All titles and levels are pre-configured in Settings > Hierarchy & Titles.</FormDescription>
+                        <FormDescription>
+                          All titles and levels are pre-configured in Settings {'>'} Hierarchy &amp; Titles.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

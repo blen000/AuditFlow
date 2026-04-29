@@ -26,8 +26,7 @@ import type { Role } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { AddEditRoleDialog } from '@/components/audit/AddEditRoleDialog';
 import { getRoles, createRole, updateRole, deleteRole } from '@/app/actions/users';
-
-// Note: specific system capabilities were removed from the role-management UI per request.
+import { getPermissionLabel } from '@/lib/permissions';
 
 export default function RoleManagementPage() {
   const { toast } = useToast();
@@ -177,16 +176,14 @@ export default function RoleManagementPage() {
                         Authorized System Capabilities
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {role.permissions
-                          .filter((perm) => !['audit_read', 'audit_write', 'reports_read', 'settings_manage'].includes(perm))
-                          .map((perm) => (
+                        {role.permissions.map((perm) => (
                           <Badge 
                             key={perm} 
                             variant="outline" 
                             className={`flex items-center gap-1.5 py-1 px-3 font-bold text-[10px] border-none shadow-sm uppercase tracking-tighter bg-gray-100`}
                           >
                             <CheckCircle className="h-3 w-3" />
-                            {perm}
+                            {getPermissionLabel(perm)}
                           </Badge>
                         ))}
                       </div>

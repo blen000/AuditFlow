@@ -13,6 +13,7 @@ import {
   Layers
 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 const settingsModules = [
   {
@@ -20,46 +21,57 @@ const settingsModules = [
     description: 'Predefine Audit Case Numbers, Main Mission Summaries, and Subsection Titles for hierarchical logging.',
     icon: Layers,
     href: '/settings/audit-structure',
-    buttonText: 'Manage Structure'
+    buttonText: 'Manage Structure',
+    requiredPermission: 'settings_audit_structure_access',
   },
   {
     title: 'Branch Registration',
     description: 'Add and manage physical bank branch information. Configure locations and regional mapping.',
     icon: Building,
     href: '/branches',
-    buttonText: 'Go to Branches'
+    buttonText: 'Go to Branches',
+    requiredPermission: 'settings_branches_access',
   },
   {
     title: 'District Management',
     description: 'Define and organize organizational districts for regional oversight and reporting categorization.',
     icon: MapPin,
     href: '/districts',
-    buttonText: 'Go to Districts'
+    buttonText: 'Go to Districts',
+    requiredPermission: 'settings_districts_access',
   },
   {
     title: 'Department Setup',
     description: 'Manage headquarters and support departments subject to specialized internal audit units.',
     icon: Briefcase,
     href: '/departments',
-    buttonText: 'Go to Departments'
+    buttonText: 'Go to Departments',
+    requiredPermission: 'settings_departments_access',
   },
   {
     title: 'Risk Level Configuration',
     description: 'Define risk severity scales used across findings to prioritize mitigation efforts.',
     icon: ShieldAlert,
     href: '/risk-levels',
-    buttonText: 'Go to Risk Levels'
+    buttonText: 'Go to Risk Levels',
+    requiredPermission: 'settings_risk_levels_access',
   },
   {
     title: 'Workflow Statuses',
     description: 'Manage the lifecycle stages of findings from "Open" to "Mitigated" and "Closed".',
     icon: Tags,
     href: '/statuses',
-    buttonText: 'Go to Statuses'
+    buttonText: 'Go to Statuses',
+    requiredPermission: 'settings_statuses_access',
   },
 ];
 
 export default function SettingsPage() {
+  const { permissions } = useAuth();
+  const visibleModules = settingsModules.filter((m) =>
+    permissions.includes(m.requiredPermission)
+  );
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <PageHeader 
@@ -69,7 +81,7 @@ export default function SettingsPage() {
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-7xl">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {settingsModules.map((module) => (
+            {visibleModules.map((module) => (
               <Card key={module.href} className="flex flex-col h-full shadow-sm hover:shadow-md transition-all border-muted/40 group">
                 <CardHeader className="pb-4">
                   <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">

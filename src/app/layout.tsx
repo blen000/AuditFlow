@@ -17,7 +17,13 @@ import { Button } from '@/components/ui/button';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { isAdminRole, withAdminPermissions } from '@/lib/permissions';
+import {
+  AUDIT_REPORTS_HUB_PERMISSIONS,
+  SYSTEM_SETTINGS_PERMISSIONS,
+  isAdminRole,
+  type PermissionKey,
+  withAdminPermissions,
+} from '@/lib/permissions';
 
 function LayoutContent({
   children,
@@ -55,36 +61,64 @@ function LayoutContent({
     if (authStatus && parsedUser) {
       const effectivePermissions = withAdminPermissions(parsedUser.role, parsedUser.permissions || []);
 
-      // Define restricted paths and their required permissions
-      const restrictions: Record<string, string> = {
-        '/findings/new': 'audit_write',
-        '/special-audits/new': 'audit_write',
-        '/reports': 'reports_read',
-        '/assignments': 'reports_read',
-        '/communications': 'reports_read',
-        '/users': 'settings_manage',
-        '/roles': 'settings_manage',
-        '/register': 'settings_manage',
-        '/special-onboarding': 'settings_manage',
-        '/settings': 'settings_manage',
-        '/branches': 'settings_manage',
-        '/districts': 'settings_manage',
-        '/departments': 'settings_manage',
-        '/risk-levels': 'settings_manage',
-        '/statuses': 'settings_manage'
-      };
+      const requiredPermissions: PermissionKey[] = (() => {
+        // Core pages
+        if (pathname === '/') return ['dashboard_access'];
+        if (pathname.startsWith('/auditee-view')) return ['auditee_view_access'];
+        if (pathname.startsWith('/findings/new')) return ['findings_new_access'];
+        if (pathname.startsWith('/special-audits/new')) return ['special_audits_new_access'];
 
-      const requiredPermission = Object.entries(restrictions).find(([route]) => 
-        pathname.startsWith(route)
-      )?.[1];
+        // Reports hub containers + sub-features
+        if (pathname.startsWith('/reports/consolidated')) return ['reports_consolidated_access'];
+        if (pathname.startsWith('/reports/frequency')) return ['reports_frequency_access'];
+        if (pathname.startsWith('/assignments')) return ['reports_assignments_access'];
+        if (pathname.startsWith('/communications')) return ['reports_communications_access'];
+        if (pathname.startsWith('/special-audits')) return ['reports_special_audits_access']; // must be AFTER '/special-audits/new'
+        if (pathname === '/reports') return AUDIT_REPORTS_HUB_PERMISSIONS;
 
-      if (
-        requiredPermission &&
-        !isAdminRole(parsedUser.role) &&
-        !effectivePermissions.includes(requiredPermission)
-      ) {
-        console.warn(`Unauthorized access attempt to ${pathname}. Required: ${requiredPermission}`);
-        router.push('/');
+        // Administration pages
+        if (pathname.startsWith('/users')) return ['users_manage_access'];
+        if (pathname.startsWith('/roles')) return ['roles_manage_access'];
+        if (pathname.startsWith('/register')) return ['register_user_access'];
+        if (pathname.startsWith('/special-onboarding')) return ['special_onboarding_access'];
+
+        // System settings container + sub-features
+        if (pathname.startsWith('/settings/audit-structure')) return ['settings_audit_structure_access'];
+        if (pathname.startsWith('/branches')) return ['settings_branches_access'];
+        if (pathname.startsWith('/districts')) return ['settings_districts_access'];
+        if (pathname.startsWith('/departments')) return ['settings_departments_access'];
+        if (pathname.startsWith('/risk-levels')) return ['settings_risk_levels_access'];
+        if (pathname.startsWith('/statuses')) return ['settings_statuses_access'];
+        if (pathname === '/settings') return SYSTEM_SETTINGS_PERMISSIONS;
+
+        return [];
+      })();
+
+      const isAllowed =
+        requiredPermissions.length === 0 ||
+        isAdminRole(parsedUser.role) ||
+        requiredPermissions.some((p) => effectivePermissions.includes(p));
+
+      if (!isAllowed) {
+        const getFallbackPath = () => {
+          if (effectivePermissions.includes('dashboard_access')) return '/';
+          if (effectivePermissions.includes('auditee_view_access')) return '/auditee-view';
+          if (AUDIT_REPORTS_HUB_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/reports';
+          if (effectivePermissions.includes('findings_new_access')) return '/findings/new';
+          if (effectivePermissions.includes('special_audits_new_access')) return '/special-audits/new';
+          if (effectivePermissions.includes('users_manage_access')) return '/users';
+          if (effectivePermissions.includes('roles_manage_access')) return '/roles';
+          if (effectivePermissions.includes('register_user_access')) return '/register';
+          if (effectivePermissions.includes('special_onboarding_access')) return '/special-onboarding';
+          if (SYSTEM_SETTINGS_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/settings';
+          return '/';
+        };
+
+        console.warn(
+          `Unauthorized access attempt to ${pathname}. Required one of: ${requiredPermissions.join(', ')}`
+        );
+        const fallbackPath = getFallbackPath();
+        if (fallbackPath !== pathname) router.push(fallbackPath);
       }
     } else if (authStatus === false && pathname !== '/login') {
       router.push('/login');

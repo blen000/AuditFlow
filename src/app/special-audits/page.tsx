@@ -46,6 +46,7 @@ import { ViewSpecialAuditDialog } from '@/components/audit/ViewSpecialAuditDialo
 import { useToast } from '@/hooks/use-toast';
 import { getMonth, getQuarter, getYear, format } from 'date-fns';
 import { getSpecialAudits, deleteSpecialAudit, submitSpecialAudit } from '@/app/actions/special-audits';
+import { useAuth } from '@/context/AuthContext';
 
 type SortConfig = {
   key: 'dateCreated' | 'amountInvolved' | 'id';
@@ -54,6 +55,7 @@ type SortConfig = {
 
 export default function SpecialAuditsPage() {
   const { toast } = useToast();
+  const { permissions } = useAuth();
   const [audits, setAudits] = useState<SpecialAudit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -203,10 +205,12 @@ export default function SpecialAuditsPage() {
         description="Formal tracking of specialized internal audit missions and monetary reconciliation from live database."
         backHref="/reports"
       >
-        <Button onClick={handleAddNew}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Log Special Audit
-        </Button>
+        {permissions.includes('special_audits_new_access') && (
+          <Button onClick={handleAddNew}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Log Special Audit
+          </Button>
+        )}
       </PageHeader>
       
       <main className="flex-1 p-4 sm:p-6 md:p-8">
