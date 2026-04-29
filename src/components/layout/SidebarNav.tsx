@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
+import { isAdminRole } from '@/lib/permissions';
 
 type SidebarNavProps = {
   permissions?: string[];
@@ -29,9 +29,8 @@ type SidebarNavProps = {
 
 export function SidebarNav({ permissions = [], role = '' }: SidebarNavProps) {
   const pathname = usePathname();
-  const { logout } = useAuth();
-  
-  const hasPermission = (perm: string) => permissions.includes(perm);
+  const hasPermission = (perm: string) =>
+    isAdminRole(role) || permissions.includes(perm);
 
   return (
     <div className="flex flex-col h-full justify-between pb-4">

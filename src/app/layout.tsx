@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { isAdminRole, withAdminPermissions } from '@/lib/permissions';
 
 function LayoutContent({
   children,
@@ -25,7 +26,7 @@ function LayoutContent({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, permissions, isAuthenticated, isLoading, setUserPermissions, setIsAuthenticated } = useAuth();
+  const { user, permissions, isLoading, setUserPermissions, setIsAuthenticated } = useAuth();
 
   useEffect(() => {
     // Check authentication state from localStorage
@@ -35,7 +36,7 @@ function LayoutContent({
 
     setIsAuthenticated(authStatus);
     if (parsedUser) {
-      setUserPermissions(parsedUser.permissions || []);
+      setUserPermissions(withAdminPermissions(parsedUser.role, parsedUser.permissions || []));
     }
 
     // Redirect to login if not authenticated and trying to access protected pages
@@ -51,9 +52,9 @@ function LayoutContent({
     }
 
     // Role-Based Route Guard
-    if (authStatus && user) {
-      const permissions = user.permissions || [];
-      
+    if (authStatus && parsedUser) {
+      const effectivePermissions = withAdminPermissions(parsedUser.role, parsedUser.permissions || []);
+
       // Define restricted paths and their required permissions
       const restrictions: Record<string, string> = {
         '/findings/new': 'audit_write',
@@ -77,14 +78,18 @@ function LayoutContent({
         pathname.startsWith(route)
       )?.[1];
 
-      if (requiredPermission && !user.permissions?.includes(requiredPermission)) {
+      if (
+        requiredPermission &&
+        !isAdminRole(parsedUser.role) &&
+        !effectivePermissions.includes(requiredPermission)
+      ) {
         console.warn(`Unauthorized access attempt to ${pathname}. Required: ${requiredPermission}`);
         router.push('/');
       }
     } else if (authStatus === false && pathname !== '/login') {
       router.push('/login');
     }
-  }, [pathname, router, isAuthenticated, isLoading, user, permissions]);
+  }, [pathname, router, setIsAuthenticated, setUserPermissions]);
 
   const isLoginPage = pathname === '/login';
   const showShell = !isLoginPage; // Always show shell unless it's login page
@@ -112,7 +117,7 @@ function LayoutContent({
             </Button>
           </SidebarHeader>
           <SidebarContent>
-            <SidebarNav permissions={permissions} />
+            <SidebarNav permissions={permissions} role={user?.role} />
           </SidebarContent>
         </Sidebar>
       )}

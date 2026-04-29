@@ -27,12 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AddEditRoleDialog } from '@/components/audit/AddEditRoleDialog';
 import { getRoles, createRole, updateRole, deleteRole } from '@/app/actions/users';
 
-const permissionLabels: Record<string, { label: string, color: string }> = {
-  audit_read: { label: 'Read Audits', color: 'bg-blue-100 text-blue-800' },
-  audit_write: { label: 'Manage Audits', color: 'bg-purple-100 text-purple-800' },
-  reports_read: { label: 'Access Reports', color: 'bg-green-100 text-green-800' },
-  settings_manage: { label: 'System Settings', color: 'bg-orange-100 text-orange-800' },
-};
+// Note: specific system capabilities were removed from the role-management UI per request.
 
 export default function RoleManagementPage() {
   const { toast } = useToast();
@@ -182,14 +177,16 @@ export default function RoleManagementPage() {
                         Authorized System Capabilities
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {role.permissions.map((perm) => (
+                        {role.permissions
+                          .filter((perm) => !['audit_read', 'audit_write', 'reports_read', 'settings_manage'].includes(perm))
+                          .map((perm) => (
                           <Badge 
                             key={perm} 
                             variant="outline" 
-                            className={`flex items-center gap-1.5 py-1 px-3 font-bold text-[10px] border-none shadow-sm uppercase tracking-tighter ${permissionLabels[perm]?.color || 'bg-gray-100'}`}
+                            className={`flex items-center gap-1.5 py-1 px-3 font-bold text-[10px] border-none shadow-sm uppercase tracking-tighter bg-gray-100`}
                           >
                             <CheckCircle className="h-3 w-3" />
-                            {permissionLabels[perm]?.label || perm}
+                            {perm}
                           </Badge>
                         ))}
                       </div>

@@ -31,17 +31,13 @@ import type { Role, Permission } from '@/types';
 import { ShieldAlert, Star } from 'lucide-react';
 import { sidebarMenuItems, sidebarMenuGroups } from '@/lib/sidebar-access';
 
-const permissionOptions: { value: Permission; label: string; description: string }[] = [
-  { value: 'audit_read', label: 'Read Audits', description: 'Can view audit findings and case details.' },
-  { value: 'audit_write', label: 'Manage Audits', description: 'Can create, edit, and delete audit findings.' },
-  { value: 'reports_read', label: 'Access Reports', description: 'Can view high-level reports and KPI metrics.' },
-  { value: 'settings_manage', label: 'System Settings', description: 'Can configure organizational structure and users.' },
-];
+// System capability options removed from the role editor per request.
 
 const formSchema = z.object({
   name: z.string().min(2, 'Role name is required.'),
   description: z.string().min(5, 'Description is required.'),
-  permissions: z.array(z.string()).min(1, 'Select at least one permission.'),
+  // permissions are optional in the editor; capability options were removed from UI
+  permissions: z.array(z.string()),
   sidebarAccess: z.array(z.string()).min(1, 'Select at least one menu item.'),
   isSpecial: z.boolean().default(false),
 });
@@ -163,45 +159,7 @@ export function AddEditRoleDialog({
                   )}
                 />
                 
-                <div className="space-y-4">
-                  <FormLabel className="text-xs font-bold uppercase tracking-widest text-primary">Assigned System Capabilities</FormLabel>
-                  <div className="grid gap-4">
-                    {permissionOptions.map((option) => (
-                      <FormField
-                        key={option.value}
-                        control={form.control}
-                        name="permissions"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 hover:bg-muted/30 transition-colors cursor-pointer">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(option.value)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...field.value, option.value])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value) => value !== option.value
-                                        )
-                                      )
-                                }}
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel className="text-sm font-bold cursor-pointer">
-                                {option.label}
-                              </FormLabel>
-                              <p className="text-xs text-muted-foreground">
-                                {option.description}
-                              </p>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <FormMessage />
-                </div>
+                {/* Assigned System Capabilities removed from UI */}
 
                 <div className="space-y-4">
                   <FormLabel className="text-xs font-bold uppercase tracking-widest text-primary">Sidebar/Menu Access</FormLabel>

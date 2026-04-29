@@ -43,24 +43,33 @@ export default function LoginPage() {
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsSubmitting(true);
     try {
-      const result = await login(values);
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
 
-      if (result.success) {
-        toast({
-          title: 'Welcome back!',
-          description: `Authentication successful.`,
-        });
-        
-        // Use router.push and refresh to initialize layout with user state
-        router.push('/');
-        router.refresh();
-      } else {
+      const result = await res.json();
+
+      if (!result.success) {
         toast({
           variant: 'destructive',
           title: 'Access Denied',
           description: result.error || 'Invalid credentials. Try using the demo credentials.',
         });
+        return;
       }
+
+      // server returns user with role and permissions
+      login(result.user);
+
+      toast({
+        title: 'Welcome back!',
+        description: `Authentication successful.`,
+      });
+
+      router.push('/');
+      router.refresh();
     } catch (error) {
       toast({
         variant: 'destructive',
