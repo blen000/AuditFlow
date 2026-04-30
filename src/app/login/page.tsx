@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import HangingBadge from '@/components/HangingBadge';
 import { useAuth } from '@/context/AuthContext';
 import {
   withAdminPermissions,
@@ -108,9 +109,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#4a2c10] p-4">
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-[#4a2c10] p-4">
+      <HangingBadge />
       {/* Logo Area */}
-      <div className="mb-12 flex items-center gap-3">
+      <div className="mb-8 flex items-center gap-3">
         <div className="relative">
           <img src="/Nib%20logo.png" alt="Nib logo" className="h-10 w-10 rounded-full object-cover shadow-lg" />
         </div>
@@ -121,11 +123,11 @@ export default function LoginPage() {
       </div>
 
       {/* Login Card */}
-      <Card className="w-full max-w-[450px] rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white">
-        <CardContent className="p-10 md:p-12">
-          <div className="text-center space-y-2 mb-10">
-            <h1 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Welcome to</h1>
-            <h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Nib Audit</h2>
+      <Card className="w-full max-w-md rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white">
+        <CardContent className="p-6 md:p-8">
+          <div className="text-center space-y-2 mb-8">
+            <h1 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Welcome </h1>
+            {/*<h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Nib Audit</h2>*/}
             <p className="text-sm text-gray-500 mt-4 px-4 leading-relaxed">
               Enter your credentials to access the secure internal audit platform.
             </p>
@@ -139,7 +141,7 @@ export default function LoginPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-[#8b4513] ml-1">Secure Protocol: Email</FormLabel>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-[#8b4513] ml-1">Email</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -161,7 +163,7 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-[#8b4513] ml-1">Authentication: Password</FormLabel>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-[#8b4513] ml-1">Password</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
