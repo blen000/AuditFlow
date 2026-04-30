@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 import { Lock, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 type ChangePasswordDialogProps = {
@@ -22,6 +23,7 @@ type ChangePasswordDialogProps = {
 
 export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -53,13 +55,33 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       return;
     }
 
-    // Simulate save
-    toast({
-      title: "Password Updated",
-      description: "Your account credentials have been successfully updated.",
-    });
-    onOpenChange(false);
-    setPasswords({ current: '', new: '', confirm: '' });
+    // Call server API to persist the change
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: user?.email,
+            currentPassword: passwords.current,
+            newPassword: passwords.new,
+          }),
+        });
+
+        const result = await res.json();
+        if (!result.success) {
+          toast({ variant: 'destructive', title: 'Update Failed', description: result.error || 'Could not update password.' });
+          return;
+        }
+
+        toast({ title: 'Password Updated', description: 'Your account credentials have been successfully updated.' });
+        onOpenChange(false);
+        setPasswords({ current: '', new: '', confirm: '' });
+      } catch (err) {
+        console.error('Change password error:', err);
+        toast({ variant: 'destructive', title: 'Update Failed', description: 'Server error while updating password.' });
+      }
+    })();
   };
 
   return (
