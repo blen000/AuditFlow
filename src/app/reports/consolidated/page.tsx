@@ -75,7 +75,7 @@ export default function ConsolidatedReportPage() {
       const hasDirectFindings = nodeFindings.length > 0;
       const hasContent = nodeHasFindings(node.id);
 
-      if (!isVisible) return null;
+      if (!hasContent) return null;
 
       return (
         <div key={node.id} className="space-y-4">
