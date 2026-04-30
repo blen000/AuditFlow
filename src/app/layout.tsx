@@ -143,7 +143,7 @@ function LayoutContent({
           <SidebarHeader>
             <Button variant="ghost" className="h-fit w-full justify-start p-0 hover:bg-transparent">
               <Link href="/dashboard" className="flex items-center gap-3 p-2 group">
-                <ShieldCheck className="h-7 w-7 text-accent transition-colors group-hover:text-accent/80" />
+                <img src="/Nib%20logo.png" alt="Nib logo" className="h-7 w-7 object-contain transition-colors group-hover:opacity-90" />
                 <span className="text-2xl font-bold tracking-tight text-accent transition-colors group-hover:text-accent/80">
                   Nib Audit
                 </span>

@@ -112,11 +112,7 @@ export default function LoginPage() {
       {/* Logo Area */}
       <div className="mb-12 flex items-center gap-3">
         <div className="relative">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-lg">
-            <div className="h-6 w-6 rounded-full bg-[#4a2c10]/20 flex items-center justify-center">
-              <div className="h-3 w-3 bg-white rounded-full transform -translate-y-1 translate-x-1" />
-            </div>
-          </div>
+          <img src="/Nib%20logo.png" alt="Nib logo" className="h-10 w-10 rounded-full object-cover shadow-lg" />
         </div>
         <div className="flex flex-col">
           <span className="text-3xl font-bold text-white tracking-tight leading-none">Nib Audit</span>
@@ -202,21 +198,11 @@ export default function LoginPage() {
             </form>
           </Form>
 
-          {/* Demo Credentials Helper */}
-          <div className="mt-8 p-4 rounded-xl bg-muted/30 border border-dashed text-[11px] text-muted-foreground">
-            <div className="flex items-center gap-2 mb-1 font-bold text-primary uppercase tracking-tight">
-              <Info className="h-3 w-3" /> System Access Note
-            </div>
-            <div className="space-y-1">
-              <p className="leading-relaxed">Use the credentials registered in the database:</p>
-              <p className="font-mono text-[10px]"><strong>Email:</strong> admin@auditflow.com</p>
-              <p className="font-mono text-[10px]"><strong>Password:</strong> password</p>
-            </div>
-          </div>
+          {/* Demo credentials removed per request */}
 
           <div className="mt-8 pt-6 border-t border-gray-100 text-center">
             <div className="flex items-center justify-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-yellow-600" />
+              <img src="/Nib%20logo.png" alt="Nib logo" className="h-4 w-4" />
               <span className="text-[9px] font-black uppercase tracking-[0.15em] text-gray-400">
                 Authorized Personnel Only.
               </span>
