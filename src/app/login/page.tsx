@@ -18,7 +18,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import HangingBadge from '@/components/HangingBadge';
 import { useAuth } from '@/context/AuthContext';
 import {
   withAdminPermissions,
@@ -109,22 +108,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-[#4a2c10] p-4">
-      <HangingBadge />
-      {/* Logo Area */}
-      <div className="mb-8 flex items-center gap-3">
-        <div className="relative">
-          <img src="/Nib%20logo.png" alt="Nib logo" className="h-10 w-10 rounded-full object-cover shadow-lg" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-3xl font-bold text-white tracking-tight leading-none">Nib Audit</span>
-          <div className="h-0.5 w-full bg-yellow-500 mt-1 opacity-50" />
-        </div>
-      </div>
-
+    <div
+      className="relative min-h-screen w-full flex flex-col items-center justify-center p-4"
+      style={{
+        backgroundColor: '#f6f3ee',
+        backgroundImage:
+          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cdefs%3E%3Cpattern id='hex' width='220' height='220' patternUnits='userSpaceOnUse'%3E%3Cpath d='M170 110 L140 162 L80 162 L50 110 L80 58 L140 58 Z' fill='none' stroke='%23e6e2db' stroke-width='1.5' stroke-opacity='0.55'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23hex)'/%3E%3C/svg%3E\")",
+        backgroundSize: '240px 240px',
+        backgroundRepeat: 'repeat',
+        backgroundPosition: 'top left',
+      }}
+    >
       {/* Login Card */}
       <Card className="w-full max-w-md rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white">
         <CardContent className="p-6 md:p-8">
+          <div className="mb-6 flex items-center justify-center gap-3">
+            <img src="/Nib%20logo.png" alt="Nib logo" className="h-10 w-10 rounded-full object-cover shadow-lg" />
+            <div className="flex flex-col">
+              <span className="text-3xl font-bold text-[#8b4513] tracking-tight leading-none">Nib Audit</span>
+              <div className="h-0.5 w-full bg-[#8b4513] mt-1 opacity-35" />
+            </div>
+          </div>
+
           <div className="text-center space-y-2 mb-8">
             <h1 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Welcome </h1>
             {/*<h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Nib Audit</h2>*/}

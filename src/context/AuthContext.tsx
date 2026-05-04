@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { withAdminPermissions } from '@/lib/permissions';
 
@@ -32,6 +32,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  // Session timeout in milliseconds. Default to 30 minutes.
+  const SESSION_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_SESSION_TIMEOUT_MS) || 30 * 60 * 1000;
+  const inactivityTimerRef = useRef<number | null>(null);
+  const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'] as const;
+
+  const clearInactivityTimer = () => {
+    if (inactivityTimerRef.current) {
+      window.clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+  };
+
+  const resetInactivityTimer = () => {
+    clearInactivityTimer();
+    // persist last activity time so other tabs/windows can sync
+    try {
+      localStorage.setItem('lastActivity', Date.now().toString());
+    } catch (e) {}
+
+    inactivityTimerRef.current = window.setTimeout(() => {
+      // perform logout when timer expires
+      logout();
+    }, SESSION_TIMEOUT_MS);
+  };
+
+  const activityListener = () => {
+    resetInactivityTimer();
+  };
 
   useEffect(() => {
     try {
@@ -52,12 +80,62 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
+  // Setup inactivity tracking and storage-event synchronization when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // ensure timers/listeners are cleared when not authenticated
+      clearInactivityTimer();
+      activityEvents.forEach((ev) => window.removeEventListener(ev, activityListener));
+      return;
+    }
+
+    // initialize lastActivity and start the timer
+    try {
+      const last = Number(localStorage.getItem('lastActivity')) || Date.now();
+      // if last activity already exceeded timeout, logout immediately
+      if (Date.now() - last > SESSION_TIMEOUT_MS) {
+        logout();
+        return;
+      }
+    } catch (e) {}
+
+    resetInactivityTimer();
+
+    // attach listeners to reset timer on activity
+    activityEvents.forEach((ev) => window.addEventListener(ev, activityListener));
+
+    // sync across tabs/windows: if another tab logs out, respond
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'isAuthenticated' && e.newValue === 'false') {
+        // forced logout from another tab
+        logout();
+      }
+
+      if (e.key === 'lastActivity') {
+        // another tab reported activity - reset our timer
+        resetInactivityTimer();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      clearInactivityTimer();
+      activityEvents.forEach((ev) => window.removeEventListener(ev, activityListener));
+      window.removeEventListener('storage', onStorage);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
   const login = (u: User) => {
     setUser(u);
     setPermissions(withAdminPermissions(u?.role, u.permissions || []));
     setIsAuthenticated(true);
     localStorage.setItem('currentUser', JSON.stringify(u));
     localStorage.setItem('isAuthenticated', 'true');
+    try {
+      // set initial last activity timestamp
+      localStorage.setItem('lastActivity', Date.now().toString());
+    } catch (e) {}
   };
 
   const logout = () => {
