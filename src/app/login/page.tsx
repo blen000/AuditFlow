@@ -114,8 +114,8 @@ export default function LoginPage() {
       style={{
         backgroundColor: '#f6f3ee',
         backgroundImage:
-          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cdefs%3E%3Cpattern id='hex' width='220' height='220' patternUnits='userSpaceOnUse'%3E%3Cpath d='M170 110 L140 162 L80 162 L50 110 L80 58 L140 58 Z' fill='none' stroke='%23e6e2db' stroke-width='1.5' stroke-opacity='0.55'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23hex)'/%3E%3C/svg%3E\")",
-        backgroundSize: '240px 240px',
+          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='104' viewBox='0 0 120 104'%3E%3Cdefs%3E%3Cpattern id='honeycomb' width='120' height='104' patternUnits='userSpaceOnUse'%3E%3Cpath d='M30 0 L60 17 L60 52 L30 69 L0 52 L0 17 Z' fill='none' stroke='%23e6e2db' stroke-width='1.5' stroke-opacity='0.55'/%3E%3Cpath d='M90 0 L120 17 L120 52 L90 69 L60 52 L60 17 Z' fill='none' stroke='%23e6e2db' stroke-width='1.5' stroke-opacity='0.55'/%3E%3Cpath d='M60 52 L90 69 L90 104 L60 121 L30 104 L30 69 Z' fill='none' stroke='%23e6e2db' stroke-width='1.5' stroke-opacity='0.55'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23honeycomb)'/%3E%3C/svg%3E\")",
+        backgroundSize: '120px 104px',
         backgroundRepeat: 'repeat',
         backgroundPosition: 'top left',
       }}
@@ -123,8 +123,8 @@ export default function LoginPage() {
       <HangingBadge />
       {/* Login Card */}
       <Card className="w-full max-w-md rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white">
-        <CardContent className="p-6 md:p-8">
-          <div className="mb-6 flex items-center justify-center gap-3">
+        <CardContent className="p-5 md:p-6">
+          <div className="mb-4 flex items-center justify-center gap-3">
             <img src="/Nib%20logo.png" alt="Nib logo" className="h-10 w-10 rounded-full object-cover shadow-lg" />
             <div className="flex flex-col">
               <span className="text-3xl font-bold text-[#8b4513] tracking-tight leading-none">Nib Audit</span>
@@ -132,17 +132,17 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="text-center space-y-2 mb-8">
+          <div className="text-center space-y-2 mb-6">
             <h1 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Welcome </h1>
             {/*<h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Nib Audit</h2>*/}
-            <p className="text-sm text-gray-500 mt-4 px-4 leading-relaxed">
+            <p className="text-sm text-gray-500 mt-2 px-4 leading-relaxed">
               Enter your credentials to access the secure internal audit platform.
             </p>
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-3">
                 <FormField
                   control={form.control}
                   name="email"
@@ -209,11 +209,11 @@ export default function LoginPage() {
 
           {/* Demo credentials removed per request */}
 
-          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+          <div className="mt-6 pt-4 border-t border-gray-100 text-center">
             <div className="flex items-center justify-center gap-2">
-              <img src="/Nib%20logo.png" alt="Nib logo" className="h-4 w-4" />
+              {/*<img src="/Nib%20logo.png" alt="Nib logo" className="h-4 w-4" />*/}
               <span className="text-[9px] font-black uppercase tracking-[0.15em] text-gray-400">
-                Authorized Personnel Only.
+                © 2026 NIB. All rights reserved.
               </span>
             </div>
           </div>
