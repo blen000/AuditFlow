@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import HangingBadge from '@/components/HangingBadge';
 import {
   withAdminPermissions,
   AUDIT_REPORTS_HUB_PERMISSIONS,
@@ -119,6 +120,7 @@ export default function LoginPage() {
         backgroundPosition: 'top left',
       }}
     >
+      <HangingBadge />
       {/* Login Card */}
       <Card className="w-full max-w-md rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white">
         <CardContent className="p-6 md:p-8">

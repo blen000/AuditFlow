@@ -3,7 +3,7 @@ import React from 'react';
 const HangingBadge = () => {
   return (
     /* Positioning container: absolute to top-left of the parent */
-    <div className="absolute top-0 left-12 z-20 pointer-events-none select-none group hidden sm:block">
+    <div className="absolute top-0 left-12 z-20 pointer-events-none select-none group">
       <div className="relative flex flex-col items-center">
         {/* The "Pin" or Nail holding the string */}
         <div className="w-1.5 h-1.5 rounded-full bg-primary/90 border border-primary/20 shadow-sm z-30" />
