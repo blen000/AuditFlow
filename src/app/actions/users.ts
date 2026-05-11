@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { normalizePermissions } from '@/lib/permissions';
-import { signToken, getUserFromCookiesServer, createSecureSession, clearAuthCookies, invalidateAllUserSessions, invalidateSession } from '@/lib/serverAuth';
+import { signToken, verifyToken, getUserFromCookiesServer, createSecureSession, clearAuthCookies, invalidateAllUserSessions, invalidateSession } from '@/lib/serverAuth';
 import { sendTemporaryPasswordEmail } from '@/lib/mailer';
 import crypto from 'crypto';
 import { authorizeAction, AuthorizationError } from '@/lib/authorization';
