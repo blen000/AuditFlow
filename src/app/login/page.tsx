@@ -20,7 +20,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import HangingBadge from '@/components/HangingBadge';
-import { isSafeRedirect } from '@/lib/redirect';
 import {
   withAdminPermissions,
   AUDIT_REPORTS_HUB_PERMISSIONS,
@@ -70,29 +69,10 @@ export default function LoginPage() {
       // server returns user with role and permissions
       login(result.user);
 
-      if (result.user.requirePasswordChange) {
-        toast({
-          title: 'Security Update Required',
-          description: 'Please change your password to continue.',
-        });
-        router.replace('/force-password-change');
-        return;
-      }
-
       toast({
         title: 'Welcome back!',
         description: `Authentication successful.`,
       });
-
-      // ❗ Handle callbackUrl safely
-      const searchParams = new URLSearchParams(window.location.search);
-      const callbackUrl = searchParams.get('callbackUrl');
-      
-      if (callbackUrl && isSafeRedirect(callbackUrl, window.location.origin)) {
-        router.replace(callbackUrl);
-        router.refresh();
-        return;
-      }
 
       // Compute first allowed path for this user and redirect there.
       const effectivePermissions = withAdminPermissions(
@@ -130,14 +110,22 @@ export default function LoginPage() {
 
   return (
     <div
-      className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 login-background"
+      className="relative min-h-screen w-full flex flex-col items-center justify-center p-4"
+      style={{
+        backgroundColor: '#f6f3ee',
+        backgroundImage:
+          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='104' viewBox='0 0 120 104'%3E%3Cdefs%3E%3Cpattern id='honeycomb' width='120' height='104' patternUnits='userSpaceOnUse'%3E%3Cpath d='M30 0 L60 17 L60 52 L30 69 L0 52 L0 17 Z' fill='none' stroke='%23e6e2db' stroke-width='1.5' stroke-opacity='0.55'/%3E%3Cpath d='M90 0 L120 17 L120 52 L90 69 L60 52 L60 17 Z' fill='none' stroke='%23e6e2db' stroke-width='1.5' stroke-opacity='0.55'/%3E%3Cpath d='M60 52 L90 69 L90 104 L60 121 L30 104 L30 69 Z' fill='none' stroke='%23e6e2db' stroke-width='1.5' stroke-opacity='0.55'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23honeycomb)'/%3E%3C/svg%3E\")",
+        backgroundSize: '120px 104px',
+        backgroundRepeat: 'repeat',
+        backgroundPosition: 'top left',
+      }}
     >
       <HangingBadge />
       {/* Login Card */}
       <Card className="w-full max-w-md rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white">
         <CardContent className="p-5 md:p-6">
           <div className="mb-4 flex items-center justify-center gap-3">
-            <img src="/nib-logo.png" alt="Nib logo" className="h-10 w-10 rounded-full object-cover shadow-lg" />
+            <img src="/Nib%20logo.png" alt="Nib logo" className="h-10 w-10 rounded-full object-cover shadow-lg" />
             <div className="flex flex-col">
               <span className="text-3xl font-bold text-[#8b4513] tracking-tight leading-none">Nib Audit</span>
               <div className="h-0.5 w-full bg-[#8b4513] mt-1 opacity-35" />

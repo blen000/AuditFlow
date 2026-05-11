@@ -49,7 +49,6 @@ export async function logSecurityEvent(
   );
 
   try {
-    console.log(`[SECURITY_LOG_ATTEMPT] ${eventType}: ${options.action}`);
     const log = await prisma.securityAuditLog.create({
       data: {
         eventType,
@@ -64,7 +63,6 @@ export async function logSecurityEvent(
         resourceType: options.resourceType,
       },
     });
-    console.log(`[SECURITY_LOG_SUCCESS] Entry created with ID: ${log.id}`);
 
     // Simple alerting for HIGH_RISK activities
     if (severity === 'HIGH_RISK') {

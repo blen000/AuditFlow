@@ -36,8 +36,7 @@ function LayoutContent({
   const { user, permissions, isLoading, setUserPermissions, setIsAuthenticated } = useAuth();
 
   useEffect(() => {
-    // Check authentication state from localStorage for UI consistency only.
-    // Routing is handled by Middleware and Server Actions.
+    // Check authentication state from localStorage
     const authStatus = localStorage.getItem('isAuthenticated') === 'true';
     const userJson = localStorage.getItem('currentUser');
     const parsedUser = userJson ? JSON.parse(userJson) : null;
@@ -46,7 +45,86 @@ function LayoutContent({
     if (parsedUser) {
       setUserPermissions(withAdminPermissions(parsedUser.role, parsedUser.permissions || []));
     }
-  }, [pathname, setIsAuthenticated, setUserPermissions]);
+
+    // Redirect to login if not authenticated and trying to access protected pages
+    if (!authStatus && pathname !== '/login') {
+      router.push('/login');
+      return;
+    }
+    
+    // Redirect to dashboard if authenticated and trying to access login page
+    if (authStatus && pathname === '/login') {
+      router.push('/dashboard');
+      return;
+    }
+
+    // Role-Based Route Guard
+    if (authStatus && parsedUser) {
+      const effectivePermissions = withAdminPermissions(parsedUser.role, parsedUser.permissions || []);
+
+      const requiredPermissions: PermissionKey[] = (() => {
+      // Core pages
+      if (pathname === '/dashboard') return ['dashboard_access'];
+        if (pathname.startsWith('/auditee-view')) return ['auditee_view_access'];
+        if (pathname.startsWith('/findings/new')) return ['findings_new_access'];
+        if (pathname.startsWith('/special-audits/new')) return ['special_audits_new_access'];
+
+        // Reports hub containers + sub-features
+        if (pathname.startsWith('/reports/consolidated')) return ['reports_consolidated_access'];
+        if (pathname.startsWith('/reports/frequency')) return ['reports_frequency_access'];
+        if (pathname.startsWith('/assignments')) return ['reports_assignments_access'];
+        if (pathname.startsWith('/communications')) return ['reports_communications_access'];
+        if (pathname.startsWith('/special-audits')) return ['reports_special_audits_access']; // must be AFTER '/special-audits/new'
+        if (pathname === '/reports') return AUDIT_REPORTS_HUB_PERMISSIONS;
+
+        // Administration pages
+        if (pathname.startsWith('/users')) return ['users_manage_access'];
+        if (pathname.startsWith('/roles')) return ['roles_manage_access'];
+        if (pathname.startsWith('/register')) return ['register_user_access'];
+        if (pathname.startsWith('/special-onboarding')) return ['special_onboarding_access'];
+
+        // System settings container + sub-features
+        if (pathname.startsWith('/settings/audit-structure')) return ['settings_audit_structure_access'];
+        if (pathname.startsWith('/branches')) return ['settings_branches_access'];
+        if (pathname.startsWith('/districts')) return ['settings_districts_access'];
+        if (pathname.startsWith('/departments')) return ['settings_departments_access'];
+        if (pathname.startsWith('/risk-levels')) return ['settings_risk_levels_access'];
+        if (pathname.startsWith('/statuses')) return ['settings_statuses_access'];
+        if (pathname === '/settings') return SYSTEM_SETTINGS_PERMISSIONS;
+
+        return [];
+      })();
+
+      const isAllowed =
+        requiredPermissions.length === 0 ||
+        isAdminRole(parsedUser.role) ||
+        requiredPermissions.some((p) => effectivePermissions.includes(p));
+
+      if (!isAllowed) {
+        const getFallbackPath = () => {
+          if (effectivePermissions.includes('dashboard_access')) return '/dashboard';
+          if (effectivePermissions.includes('auditee_view_access')) return '/auditee-view';
+          if (AUDIT_REPORTS_HUB_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/reports';
+          if (effectivePermissions.includes('findings_new_access')) return '/findings/new';
+          if (effectivePermissions.includes('special_audits_new_access')) return '/special-audits/new';
+          if (effectivePermissions.includes('users_manage_access')) return '/users';
+          if (effectivePermissions.includes('roles_manage_access')) return '/roles';
+          if (effectivePermissions.includes('register_user_access')) return '/register';
+          if (effectivePermissions.includes('special_onboarding_access')) return '/special-onboarding';
+          if (SYSTEM_SETTINGS_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/settings';
+          return '/dashboard';
+        };
+
+        console.warn(
+          `Unauthorized access attempt to ${pathname}. Required one of: ${requiredPermissions.join(', ')}`
+        );
+        const fallbackPath = getFallbackPath();
+        if (fallbackPath !== pathname) router.push(fallbackPath);
+      }
+    } else if (authStatus === false && pathname !== '/login') {
+      router.push('/login');
+    }
+  }, [pathname, router, setIsAuthenticated, setUserPermissions]);
 
   const isLoginPage = pathname === '/login';
   const showShell = !isLoginPage; // Always show shell unless it's login page
