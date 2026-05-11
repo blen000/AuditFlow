@@ -11,10 +11,11 @@ import {
   SidebarContent,
   SidebarHeader,
   SidebarInset,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/layout/SidebarNav';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, Loader2 } from 'lucide-react';
+import { ShieldCheck, Loader2, Menu, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import {
@@ -61,16 +62,14 @@ function LayoutContent({
   return (
     <SidebarProvider>
       {showShell && (
-        <Sidebar>
-          <SidebarHeader>
-            <Button variant="ghost" className="h-fit w-full justify-start p-0 hover:bg-transparent">
-              <Link href="/dashboard" className="flex items-center gap-3 p-2 group">
-                <img src="/nib-logo.png" alt="Nib logo" className="h-7 w-7 object-contain transition-colors group-hover:opacity-90" />
-                <span className="text-2xl font-bold tracking-tight text-accent transition-colors group-hover:text-accent/80">
-                  Nib Audit
-                </span>
-              </Link>
-            </Button>
+        <Sidebar className="sidebar-honeycomb-bg border-r border-sidebar-border">
+          <SidebarHeader className="p-3">
+            <Link href="/dashboard" className="flex items-center gap-3 group">
+              <img src="/Nib%20logo.png" alt="Nib logo" className="h-7 w-7 object-contain transition-colors group-hover:opacity-90" />
+              <span className="text-xl font-bold tracking-tight text-sidebar-foreground transition-colors group-hover:text-sidebar-foreground/90">
+                Nib Audit
+              </span>
+            </Link>
           </SidebarHeader>
           <SidebarContent>
             <SidebarNav permissions={permissions} role={user?.role} />
