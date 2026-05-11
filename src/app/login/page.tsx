@@ -125,7 +125,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white">
         <CardContent className="p-5 md:p-6">
           <div className="mb-4 flex items-center justify-center gap-3">
-            <img src="/Nib%20logo.png" alt="Nib logo" className="h-10 w-10 rounded-full object-cover shadow-lg" />
+            <img src="/Logo.png" alt="Nib logo" className="h-10 w-10 rounded-full object-cover shadow-lg" />
             <div className="flex flex-col">
               <span className="text-3xl font-bold text-[#8b4513] tracking-tight leading-none">Nib Audit</span>
               <div className="h-0.5 w-full bg-[#8b4513] mt-1 opacity-35" />

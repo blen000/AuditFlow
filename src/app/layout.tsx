@@ -143,7 +143,7 @@ function LayoutContent({
         <Sidebar className="sidebar-honeycomb-bg border-r border-sidebar-border">
           <SidebarHeader className="p-3">
             <Link href="/dashboard" className="flex items-center gap-3 group">
-              <img src="/Nib%20logo.png" alt="Nib logo" className="h-7 w-7 object-contain transition-colors group-hover:opacity-90" />
+              <img src="/Logo.png" alt="Nib logo" className="h-7 w-7 object-contain transition-colors group-hover:opacity-90" />
               <span className="text-xl font-bold tracking-tight text-sidebar-foreground transition-colors group-hover:text-sidebar-foreground/90">
                 Nib Audit
               </span>
