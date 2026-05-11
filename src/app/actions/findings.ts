@@ -2,11 +2,14 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { authorizeAction } from '@/lib/authorization';
+import { submitFindingsSchema } from '@/lib/schemas';
 
 /**
  * Fetches all necessary metadata for the audit logging form.
  */
 export async function getFindingFormData() {
+  await authorizeAction({ allowedPermissions: ['findings_new_access'] });
   try {
     const [hierarchy, branches, riskLevels, users] = await Promise.all([
       prisma.auditHierarchyNode.findMany({
@@ -24,8 +27,15 @@ export async function getFindingFormData() {
             name: 'Auditee'
           }
         },
-        include: {
-          role: true
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          role: {
+            select: {
+              name: true,
+            }
+          },
         },
         orderBy: { fullName: 'asc' }
       })
@@ -53,11 +63,74 @@ export async function getFindingFormData() {
 }
 
 /**
+ * Fetches a single finding by its ID.
+ */
+export async function getFindingById(id: string) {
+  await authorizeAction();
+  try {
+    const finding = await prisma.auditFinding.findUnique({
+      where: { id },
+      include: {
+        hierarchyNode: true,
+      }
+    });
+
+    if (!finding) return null;
+
+    return {
+      ...finding,
+      involvedAmounts: (finding.involvedAmounts as any[]) || [],
+      involvedCases: (finding.involvedCases as any[]) || [],
+      teamMembers: (finding.teamMembers as string[]) || [],
+      progressUpdates: (finding.progressUpdates as any[]) || [],
+      dynamicValues: (finding.dynamicValues as Record<string, any>) || {},
+    };
+  } catch (error) {
+    console.error('Failed to fetch finding:', error);
+    return null;
+  }
+}
+
+/**
+ * Updates an audit finding.
+ */
+export async function updateFinding(id: string, data: any) {
+  await authorizeAction({ allowedPermissions: ['findings_new_access'] });
+  try {
+    await prisma.auditFinding.update({
+      where: { id },
+      data: {
+        ...data,
+        involvedAmounts: data.involvedAmounts || undefined,
+        involvedCases: data.involvedCases || undefined,
+        teamMembers: data.teamMembers || undefined,
+        progressUpdates: data.progressUpdates || undefined,
+        dynamicValues: data.dynamicValues || undefined,
+        updatedAt: new Date(),
+      }
+    });
+
+    revalidatePath('/auditee-view');
+    revalidatePath(`/findings/edit/${id}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update finding:', error);
+    return { success: false, error: 'Update failed' };
+  }
+}
+
+/**
  * Submits new audit findings to the database.
  */
 export async function submitFindings(data: any) {
+  await authorizeAction({ allowedRoles: ['Auditor', 'Admin'] });
   try {
-    const { hierarchyNodeId, findings } = data;
+    const validation = submitFindingsSchema.safeParse(data);
+    if (!validation.success) {
+      console.error('Validation failed:', validation.error.format());
+      return { success: false, error: 'Invalid audit finding data. Please check all required fields.' };
+    }
+    const { hierarchyNodeId, findings } = validation.data;
 
     // Ensure the selected node is a leaf (has no children)
     const childCount = await prisma.auditHierarchyNode.count({ where: { parentId: hierarchyNodeId } });
@@ -81,9 +154,9 @@ export async function submitFindings(data: any) {
             auditEffect: f.auditEffect,
             involvedAmounts: f.involvedAmounts || [],
             teamLeader: f.teamLeader,
-            teamMembers: f.teamMembers,
-            assignedDate: f.assignedDate,
-            tatDays: parseInt(f.tatDays),
+            teamMembers: f.teamMembers || [],
+            assignedDate: f.assignedDate ? new Date(f.assignedDate) : null,
+            tatDays: f.tatDays || 0,
             hierarchyNodeId: hierarchyNodeId,
             dynamicValues: f.dynamicValues || {},
           }
@@ -97,5 +170,40 @@ export async function submitFindings(data: any) {
   } catch (error) {
     console.error('Failed to submit findings:', error);
     return { success: false, error: 'Failed to persist audit data.' };
+  }
+}
+
+/**
+ * Updates an audit finding with an auditee's response.
+ */
+export async function respondToFinding(findingId: string, data: {
+  agreement: string;
+  mitigationDueDate?: Date;
+  response: string;
+  attachmentId?: string;
+}) {
+  await authorizeAction({ 
+    resourceId: findingId, 
+    resourceType: 'finding' 
+  });
+
+  try {
+    await prisma.auditFinding.update({
+      where: { id: findingId },
+      data: {
+        auditeeAgreement: data.agreement,
+        mitigationDueDate: data.mitigationDueDate,
+        auditeeResponse: data.response,
+        // If an attachment was uploaded, it will be linked via FileAttachment model automatically
+        // but we can also store the ID if needed. For now, we rely on the relation.
+      }
+    });
+
+    revalidatePath('/auditee-view');
+    revalidatePath(`/findings/respond/${findingId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to respond to finding:', error);
+    return { success: false, error: 'Failed to save response' };
   }
 }

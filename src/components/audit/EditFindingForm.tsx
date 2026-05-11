@@ -39,7 +39,8 @@ import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
-import { getFindingFormData } from '@/app/actions/findings';
+import { getFindingFormData, updateFinding } from '@/app/actions/findings';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -90,7 +91,9 @@ type EditFindingFormProps = {
 
 export function EditFindingForm({ finding }: EditFindingFormProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [riskLevels, setRiskLevels] = useState<RiskLevelData[]>([]);
   const [auditors, setAuditors] = useState<Auditor[]>([]);
@@ -104,9 +107,9 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       branchOrDepartment: finding.branchOrDepartment,
       teamLeader: finding.teamLeader || '',
       teamMembers: finding.teamMembers || [],
-      auditCause: finding.auditCause,
-      auditEffect: finding.auditEffect,
-      recommendation: finding.recommendation,
+      auditCause: finding.auditCause || '',
+      auditEffect: finding.auditEffect || '',
+      recommendation: finding.recommendation || '',
       involvedAmounts: finding.involvedAmounts || [],
       involvedCases: finding.involvedCases || [],
       assignedDate: finding.assignedDate ? new Date(finding.assignedDate as any) : undefined,
@@ -140,9 +143,32 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
     loadData();
   }, []);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log('Saving changes locally', values);
-    router.push('/auditee-view');
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+      const result = await updateFinding(finding.id, values);
+      if (result.success) {
+        toast({
+          title: "Changes Saved",
+          description: "The audit finding has been successfully updated in the database."
+        });
+        router.push('/auditee-view');
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Update Failed",
+          description: result.error || "An unexpected error occurred while saving."
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Persistence Error",
+        description: "Could not connect to the database to save changes."
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const isAssignedDateLocked = !!finding.assignedDate;
@@ -526,9 +552,14 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                 />
               </div>
 
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => router.push('/auditee-view')}>Cancel</Button>
-                <Button type="submit">Save Changes</Button>
+              <div className="flex justify-end gap-4 pb-8">
+                <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="font-bold" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save All Changes
+                </Button>
               </div>
             </form>
           </Form>

@@ -11,18 +11,38 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  fullName      String
-  email         String   @unique
-  password      String
-  roleId        String
-  role          Role     @relation(fields: [roleId], references: [id])
-  status        String   @default("Active")
-  branch        String?
-  district      String?
-  dateJoined    DateTime @default(now())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  fullName              String
+  email                 String   @unique
+  password              String
+  roleId                String
+  role                  Role     @relation(fields: [roleId], references: [id])
+  status                String   @default("Active")
+  branch                String?
+  district              String?
+  dateJoined            DateTime @default(now())
+  requirePasswordChange Boolean  @default(true)
+  passwordLastChanged   DateTime @default(now())
+  sessions              Session[]
+  uploads               FileAttachment[]
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @unique
+  userAgent    String?
+  ipAddress    String?
+  fingerprint  String?  // To bind token to device/context
+  expiresAt    DateTime // Absolute session timeout
+  lastActiveAt DateTime @default(now()) // For idle timeout
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Role {
@@ -62,6 +82,12 @@ model RiskLevel {
 model FindingStatus {
   id   String @id @default(cuid())
   name String @unique
+}
+
+model SpecialFindingCategory {
+  id      String         @id @default(cuid())
+  name    String         @unique
+  audits  SpecialAudit[]
 }
 
 model AuditHierarchyNode {
@@ -118,6 +144,21 @@ model AuditFinding {
   
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  attachments       FileAttachment[]
+}
+
+model FileAttachment {
+  id            String   @id @default(cuid())
+  filename      String   // Secure, generated filename
+  originalName  String   // Original filename for display
+  mimeType      String
+  size          Int
+  uploaderId    String
+  uploader      User     @relation(fields: [uploaderId], references: [id])
+  findingId     String?
+  finding       AuditFinding? @relation(fields: [findingId], references: [id])
+  category      String?  // e.g., 'auditee_response', 'progress_update', 'finding_source'
+  createdAt     DateTime @default(now())
 }
 
 model SpecialAudit {
@@ -125,6 +166,8 @@ model SpecialAudit {
   shortSummary          String
   placement             String
   placementValue        String
+  categoryId            String?
+  category              SpecialFindingCategory? @relation(fields: [categoryId], references: [id])
   amountInvolved        Float
   recovered             Float
   pending               Float
@@ -147,4 +190,23 @@ model SpecialAuditIndividual {
   sex            String
   specialAuditId String
   specialAudit   SpecialAudit @relation(fields: [specialAuditId], references: [id], onDelete: Cascade)
+}
+
+model SecurityAuditLog {
+  id            String   @id @default(cuid())
+  timestamp     DateTime @default(now())
+  eventType     String   // e.g., "AUTH_LOGIN", "AUTH_FAILURE", "AUTHZ_FAILURE", "ROLE_CHANGE", "SENSITIVE_OP"
+  severity      String   // e.g., "INFO", "WARN", "HIGH_RISK"
+  userId        String?
+  email         String?  // Helpful for tracking auth failures
+  action        String   // Descriptive action
+  details       String?  // Non-sensitive additional info
+  ipAddress     String?
+  userAgent     String?
+  resourceId    String?  // ID of the resource affected (e.g., finding ID, role ID)
+  resourceType  String?  // Type of resource (e.g., "Finding", "Role", "SystemSetting")
+  
+  @@index([eventType])
+  @@index([userId])
+  @@index([timestamp])
 }

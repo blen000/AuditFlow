@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +34,11 @@ import { Plus, Trash2, UserPlus, FileText, CircleDollarSign, ShieldAlert, Scale 
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { SpecialAudit } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
+import { Settings } from 'lucide-react';
+
+import { getSpecialAuditFormData } from '@/app/actions/special-audits';
 
 const individualSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -47,6 +52,7 @@ const formSchema = z.object({
   shortSummary: z.string().min(5, 'Summary must be at least 5 characters'),
   placement: z.enum(['Branch', 'District', 'H.O']),
   placementValue: z.string().min(2, 'Placement detail is required'),
+  categoryId: z.string().optional(),
   amountInvolved: z.coerce.number().min(0),
   recovered: z.coerce.number().min(0),
   pending: z.coerce.number().min(0),
@@ -72,12 +78,16 @@ export function AddEditSpecialAuditDialog({
   onSubmit,
   audit,
 }: AddEditSpecialAuditDialogProps) {
+  const { permissions } = useAuth();
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       shortSummary: '',
       placement: 'Branch',
       placementValue: '',
+      categoryId: '',
       amountInvolved: 0,
       recovered: 0,
       pending: 0,
@@ -97,12 +107,22 @@ export function AddEditSpecialAuditDialog({
   });
 
   useEffect(() => {
+    async function loadFormData() {
+      try {
+        const data = await getSpecialAuditFormData();
+        setCategories(data.categories as any);
+      } catch (error) {
+        console.error('Failed to load form data:', error);
+      }
+    }
     if (open) {
+      loadFormData();
       if (audit) {
         form.reset({
           shortSummary: audit.shortSummary,
           placement: audit.placement,
           placementValue: audit.placementValue,
+          categoryId: audit.categoryId || '',
           amountInvolved: audit.amountInvolved,
           recovered: audit.recovered,
           pending: audit.pending,
@@ -119,6 +139,7 @@ export function AddEditSpecialAuditDialog({
           shortSummary: '',
           placement: 'Branch',
           placementValue: '',
+          categoryId: '',
           amountInvolved: 0,
           recovered: 0,
           pending: 0,
@@ -190,16 +211,48 @@ export function AddEditSpecialAuditDialog({
                     />
                     <FormField
                       control={form.control}
-                      name="placementValue"
+                      name="categoryId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Placement Detail (Name)</FormLabel>
-                          <FormControl><Input placeholder="Enter branch/district name..." {...field} /></FormControl>
+                          <div className="flex items-center justify-between">
+                            <FormLabel>Special Finding Category</FormLabel>
+                            {permissions.includes('settings_special_finding_categories_access') && (
+                              <Link 
+                                href="/settings/special-finding-categories" 
+                                className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline"
+                                target="_blank"
+                              >
+                                <Settings className="h-2.5 w-2.5" />
+                                Manage
+                              </Link>
+                            )}
+                          </div>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
+                  <FormField
+                    control={form.control}
+                    name="placementValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Placement Detail (Name)</FormLabel>
+                        <FormControl><Input placeholder="Enter branch/district name..." {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <Separator />

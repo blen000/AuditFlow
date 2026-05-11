@@ -16,7 +16,8 @@ import {
   Users,
   ShieldCheck,
   UserPlus,
-  Star
+  Star,
+  ShieldAlert
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -189,6 +190,19 @@ export function SidebarNav({ permissions = [], role = '' }: SidebarNavProps) {
                     >
                       <Settings />
                       <span>System Settings</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              )}
+              {isAdminRole(role) && (
+                <SidebarMenuItem>
+                  <Link href="/admin/security-logs">
+                    <SidebarMenuButton
+                      isActive={pathname === '/admin/security-logs'}
+                      tooltip="Security Logs"
+                    >
+                      <ShieldAlert />
+                      <span>Security Logs</span>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>

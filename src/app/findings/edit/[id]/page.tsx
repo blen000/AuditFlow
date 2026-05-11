@@ -1,21 +1,22 @@
-
-'use client';
-import { use, useState } from 'react';
+import { getFindingById } from '@/app/actions/findings';
 import { EditFindingForm } from '@/components/audit/EditFindingForm';
-import { AuditFinding } from '@/types';
-import { initialFindings } from '@/lib/mock-data';
+import { notFound } from 'next/navigation';
 
-export default function EditFindingPage({
+export default async function EditFindingPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
-  const [finding] = useState<AuditFinding | undefined>(initialFindings.find(f => f.id === id));
+  const { id } = await params;
+  const finding = await getFindingById(id);
 
   if (!finding) {
-    return <div>Finding not found</div>;
+    notFound();
   }
 
-  return <EditFindingForm finding={finding} />;
+  return (
+    <div className="flex min-h-screen w-full flex-col bg-background p-4 sm:p-6 md:p-8">
+      <EditFindingForm finding={finding as any} />
+    </div>
+  );
 }

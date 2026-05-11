@@ -24,14 +24,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, UserPlus, FileText, CircleDollarSign, ShieldAlert, Scale, Loader2, Search } from 'lucide-react';
+import { Plus, Trash2, UserPlus, FileText, CircleDollarSign, ShieldAlert, Scale, Loader2, Search, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 import { submitSpecialAudit, getSpecialAuditFormData } from '@/app/actions/special-audits';
 import type { Branch, District, Department } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 const individualSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -45,6 +47,7 @@ const formSchema = z.object({
   shortSummary: z.string().min(5, 'Summary must be at least 5 characters'),
   placement: z.enum(['Branch', 'District', 'H.O']),
   placementValue: z.string().min(2, 'Placement detail is required'),
+  categoryId: z.string().optional(),
   amountInvolved: z.coerce.number().min(0),
   recovered: z.coerce.number().min(0),
   pending: z.coerce.number().min(0),
@@ -60,12 +63,14 @@ const formSchema = z.object({
 export default function NewSpecialAuditPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { permissions } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [branches, setBranches] = useState<Branch[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -74,6 +79,7 @@ export default function NewSpecialAuditPage() {
       shortSummary: '',
       placement: 'Branch',
       placementValue: '',
+      categoryId: '',
       amountInvolved: 0,
       recovered: 0,
       pending: 0,
@@ -99,6 +105,7 @@ export default function NewSpecialAuditPage() {
         setBranches(data.branches as any);
         setDistricts(data.districts as any);
         setDepartments(data.departments as any);
+        setCategories(data.categories as any);
       } catch (error) {
         toast({
           variant: "destructive",
@@ -205,61 +212,92 @@ export default function NewSpecialAuditPage() {
                     />
                     <FormField
                       control={form.control}
-                      name="placementValue"
+                      name="categoryId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Placement Detail (Name)</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  className={cn("w-full justify-between font-normal", !field.value && "text-muted-foreground")}
-                                >
-                                  {field.value || `Select ${selectedPlacement}...`}
-                                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                              <div className="p-2 border-b">
-                                <Input 
-                                  placeholder="Search..." 
-                                  className="h-8"
-                                  value={searchQuery}
-                                  onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                              </div>
-                              <ScrollArea className="h-48">
-                                <div className="p-1">
-                                  {filteredPlacementOptions.map((item) => (
-                                    <div
-                                      key={item.id}
-                                      className={cn(
-                                        "flex items-center px-3 py-2 text-sm rounded-sm cursor-pointer hover:bg-muted",
-                                        field.value === item.name && "bg-primary/10 font-bold"
-                                      )}
-                                      onClick={() => {
-                                        field.onChange(item.name);
-                                        setSearchQuery('');
-                                      }}
-                                    >
-                                      {item.name}
-                                    </div>
-                                  ))}
-                                  {filteredPlacementOptions.length === 0 && (
-                                    <div className="p-4 text-center text-xs text-muted-foreground">No matches found.</div>
-                                  )}
-                                </div>
-                              </ScrollArea>
-                            </PopoverContent>
-                          </Popover>
+                          <div className="flex items-center justify-between">
+                            <FormLabel>Special Finding Category</FormLabel>
+                            {permissions.includes('settings_special_finding_categories_access') && (
+                              <Link 
+                                href="/settings/special-finding-categories" 
+                                className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline"
+                                target="_blank"
+                              >
+                        
+                              </Link>
+                            )}
+                          </div>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
+                  <FormField
+                    control={form.control}
+                    name="placementValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Placement Detail (Name)</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn("w-full justify-between font-normal", !field.value && "text-muted-foreground")}
+                              >
+                                {field.value || `Select ${selectedPlacement}...`}
+                                <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                            <div className="p-2 border-b">
+                              <Input 
+                                placeholder="Search..." 
+                                className="h-8"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                              />
+                            </div>
+                            <ScrollArea className="h-48">
+                              <div className="p-1">
+                                {filteredPlacementOptions.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className={cn(
+                                      "flex items-center px-3 py-2 text-sm rounded-sm cursor-pointer hover:bg-muted",
+                                      field.value === item.name && "bg-primary/10 font-bold"
+                                    )}
+                                    onClick={() => {
+                                      field.onChange(item.name);
+                                      setSearchQuery('');
+                                    }}
+                                  >
+                                    {item.name}
+                                  </div>
+                                ))}
+                                {filteredPlacementOptions.length === 0 && (
+                                  <div className="p-4 text-center text-xs text-muted-foreground">No matches found.</div>
+                                )}
+                              </div>
+                            </ScrollArea>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </Card>
 

@@ -1,11 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
+import bcrypt from 'bcrypt';
 
 dotenv.config();
 
 const prisma = new PrismaClient({
   log: ['error'],
 });
+
+const SALT_ROUNDS = 12;
 
 async function main() {
   console.log('Seeding organizational data...');
@@ -115,6 +118,8 @@ async function main() {
   // 2. Users
   if (adminRole) {
     const adminPassword = process.env.ADMIN_PASSWORD ?? 'password';
+    const hashedPassword = await bcrypt.hash(adminPassword, SALT_ROUNDS);
+    
     await prisma.user.upsert({
       where: { email: 'admin@auditflow.com' },
       update: {
@@ -124,7 +129,7 @@ async function main() {
       create: {
         fullName: 'System Administrator',
         email: 'admin@auditflow.com',
-        password: adminPassword, // NOTE: demo uses plaintext; hash in production
+        password: hashedPassword,
         roleId: adminRole.id,
         status: 'Active',
         branch: 'Head Office',

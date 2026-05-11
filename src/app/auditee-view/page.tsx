@@ -56,7 +56,8 @@ export default function AuditeeViewPage() {
         setDepartments(data.departments as any);
         setAllRiskLevels(data.riskLevels as any);
         setAllStatuses(data.statuses as any);
-      } catch (error) {
+      } catch (error: any) {
+        if (error.message === 'NEXT_REDIRECT') return;
         console.error('Error loading auditee view data:', error);
       } finally {
         setIsLoading(false);
@@ -86,8 +87,19 @@ export default function AuditeeViewPage() {
     setExpandedSubsections(next);
   };
 
-  const handleDelete = (id: string) => {
-    setFindings(prev => prev.filter(f => f.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await fetch(`/api/findings/${id}`, { method: 'DELETE' });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error('Failed to delete finding:', payload);
+        return;
+      }
+      // Only update client state after successful server deletion
+      setFindings(prev => prev.filter(f => f.id !== id));
+    } catch (error) {
+      console.error('Error deleting finding:', error);
+    }
   };
 
   const handleUpdate = (id: string, updates: Partial<AuditFinding>) => {

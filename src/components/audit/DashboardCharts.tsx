@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -29,11 +30,21 @@ import {
 } from 'recharts';
 import { Tooltip, Legend } from 'recharts';
 import type { AuditFinding, SpecialAudit, AuditHierarchyNode } from '@/types';
+import { 
+  format, 
+  startOfMonth, 
+  startOfQuarter, 
+  startOfYear, 
+  isWithinInterval, 
+  subMonths,
+  getQuarter
+} from 'date-fns';
 
 type DashboardChartsProps = {
   findings: AuditFinding[];
   specialAudits: SpecialAudit[];
   hierarchy: AuditHierarchyNode[];
+  selectedPeriod: string;
 };
 
 const CATEGORY_COLORS = [
@@ -49,7 +60,7 @@ const STATUS_COLORS: Record<string, string> = {
   'Action Plan': '#7c3aed',
 };
 
-export function DashboardCharts({ findings, specialAudits, hierarchy }: DashboardChartsProps) {
+export function DashboardCharts({ findings, specialAudits, hierarchy, selectedPeriod }: DashboardChartsProps) {
   const router = useRouter();
   const totalFindings = findings.length;
   
@@ -99,12 +110,75 @@ export function DashboardCharts({ findings, specialAudits, hierarchy }: Dashboar
     { name: 'Low', count: findings.filter((f) => f.riskLevel === 'Low').length, fill: 'hsl(var(--primary))' },
   ];
 
-  const monetaryData = specialAudits.map(audit => ({
-    name: audit.id,
-    involved: audit.amountInvolved,
-    recovered: audit.recovered,
-    pending: audit.pending
-  }));
+  // Filter and Aggregate Special Audit Data
+  const filteredSpecialAudits = useMemo(() => {
+    if (selectedPeriod === 'all') return specialAudits;
+    
+    const today = new Date();
+    let start;
+    if (selectedPeriod === '1m') start = subMonths(today, 1);
+    else if (selectedPeriod === '3m') start = subMonths(today, 3);
+    else if (selectedPeriod === '6m') start = subMonths(today, 6);
+    else if (selectedPeriod === '1y') start = subMonths(today, 12);
+    else return specialAudits;
+
+    return specialAudits.filter(audit => 
+      isWithinInterval(new Date(audit.dateCreated), { start, end: today })
+    );
+  }, [specialAudits, selectedPeriod]);
+
+  const monetaryData = useMemo(() => {
+    const groups: Record<string, { involved: number, recovered: number, pending: number, sortKey: string }> = {};
+
+    filteredSpecialAudits.forEach(audit => {
+      const date = new Date(audit.dateCreated);
+      let key = '';
+      let sortKey = '';
+      
+      if (selectedPeriod === '1m' || selectedPeriod === 'all') {
+        // Group by Month
+        key = format(startOfMonth(date), 'MMM yyyy');
+        sortKey = format(startOfMonth(date), 'yyyy-MM');
+      } else if (selectedPeriod === '3m' || selectedPeriod === '6m') {
+        // Group by Quarter
+        const q = getQuarter(date);
+        key = `Q${q} ${format(date, 'yyyy')}`;
+        sortKey = `${format(date, 'yyyy')}-Q${q}`;
+      } else if (selectedPeriod === '1y') {
+        // Group by Year
+        key = format(startOfYear(date), 'yyyy');
+        sortKey = format(startOfYear(date), 'yyyy');
+      }
+
+      if (!groups[key]) {
+        groups[key] = { involved: 0, recovered: 0, pending: 0, sortKey };
+      }
+      groups[key].involved += audit.amountInvolved;
+      groups[key].recovered += audit.recovered;
+      groups[key].pending += audit.pending;
+    });
+
+    return Object.entries(groups)
+      .map(([name, data]) => ({
+        name,
+        ...data
+      }))
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  }, [filteredSpecialAudits, selectedPeriod]);
+
+  // Special Audit Category Pie Chart Data
+  const specialCategoryCounts = filteredSpecialAudits.reduce((acc: Record<string, number>, audit) => {
+    const cat = audit.category || 'Uncategorized';
+    acc[cat] = (acc[cat] || 0) + 1;
+    return acc;
+  }, {});
+
+  const specialCategoryData = Object.entries(specialCategoryCounts).map(([name, count], index) => ({
+    name,
+    count,
+    percentage: specialAudits.length > 0 ? Math.round((count / specialAudits.length) * 100) : 0,
+    fill: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+  })).sort((a, b) => b.count - a.count);
 
   const config = {
     count: { label: 'Findings', color: 'hsl(var(--primary))' },
@@ -269,6 +343,70 @@ export function DashboardCharts({ findings, specialAudits, hierarchy }: Dashboar
               <Bar dataKey="count" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ChartContainer>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm border-none bg-card/50 overflow-hidden">
+        <CardHeader className="pb-2 border-b bg-muted/10">
+          <CardTitle className="text-lg font-bold uppercase tracking-tight">Special Audit Classification</CardTitle>
+          <CardDescription>Distribution by Special Finding Category.</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="h-[350px] w-full relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={specialCategoryData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="count"
+                >
+                  {specialCategoryData.map((entry, index) => (
+                    <Cell key={`cell-special-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-background border rounded-lg p-3 shadow-xl space-y-1">
+                          <p className="font-bold text-sm" style={{ color: data.fill }}>{data.name}</p>
+                          <p className="text-xs font-mono">
+                            {data.percentage}% ({data.count} of {specialAudits.length})
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Legend 
+                  layout="vertical" 
+                  align="right" 
+                  verticalAlign="middle"
+                  content={({ payload }) => (
+                    <ul className="flex flex-col gap-2 ml-4">
+                      {payload?.map((entry: any, index: number) => (
+                        <li key={index} className="flex items-center gap-2 group">
+                          <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                          <div className="flex flex-col -space-y-0.5">
+                            <span className="text-[11px] font-bold truncate max-w-[120px]">{entry.value}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              {entry.payload.percentage}% ({entry.payload.count})
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 

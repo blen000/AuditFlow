@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { 
   Table, 
@@ -12,16 +12,28 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Printer, ShieldCheck, Loader2, Info, Scale, AlertCircle, CircleDollarSign, CheckCircle2, User } from 'lucide-react';
+import { Printer, ShieldCheck, Loader2, Info, Scale, AlertCircle, CircleDollarSign, CheckCircle2, User, FileDown, FileText, ChevronDown, FileJson } from 'lucide-react';
 import type { AuditFinding, AuditHierarchyNode } from '@/types';
 import { cn } from '@/lib/utils';
 import { getConsolidatedReportData } from '@/app/actions/reports';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function ConsolidatedReportPage() {
+  const reportRef = useRef<HTMLDivElement>(null);
   const [findings, setFindings] = useState<AuditFinding[]>([]);
   const [hierarchy, setHierarchy] = useState<AuditHierarchyNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -37,6 +49,94 @@ export default function ConsolidatedReportPage() {
     }
     loadData();
   }, []);
+
+  const handleExportPDF = async () => {
+    if (!reportRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      let heightLeft = pdfHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pdf.internal.pageSize.getHeight();
+
+      while (heightLeft >= 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pdf.internal.pageSize.getHeight();
+      }
+
+      pdf.save(`Consolidated-Activity-Report-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('PDF Export Error:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportWord = () => {
+    if (!reportRef.current) return;
+    setIsExporting(true);
+    
+    try {
+      const content = reportRef.current.innerHTML;
+      const styles = `
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+          table { border-collapse: collapse; width: 100%; margin-bottom: 20px; border: 2px solid black; }
+          th, td { border: 1px solid black; padding: 8px; text-align: left; font-size: 9pt; }
+          th { background-color: #f3f4f6; font-weight: bold; text-transform: uppercase; font-size: 8pt; }
+          h1 { color: #8B5CF6; font-size: 18pt; text-align: center; text-transform: uppercase; font-weight: bold; }
+          h2 { font-size: 14pt; text-align: center; margin-bottom: 20px; text-transform: uppercase; }
+          h3 { font-size: 12pt; font-weight: bold; margin-top: 20px; text-transform: uppercase; border-bottom: 1px solid #eee; }
+          .font-mono { font-family: 'Courier New', Courier, monospace; }
+          .text-primary { color: #8B5CF6; }
+          .text-center { text-align: center; }
+          .uppercase { text-transform: uppercase; }
+          .font-bold { font-weight: bold; }
+          .underline { text-decoration: underline; }
+          .italic { font-style: italic; }
+        </style>
+      `;
+
+      const header = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head><meta charset='utf-8'>${styles}</head><body>
+      `;
+      const footer = "</body></html>";
+      const sourceHTML = header + content + footer;
+      
+      const blob = new Blob(['\ufeff', sourceHTML], {
+        type: 'application/msword'
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Consolidated-Activity-Report-${new Date().toISOString().split('T')[0]}.doc`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Word Export Error:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Group findings by hierarchy node ID
   const findingsByNode = useMemo(() => {
@@ -229,14 +329,60 @@ export default function ConsolidatedReportPage() {
         description="Hierarchical master activity report grouped by missions and subsections."
         backHref="/reports"
       >
-        <Button variant="outline" size="sm" onClick={() => window.print()} className="print:hidden font-bold border-primary/30">
-          <Printer className="mr-2 h-4 w-4" />
-          Print Formal Report
-        </Button>
+        <div className="flex items-center gap-2 print:hidden">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => window.print()} 
+            className="font-bold border-primary/30"
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            Print Report
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="font-bold shadow-sm"
+                disabled={isExporting}
+              >
+                {isExporting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="mr-2 h-4 w-4" />
+                )}
+                Export Report
+                <ChevronDown className="ml-2 h-3 w-3 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleExportPDF} className="cursor-pointer">
+                <FileText className="mr-2 h-4 w-4 text-red-500" />
+                <span>Export as PDF</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportWord} className="cursor-pointer">
+                <FileText className="mr-2 h-4 w-4 text-blue-500" />
+                <span>Export as Word (.doc)</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => window.print()} className="cursor-pointer">
+                <Printer className="mr-2 h-4 w-4 text-slate-500" />
+                <span>Print Version</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </PageHeader>
       
       <main className="flex-1 p-4 sm:p-6 md:p-12 print:p-0">
-        <div className="mx-auto max-w-full space-y-10 bg-white p-8 md:p-16 shadow-2xl print:shadow-none print:p-0">
+        <div 
+          ref={reportRef}
+          className="mx-auto max-w-full space-y-10 bg-white p-8 md:p-16 shadow-2xl print:shadow-none print:p-0"
+        >
           
           {/* Institutional Header */}
           <div className="text-center space-y-4 border-b-2 border-black pb-8">

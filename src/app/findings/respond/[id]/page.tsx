@@ -8,16 +8,30 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { InvolvedCasesManager } from '@/components/audit/InvolvedCasesManager';
-import { prisma } from '@/lib/prisma';
+import { securePrisma } from '@/lib/securePrisma';
+import { getUserFromCookiesServer } from '@/lib/serverAuth';
 import type { AuditFinding } from '@/types';
+import { notFound, redirect } from 'next/navigation';
 
 type Params = { id: string };
 
 export default async function RespondToFindingPage({ params }: { params: Params }) {
   const id = params.id;
-  const finding = await prisma.auditFinding.findUnique({ where: { id } });
+  
+  // enforce server-side auth
+  const currentUser = await getUserFromCookiesServer();
+  if (!currentUser) {
+    redirect('/login?callbackUrl=' + encodeURIComponent(`/findings/respond/${id}`));
+  }
 
-  if (!finding) return <div>Finding not found</div>;
+  // ❗ Use securePrisma to enforce object-level authorization (IDOR protection)
+  const finding = await securePrisma.finding.findUnique({ where: { id } });
+
+  if (!finding) {
+    // If not found or access denied (securePrisma returns null if scoped query fails), 
+    // we return 404 to avoid leaking existence of findings user can't see.
+    notFound();
+  }
 
   // Make sure the object is serializable for client components
   const serializableFinding: AuditFinding = JSON.parse(JSON.stringify(finding));

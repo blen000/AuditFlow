@@ -9,10 +9,28 @@ CREATE TABLE "User" (
     "branch" TEXT,
     "district" TEXT,
     "dateJoined" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "requirePasswordChange" BOOLEAN NOT NULL DEFAULT true,
+    "passwordLastChanged" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Session" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "refreshToken" TEXT NOT NULL,
+    "userAgent" TEXT,
+    "ipAddress" TEXT,
+    "fingerprint" TEXT,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "lastActiveAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -70,6 +88,14 @@ CREATE TABLE "FindingStatus" (
 );
 
 -- CreateTable
+CREATE TABLE "SpecialFindingCategory" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+
+    CONSTRAINT "SpecialFindingCategory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "AuditHierarchyNode" (
     "id" TEXT NOT NULL,
     "parentId" TEXT,
@@ -119,11 +145,27 @@ CREATE TABLE "AuditFinding" (
 );
 
 -- CreateTable
+CREATE TABLE "FileAttachment" (
+    "id" TEXT NOT NULL,
+    "filename" TEXT NOT NULL,
+    "originalName" TEXT NOT NULL,
+    "mimeType" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "uploaderId" TEXT NOT NULL,
+    "findingId" TEXT,
+    "category" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "FileAttachment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "SpecialAudit" (
     "id" TEXT NOT NULL,
     "shortSummary" TEXT NOT NULL,
     "placement" TEXT NOT NULL,
     "placementValue" TEXT NOT NULL,
+    "categoryId" TEXT,
     "amountInvolved" DOUBLE PRECISION NOT NULL,
     "recovered" DOUBLE PRECISION NOT NULL,
     "pending" DOUBLE PRECISION NOT NULL,
@@ -151,8 +193,32 @@ CREATE TABLE "SpecialAuditIndividual" (
     CONSTRAINT "SpecialAuditIndividual_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "SecurityAuditLog" (
+    "id" TEXT NOT NULL,
+    "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "eventType" TEXT NOT NULL,
+    "severity" TEXT NOT NULL,
+    "userId" TEXT,
+    "email" TEXT,
+    "action" TEXT NOT NULL,
+    "details" TEXT,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "resourceId" TEXT,
+    "resourceType" TEXT,
+
+    CONSTRAINT "SecurityAuditLog_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Session_refreshToken_key" ON "Session"("refreshToken");
+
+-- CreateIndex
+CREATE INDEX "Session_userId_idx" ON "Session"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Role_name_key" ON "Role"("name");
@@ -173,10 +239,25 @@ CREATE UNIQUE INDEX "RiskLevel_name_key" ON "RiskLevel"("name");
 CREATE UNIQUE INDEX "FindingStatus_name_key" ON "FindingStatus"("name");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "SpecialFindingCategory_name_key" ON "SpecialFindingCategory"("name");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "AuditHierarchyNode_number_key" ON "AuditHierarchyNode"("number");
+
+-- CreateIndex
+CREATE INDEX "SecurityAuditLog_eventType_idx" ON "SecurityAuditLog"("eventType");
+
+-- CreateIndex
+CREATE INDEX "SecurityAuditLog_userId_idx" ON "SecurityAuditLog"("userId");
+
+-- CreateIndex
+CREATE INDEX "SecurityAuditLog_timestamp_idx" ON "SecurityAuditLog"("timestamp");
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Branch" ADD CONSTRAINT "Branch_districtId_fkey" FOREIGN KEY ("districtId") REFERENCES "District"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -186,6 +267,15 @@ ALTER TABLE "AuditHierarchyNode" ADD CONSTRAINT "AuditHierarchyNode_parentId_fke
 
 -- AddForeignKey
 ALTER TABLE "AuditFinding" ADD CONSTRAINT "AuditFinding_hierarchyNodeId_fkey" FOREIGN KEY ("hierarchyNodeId") REFERENCES "AuditHierarchyNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FileAttachment" ADD CONSTRAINT "FileAttachment_uploaderId_fkey" FOREIGN KEY ("uploaderId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FileAttachment" ADD CONSTRAINT "FileAttachment_findingId_fkey" FOREIGN KEY ("findingId") REFERENCES "AuditFinding"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SpecialAudit" ADD CONSTRAINT "SpecialAudit_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "SpecialFindingCategory"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SpecialAuditIndividual" ADD CONSTRAINT "SpecialAuditIndividual_specialAuditId_fkey" FOREIGN KEY ("specialAuditId") REFERENCES "SpecialAudit"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -17,6 +17,10 @@ import type { AuditFinding, AuditeeAgreement } from '@/types';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { useRouter } from 'next/navigation';
+import { uploadFileAction } from '@/app/actions/file-actions';
+import { respondToFinding } from '@/app/actions/findings';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -32,26 +36,56 @@ type AuditeeResponseFormProps = {
 
 export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [agreement, setAgreement] = useState<AuditeeAgreement>(
     finding.auditeeAgreement
   );
   const [mitigationDueDate, setMitigationDueDate] = useState<Date | undefined>(
-    finding.mitigationDueDate as Date | undefined
+    finding.mitigationDueDate ? new Date(finding.mitigationDueDate) : undefined
   );
   const [disagreementReason, setDisagreementReason] = useState(
     finding.auditeeResponse || ''
   );
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    // In a real local state app, we would emit an event or call a context function
-    console.log('Submitting response locally', {
-      agreement,
-      mitigationDueDate,
-      disagreementReason,
-      attachmentName: attachment?.name
-    });
-    router.push('/dashboard');
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      let attachmentId: string | undefined;
+
+      // 1. Upload file if present
+      if (attachment) {
+        const formData = new FormData();
+        formData.append('file', attachment);
+        const uploadRes = await uploadFileAction(formData, finding.id, 'auditee_response');
+        if (!uploadRes.success) {
+          toast({ variant: 'destructive', title: 'Upload Failed', description: uploadRes.error });
+          setIsSubmitting(false);
+          return;
+        }
+        attachmentId = uploadRes.attachment?.id;
+      }
+
+      // 2. Submit response
+      const res = await respondToFinding(finding.id, {
+        agreement,
+        mitigationDueDate,
+        response: disagreementReason,
+        attachmentId,
+      });
+
+      if (res.success) {
+        toast({ title: 'Response Submitted', description: 'Your response has been saved securely.' });
+        router.push('/dashboard');
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: res.error });
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,10 +189,13 @@ export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
         )}
       </CardContent>
       <CardFooter className="justify-end gap-2">
-        <Button variant="outline" onClick={() => router.push('/dashboard')}>
+        <Button variant="outline" onClick={() => router.push('/dashboard')} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit}>Submit Response</Button>
+        <Button onClick={handleSubmit} disabled={isSubmitting}>
+          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Submit Response
+        </Button>
       </CardFooter>
     </Card>
   );

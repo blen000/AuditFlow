@@ -178,13 +178,17 @@ export function CreateFindingForm() {
         });
         router.push('/auditee-view');
       } else {
-        throw new Error(result.error);
+        toast({
+          variant: "destructive",
+          title: "Submission Failed",
+          description: result.error || "An error occurred while saving to the live database."
+        });
       }
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Submission Failed",
-        description: "An error occurred while saving to the live database."
+        description: error instanceof Error ? error.message : "An unexpected error occurred."
       });
     }
   }

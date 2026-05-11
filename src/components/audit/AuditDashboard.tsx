@@ -1,23 +1,27 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import type { AuditFinding, SpecialAudit, AuditTypeCategory, AuditHierarchyNode, Branch } from '@/types';
 import { DashboardStats } from './DashboardStats';
 import { DashboardCharts } from './DashboardCharts';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Filter, Calendar, Building2, Layers, FilterX, Loader2 } from 'lucide-react';
+import { Filter, Calendar, Building2, Layers, FilterX, Loader2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { isWithinInterval, subMonths } from 'date-fns';
 import { getDashboardData } from '@/app/actions/dashboard';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const auditTypes: AuditTypeCategory[] = ['Branch', 'District', 'Division', 'Department', 'Chief', 'CEO', 'Board'];
 
 export default function AuditDashboard() {
+  const dashboardRef = useRef<HTMLDivElement>(null);
   const [findings, setFindings] = useState<AuditFinding[]>([]);
   const [specialAudits, setSpecialAudits] = useState<SpecialAudit[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [hierarchy, setHierarchy] = useState<AuditHierarchyNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Filter States
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
@@ -32,7 +36,11 @@ export default function AuditDashboard() {
         setSpecialAudits(data.specialAudits as any);
         setBranches(data.branches as any);
         setHierarchy(data.hierarchy as any);
-      } catch (error) {
+      } catch (error: any) {
+        if (error.message === 'NEXT_REDIRECT') {
+          // Let Next.js handle the redirect
+          return;
+        }
         console.error('Error loading dashboard data:', error);
       } finally {
         setIsLoading(false);
@@ -59,6 +67,46 @@ export default function AuditDashboard() {
       return branchMatch && typeMatch && periodMatch;
     });
   }, [findings, selectedBranch, selectedType, selectedPeriod]);
+
+  const handleExportPDF = async () => {
+    if (!dashboardRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(dashboardRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f8fafc', // match the background color
+        windowWidth: dashboardRef.current.scrollWidth,
+        windowHeight: dashboardRef.current.scrollHeight,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      let heightLeft = pdfHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight, undefined, 'FAST');
+      heightLeft -= pdf.internal.pageSize.getHeight();
+
+      while (heightLeft >= 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight, undefined, 'FAST');
+        heightLeft -= pdf.internal.pageSize.getHeight();
+      }
+
+      pdf.save(`Audit-Dashboard-Report-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Dashboard Export Error:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const clearFilters = () => {
     setSelectedBranch('all');
@@ -130,21 +178,40 @@ export default function AuditDashboard() {
               </div>
             </div>
 
-            {(selectedBranch !== 'all' || selectedType !== 'all' || selectedPeriod !== 'all') && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 font-bold text-muted-foreground shrink-0">
-                <FilterX className="mr-2 h-4 w-4" />
-                Reset
+            <div className="flex items-center gap-2 shrink-0">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleExportPDF} 
+                disabled={isExporting}
+                className="h-9 font-bold text-primary border-primary/20"
+              >
+                {isExporting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="mr-2 h-4 w-4" />
+                )}
+                Export PDF
               </Button>
-            )}
+
+              {(selectedBranch !== 'all' || selectedType !== 'all' || selectedPeriod !== 'all') && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 font-bold text-muted-foreground">
+                  <FilterX className="mr-2 h-4 w-4" />
+                  Reset
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* 1. Statistics Row */}
-      <DashboardStats findings={filteredFindings} specialAudits={specialAudits} />
+      <div ref={dashboardRef} className="space-y-8 p-1">
+        {/* 1. Statistics Row */}
+        <DashboardStats findings={filteredFindings} specialAudits={specialAudits} />
 
-      {/* 2. Charts Row */}
-      <DashboardCharts findings={filteredFindings} specialAudits={specialAudits} hierarchy={hierarchy} />
+        {/* 2. Charts Row */}
+        <DashboardCharts findings={filteredFindings} specialAudits={specialAudits} hierarchy={hierarchy} selectedPeriod={selectedPeriod} />
+      </div>
       
       <div className="rounded-lg border bg-muted/30 p-8 text-center border-dashed border-primary/20">
         <p className="text-muted-foreground text-sm">

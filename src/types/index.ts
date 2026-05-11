@@ -38,6 +38,7 @@ export type ProgressUpdate = {
   date: Date | Timestamp | string;
   details: string;
   attachmentFilename?: string;
+  attachmentId?: string;
 };
 
 export type InvolvedAmount = {
@@ -108,6 +109,20 @@ export type AuditFinding = {
   hierarchyNodeId: string;
   // Dynamic Custom Values
   dynamicValues?: Record<string, any>;
+  // Secure Attachments
+  attachments?: FileAttachment[];
+};
+
+export type FileAttachment = {
+  id: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploaderId: string;
+  findingId?: string;
+  category?: string;
+  createdAt: string | Date;
 };
 
 export type AuditHierarchyNode = {

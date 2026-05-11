@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { withAdminPermissions } from '@/lib/permissions';
+import { logoutUser } from '@/app/actions/users';
 
 type User = {
   id: string;
@@ -20,6 +21,7 @@ type AuthContextType = {
   isLoading: boolean;
   login: (user: User) => void;
   logout: () => void;
+  setUser: (u: User | null) => void;
   setUserPermissions: (p: string[]) => void;
   setIsAuthenticated: (b: boolean) => void;
 };
@@ -65,12 +67,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const authStatus = localStorage.getItem('isAuthenticated') === 'true';
       const userJson = localStorage.getItem('currentUser');
-      const u = userJson ? JSON.parse(userJson) : null;
-      setUser(u);
 
-      setPermissions(withAdminPermissions(u?.role, u?.permissions || []));
-
-      setIsAuthenticated(!!authStatus && !!u);
+      // ❗ Sync check: if we are on the login page, we should not be "authenticated"
+      if (window.location.pathname === '/login') {
+        if (authStatus) {
+          localStorage.removeItem('currentUser');
+          localStorage.setItem('isAuthenticated', 'false');
+          setUser(null);
+          setPermissions([]);
+          setIsAuthenticated(false);
+        }
+      } else {
+        const u = userJson ? JSON.parse(userJson) : null;
+        setUser(u);
+        setPermissions(withAdminPermissions(u?.role, u?.permissions || []));
+        setIsAuthenticated(!!authStatus && !!u);
+      }
     } catch (e) {
       setUser(null);
       setPermissions([]);
@@ -78,7 +90,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [router]);
 
   // Setup inactivity tracking and storage-event synchronization when authenticated
   useEffect(() => {
@@ -136,9 +148,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // set initial last activity timestamp
       localStorage.setItem('lastActivity', Date.now().toString());
     } catch (e) {}
+
+    // ❗ If user needs to change password, redirect to the force page
+    if (u.requirePasswordChange) {
+      router.push('/force-password-change');
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // ❗ Notify server about logout to invalidate session and log activity
+    try {
+      await logoutUser();
+    } catch (e) {
+      console.warn('Server logout failed:', e);
+    }
+
     setUser(null);
     setPermissions([]);
     setIsAuthenticated(false);
@@ -152,6 +176,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const handleSetUser = (u: User | null) => {
+    setUser(u);
+    if (u) {
+      localStorage.setItem('currentUser', JSON.stringify(u));
+      setPermissions(withAdminPermissions(u?.role, u.permissions || []));
+    } else {
+      localStorage.removeItem('currentUser');
+      setPermissions([]);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -161,6 +196,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading,
         login,
         logout,
+        setUser: handleSetUser,
         setUserPermissions: setPermissions,
         setIsAuthenticated,
       }}

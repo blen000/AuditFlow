@@ -1,11 +1,13 @@
 'use server';
-
+ 
 import { prisma } from '@/lib/prisma';
+import { authorizeAction } from '@/lib/authorization';
 
 /**
  * Fetches data for the Consolidated Activity Report.
  */
 export async function getConsolidatedReportData() {
+  await authorizeAction({ allowedPermissions: ['reports_consolidated_access'] });
   try {
     const [findings, hierarchy] = await Promise.all([
       prisma.auditFinding.findMany({
@@ -36,6 +38,7 @@ export async function getConsolidatedReportData() {
  * Fetches data for the Findings Frequency Analysis.
  */
 export async function getFrequencyReportData() {
+  await authorizeAction({ allowedPermissions: ['reports_frequency_access'] });
   try {
     const [findings, branches, hierarchy] = await Promise.all([
       prisma.auditFinding.findMany(),
@@ -61,6 +64,7 @@ export async function getFrequencyReportData() {
  * Fetches data for Audit Assignments & KPI Tracking.
  */
 export async function getAssignmentReportData() {
+  await authorizeAction({ allowedPermissions: ['reports_assignments_access'] });
   try {
     const [findings, auditors] = await Promise.all([
       prisma.auditFinding.findMany({
@@ -71,6 +75,16 @@ export async function getAssignmentReportData() {
           role: {
             name: { in: ['Auditor', 'Admin', 'Chief Auditor'] }
           }
+        },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          role: {
+            select: {
+              name: true,
+            }
+          },
         },
         orderBy: { fullName: 'asc' }
       }),
@@ -93,6 +107,7 @@ export async function getAssignmentReportData() {
  * Fetches data for the Communication Log.
  */
 export async function getCommunicationReportData() {
+  await authorizeAction({ allowedPermissions: ['reports_communications_access'] });
   try {
     const findings = await prisma.auditFinding.findMany({
       orderBy: { createdAt: 'desc' },

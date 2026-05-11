@@ -64,10 +64,19 @@ const settingsModules = [
     buttonText: 'Go to Statuses',
     requiredPermission: 'settings_statuses_access',
   },
+  {
+    title: 'Special Finding Category',
+    description: 'Manage categories for special audits to classify and report on specialized findings.',
+    icon: Tags,
+    href: '/settings/special-finding-categories',
+    buttonText: 'Go to Categories',
+    requiredPermission: 'settings_special_finding_categories_access',
+  },
 ];
 
 export default function SettingsPage() {
   const { permissions } = useAuth();
+
   const visibleModules = settingsModules.filter((m) =>
     permissions.includes(m.requiredPermission)
   );
@@ -92,7 +101,9 @@ export default function SettingsPage() {
                     {module.description}
                   </CardDescription>
                 </CardHeader>
+                
                 <div className="flex-grow" />
+
                 <CardFooter className="pt-4 border-t bg-muted/5">
                   <Button asChild variant="ghost" className="w-full justify-between hover:bg-primary hover:text-primary-foreground">
                     <Link href={module.href}>

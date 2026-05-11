@@ -5,30 +5,68 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { normalizePermissions } from '@/lib/permissions';
+import { signToken, getUserFromCookiesServer, createSecureSession, clearAuthCookies, invalidateAllUserSessions, invalidateSession } from '@/lib/serverAuth';
+import { sendTemporaryPasswordEmail } from '@/lib/mailer';
+import crypto from 'crypto';
+import { authorizeAction, AuthorizationError } from '@/lib/authorization';
+import { isPasswordExpired, verifyPassword, hashPassword } from '@/lib/passwordUtils';
+import { createUserSchema, updateUserSchema, loginSchema, roleSchema } from '@/lib/schemas';
+import { logSecurityEvent } from '@/lib/securityLogger';
 
 /**
  * Verifies user credentials and returns full profile with role-based permissions.
  */
 export async function loginUser(data: any) {
   try {
+    // ❗ Strict Input Validation
+    const validation = loginSchema.safeParse(data);
+    if (!validation.success) {
+      await logSecurityEvent('AUTH_LOGIN_FAILURE', {
+        email: data.email || 'unknown',
+        action: 'Invalid login input validation failed',
+      });
+      return { success: false, error: 'Invalid input data' };
+    }
+    const { email, password } = validation.data;
+
     const user = await prisma.user.findUnique({
-      where: { email: data.email },
+      where: { email },
       include: { 
         role: true 
       }
     });
 
+    // ❗ Generic error message to prevent user enumeration
+    const GENERIC_ERROR = 'Invalid email or password.';
+
     if (!user) {
-      return { success: false, error: 'User record not found.' };
+      await logSecurityEvent('AUTH_LOGIN_FAILURE', {
+        email,
+        action: 'Login failed: user not found',
+      });
+      return { success: false, error: GENERIC_ERROR };
     }
 
-    if (user.password !== data.password) {
-      return { success: false, error: 'Invalid security credentials.' };
+    const isMatch = await verifyPassword(password, user.password);
+    if (!isMatch) {
+      await logSecurityEvent('AUTH_LOGIN_FAILURE', {
+        userId: user.id,
+        email,
+        action: 'Login failed: incorrect password',
+      });
+      return { success: false, error: GENERIC_ERROR };
     }
 
     if (user.status !== 'Active') {
+      await logSecurityEvent('AUTH_LOGIN_FAILURE', {
+        userId: user.id,
+        email,
+        action: 'Login failed: account inactive',
+      });
       return { success: false, error: 'Account is currently inactive. Contact Admin.' };
     }
+
+    const needsPasswordChange = user.requirePasswordChange || isPasswordExpired(user.passwordLastChanged);
 
     // Return sanitized user object with permissions
     const userData = {
@@ -40,16 +78,16 @@ export async function loginUser(data: any) {
       branch: user.branch,
       district: user.district,
       dateJoined: user.dateJoined.toISOString().split('T')[0],
+      requirePasswordChange: needsPasswordChange, // Include this for the frontend
     };
 
-    // Set session cookie
-    const cookieStore = await cookies();
-    cookieStore.set('session', JSON.stringify(userData), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
+    // ❗ Create a secure, bound session in DB and set cookies
+    await createSecureSession(user.id);
+
+    await logSecurityEvent('AUTH_LOGIN_SUCCESS', {
+      userId: user.id,
+      email: user.email,
+      action: 'User successfully logged in',
     });
 
     return {
@@ -58,24 +96,43 @@ export async function loginUser(data: any) {
     };
   } catch (error) {
     console.error('Login verification error:', error);
-    return { success: false, error: 'Database connection failed during authentication.' };
+    return { success: false, error: 'Authentication failed. Please try again later.' };
   }
 }
 
 export async function logoutUser() {
-  const cookieStore = await cookies();
-  cookieStore.delete('session');
+  const cookieStore = cookies();
+  const accessToken = cookieStore.get('auth_access')?.value;
+  
+  if (accessToken) {
+    const payload = verifyToken(accessToken);
+    if (payload?.sessionId) {
+      await invalidateSession(payload.sessionId);
+      await logSecurityEvent('AUTH_LOGOUT', {
+        userId: payload.userId,
+        action: 'User logged out',
+      });
+    }
+  }
+
+  cookieStore.delete('auth_access');
+  cookieStore.delete('auth_refresh');
   return { success: true };
 }
 
 export async function getCurrentUser() {
   try {
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session');
-
-    if (!session) return null;
-
-    return JSON.parse(session.value);
+    const user = await getUserFromCookiesServer();
+    if (!user) return null;
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role?.name,
+      branch: user.branch,
+      district: user.district,
+      dateJoined: user.dateJoined.toISOString().split('T')[0]
+    };
   } catch (error) {
     console.error('Error fetching session user:', error);
     return null;
@@ -83,9 +140,23 @@ export async function getCurrentUser() {
 }
 
 export async function getUsers() {
+  await authorizeAction({ allowedRoles: ['Admin'] });
   try {
     const users = await prisma.user.findMany({
-      include: { role: true },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        status: true,
+        branch: true,
+        district: true,
+        dateJoined: true,
+        role: {
+          select: {
+            name: true,
+          }
+        },
+      },
       orderBy: { fullName: 'asc' },
     });
     return users.map(u => ({
@@ -100,6 +171,7 @@ export async function getUsers() {
 }
 
 export async function getRoles() {
+  await authorizeAction({ allowedRoles: ['Admin'] });
   try {
     const roles = await prisma.role.findMany({
       orderBy: { name: 'asc' },
@@ -117,24 +189,45 @@ export async function getRoles() {
 }
 
 export async function createUser(data: any) {
+  await authorizeAction({ allowedRoles: ['Admin'] });
   try {
+    const validation = createUserSchema.safeParse(data);
+    if (!validation.success) {
+      return { success: false, error: 'Invalid user data provided' };
+    }
+    const validatedData = validation.data;
+
     const role = await prisma.role.findFirst({
-      where: { name: data.role }
+      where: { name: validatedData.role }
     });
 
     if (!role) throw new Error('Role not found');
 
-    await prisma.user.create({
+    // Generate a secure temporary password
+    const tempPassword = crypto.randomBytes(9).toString('base64').replace(/\+/g, 'A').replace(/\//g, 'B').slice(0, 12);
+    const hashedPassword = await hashPassword(tempPassword);
+
+    // Persist the user with the generated temporary password.
+    const created = await prisma.user.create({
       data: {
-        fullName: data.fullName,
-        email: data.email,
-        password: data.password,
+        fullName: validatedData.fullName,
+        email: validatedData.email,
+        password: hashedPassword,
         roleId: role.id,
-        status: data.status || 'Active',
-        branch: data.branch || 'Head Office',
-        district: data.district || 'HQ',
+        status: validatedData.status || 'Active',
+        branch: validatedData.branch || 'Head Office',
+        district: validatedData.district || 'HQ',
+        requirePasswordChange: true, // ❗ Mandatory change on first login
+        passwordLastChanged: new Date(),
       }
     });
+
+    // Attempt to email the temporary password. If email fails, we still created the account but log a warning.
+    try {
+      await sendTemporaryPasswordEmail(created.email, tempPassword);
+    } catch (e) {
+      console.warn('Failed to send temporary password email:', e);
+    }
 
     revalidatePath('/users');
     revalidatePath('/register');
@@ -147,9 +240,36 @@ export async function createUser(data: any) {
 }
 
 export async function updateUser(id: string, data: any) {
+  const authUser = await authorizeAction({ 
+    allowedRoles: ['Admin'],
+    resourceId: id,
+    resourceType: 'user'
+  });
+
   try {
-    const updateData: any = { ...data };
+    const validation = updateUserSchema.safeParse(data);
+    if (!validation.success) {
+      return { success: false, error: 'Invalid update data provided' };
+    }
+    const validatedData = validation.data;
+
+    // ❗ Prevent self-role escalation or role modification by non-admins
+    if (validatedData.role && authUser.role !== 'Admin') {
+      console.warn(`User ${authUser.email} attempted to modify role to ${validatedData.role} without Admin privileges`);
+      return { success: false, error: 'Forbidden: Role escalation attempt detected' };
+    }
+
+    // ❗ Even Admins should be careful about changing their own role to something else
+    if (authUser.id === id && validatedData.role && validatedData.role !== authUser.role) {
+      return { success: false, error: 'Cannot change your own role' };
+    }
+
+    const updateData: any = { ...validatedData };
     
+    if (validatedData.password) {
+      updateData.password = await hashPassword(validatedData.password);
+    }
+
     if (data.role) {
       const role = await prisma.role.findFirst({
         where: { name: data.role }
@@ -165,6 +285,17 @@ export async function updateUser(id: string, data: any) {
       data: updateData,
     });
 
+    // ❗ If role was updated, invalidate all sessions for this user to enforce new permissions
+    if (data.role) {
+      await logSecurityEvent('ROLE_CHANGE', {
+        userId: id,
+        action: `User role changed to ${data.role}`,
+        resourceId: id,
+        resourceType: 'User',
+      });
+      await invalidateAllUserSessions(id);
+    }
+
     revalidatePath('/users');
     return { success: true };
   } catch (error) {
@@ -174,7 +305,14 @@ export async function updateUser(id: string, data: any) {
 }
 
 export async function deleteUser(id: string) {
+  await authorizeAction({ allowedRoles: ['Admin'] });
   try {
+    // ❗ Prevent self-deletion
+    const authUser = await getUserFromCookiesServer();
+    if (authUser?.id === id) {
+      return { success: false, error: 'Cannot delete your own account' };
+    }
+
     await prisma.user.delete({ where: { id } });
     revalidatePath('/users');
     return { success: true };
@@ -185,8 +323,13 @@ export async function deleteUser(id: string) {
 }
 
 export async function createRole(data: any) {
+  await authorizeAction({ allowedRoles: ['Admin'] });
   try {
-    await prisma.role.create({ data });
+    const validation = roleSchema.safeParse(data);
+    if (!validation.success) {
+      return { success: false, error: 'Invalid role data' };
+    }
+    await prisma.role.create({ data: validation.data });
     revalidatePath('/roles');
     return { success: true };
   } catch (error) {
@@ -196,10 +339,15 @@ export async function createRole(data: any) {
 }
 
 export async function updateRole(id: string, data: any) {
+  await authorizeAction({ allowedRoles: ['Admin'] });
   try {
+    const validation = roleSchema.partial().safeParse(data);
+    if (!validation.success) {
+      return { success: false, error: 'Invalid role update data' };
+    }
     await prisma.role.update({
       where: { id },
-      data,
+      data: validation.data,
     });
     revalidatePath('/roles');
     return { success: true };
@@ -210,6 +358,7 @@ export async function updateRole(id: string, data: any) {
 }
 
 export async function deleteRole(id: string) {
+  await authorizeAction({ allowedRoles: ['Admin'] });
   try {
     await prisma.role.delete({ where: { id } });
     revalidatePath('/roles');

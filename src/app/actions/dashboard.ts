@@ -1,15 +1,18 @@
-'use server';
+ 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { securePrisma } from '@/lib/securePrisma';
+import { authorizeAction } from '@/lib/authorization';
 
 export async function getDashboardData() {
+  await authorizeAction({ allowedPermissions: ['dashboard_access'] });
   try {
     const [findings, specialAudits, branches, hierarchy] = await Promise.all([
-      prisma.auditFinding.findMany({
+      securePrisma.finding.findMany({
         orderBy: { createdAt: 'desc' },
       }),
-      prisma.specialAudit.findMany({
-        include: { individuals: true },
+      securePrisma.specialAudit.findMany({
+        include: { category: true },
         orderBy: { dateCreated: 'desc' },
       }),
       prisma.branch.findMany(),
@@ -31,6 +34,7 @@ export async function getDashboardData() {
     // Format special audits
     const formattedSpecialAudits = specialAudits.map(sa => ({
       ...sa,
+      category: sa.category?.name || 'Uncategorized',
       dateCreated: sa.dateCreated.toISOString(),
     }));
 

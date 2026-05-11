@@ -88,6 +88,7 @@ export function AuditFindingCard({
   const handleAddProgress = (update: {
     details: string;
     attachmentFilename?: string;
+    attachmentId?: string;
   }) => {
     const newProgressUpdate: ProgressUpdate = {
       id: `PROG-${Date.now()}`,
@@ -245,19 +246,25 @@ export function AuditFindingCard({
             )}
           </div>
 
-          {allAttachments.length > 0 && (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-2">
-              {allAttachments.map((filename, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground"
+          {finding.attachments && finding.attachments.length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-2 border-t mt-2">
+              <span className="text-[10px] uppercase font-black text-muted-foreground w-full mb-1">Secure Attachments:</span>
+              {finding.attachments.map((attachment) => (
+                <a
+                  key={attachment.id}
+                  href={`/api/files/${attachment.id}`}
+                  className="flex items-center gap-1.5 text-xs text-primary hover:underline group"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  <Paperclip className="h-3.5 w-3.5" />
-                  <span
-                    className="truncate"
-                    title={filename}
-                  >{filename.length > 20 ? `${filename.slice(0, 20)}...` : filename}</span>
-                </div>
+                  <Paperclip className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
+                  <span className="truncate max-w-[150px]" title={attachment.originalName}>
+                    {attachment.originalName}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    ({(attachment.size / 1024).toFixed(1)} KB)
+                  </span>
+                </a>
               ))}
             </div>
           )}
@@ -298,7 +305,18 @@ export function AuditFindingCard({
                           {update.attachmentFilename && (
                             <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
                               <Paperclip className="h-3 w-3" />
-                              <span>{update.attachmentFilename}</span>
+                              {update.attachmentId ? (
+                                <a
+                                  href={`/api/files/${update.attachmentId}`}
+                                  className="text-primary hover:underline"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {update.attachmentFilename}
+                                </a>
+                              ) : (
+                                <span>{update.attachmentFilename}</span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -351,10 +369,11 @@ export function AuditFindingCard({
         </CardFooter>
       </Card>
       <AddProgressUpdateDialog
-        open={isProgressDialogOpen}
-        onOpenChange={setProgressDialogOpen}
-        onSubmit={handleAddProgress}
-      />
+          open={isProgressDialogOpen}
+          onOpenChange={setProgressDialogOpen}
+          onSubmit={handleAddProgress}
+          findingId={finding.id}
+        />
       <FollowUpDialog
         open={isFollowUpDialogOpen}
         onOpenChange={setFollowUpDialogOpen}

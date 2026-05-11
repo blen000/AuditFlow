@@ -125,6 +125,12 @@ export const PERMISSION_DEFINITIONS = [
     description: 'Manage finding lifecycle stages (Open -> Mitigated -> Closed, etc.).',
     group: 'System Settings',
   },
+  {
+    key: 'settings_special_finding_categories_access',
+    label: 'Special Finding Categories',
+    description: 'Manage classification categories for special audit reports.',
+    group: 'System Settings',
+  },
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_DEFINITIONS)[number]['key'];
@@ -170,6 +176,7 @@ const LEGACY_PERMISSION_MAP: Record<string, PermissionKey[]> = {
     'settings_departments_access',
     'settings_risk_levels_access',
     'settings_statuses_access',
+    'settings_special_finding_categories_access',
   ],
 };
 
@@ -214,4 +221,5 @@ export const SYSTEM_SETTINGS_PERMISSIONS: PermissionKey[] = [
   'settings_departments_access',
   'settings_risk_levels_access',
   'settings_statuses_access',
+  'settings_special_finding_categories_access',
 ];

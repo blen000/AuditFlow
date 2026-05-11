@@ -1,11 +1,14 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { securePrisma } from '@/lib/securePrisma';
+import { authorizeAction } from '@/lib/authorization';
 
 export async function getAuditeeViewData() {
+  await authorizeAction({ allowedPermissions: ['auditee_view_access'] });
   try {
     const [findings, hierarchy, branches, departments, riskLevels, statuses] = await Promise.all([
-      prisma.auditFinding.findMany({
+      securePrisma.finding.findMany({
         orderBy: { createdAt: 'desc' },
       }),
       prisma.auditHierarchyNode.findMany({
