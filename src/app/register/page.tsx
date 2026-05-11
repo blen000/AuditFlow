@@ -5,6 +5,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import {
   Select,
   SelectContent,
@@ -163,7 +164,7 @@ export default function UserRegistrationPage() {
                           Login Password
                         </FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Create a secure password" {...field} />
+                          <PasswordInput placeholder="Create a secure password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
