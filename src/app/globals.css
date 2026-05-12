@@ -8,25 +8,25 @@ body {
 
 @layer base {
   :root {
-    --background: 240 8% 96%;
-    --foreground: 240 6% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 6% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 6% 10%;
+    --background: 40 36% 94%;
+    --foreground: 210 10% 18%;
+    --card: 40 18% 99%;
+    --card-foreground: 210 12% 18%;
+    --popover: 40 18% 99%;
+    --popover-foreground: 210 12% 18%;
     --primary: 25 30% 25%; /* Professional Brown */
     --primary-foreground: 0 0% 100%;
-    --secondary: 45 93% 96%;
-    --secondary-foreground: 25 30% 20%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 45 93% 47%; /* Audit Yellow/Gold */
-    --accent-foreground: 0 0% 0%;
+    --secondary: 38 34% 96%;
+    --secondary-foreground: 210 12% 32%;
+    --muted: 40 24% 95%;
+    --muted-foreground: 210 8% 46%;
+    --accent: 25 30% 25%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 25 30% 25%;
+    --border: 40 18% 90%;
+    --input: 40 20% 97%;
+    --ring: 40 22% 87%;
     --chart-1: 25 30% 25%;
     --chart-2: 45 93% 47%;
     --chart-3: 197 37% 24%;
