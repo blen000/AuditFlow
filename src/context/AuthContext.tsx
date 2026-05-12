@@ -68,20 +68,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const authStatus = localStorage.getItem('isAuthenticated') === 'true';
       const userJson = localStorage.getItem('currentUser');
 
-      // ❗ Sync check: if we are on the login page, we should not be "authenticated"
-      if (window.location.pathname === '/login') {
-        if (authStatus) {
-          localStorage.removeItem('currentUser');
-          localStorage.setItem('isAuthenticated', 'false');
-          setUser(null);
-          setPermissions([]);
-          setIsAuthenticated(false);
-        }
-      } else {
-        const u = userJson ? JSON.parse(userJson) : null;
+      const u = userJson ? JSON.parse(userJson) : null;
+      
+      // ❗ If we have auth status and user data, set it
+      if (authStatus && u) {
         setUser(u);
         setPermissions(withAdminPermissions(u?.role, u?.permissions || []));
-        setIsAuthenticated(!!authStatus && !!u);
+        setIsAuthenticated(true);
+      } else {
+        // Not authenticated
+        setUser(null);
+        setPermissions([]);
+        setIsAuthenticated(false);
       }
     } catch (e) {
       setUser(null);
@@ -90,7 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [router]);
+  }, []); // Only run once on mount
 
   // Setup inactivity tracking and storage-event synchronization when authenticated
   useEffect(() => {

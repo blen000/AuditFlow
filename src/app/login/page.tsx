@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,9 +34,16 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ❗ Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/dashboard');
+    }
+  }, [isAuthenticated, router]);
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),

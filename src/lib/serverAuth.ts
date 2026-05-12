@@ -85,14 +85,14 @@ export async function createSecureSession(userId: string, res?: NextResponse) {
     const cookieStore = cookies();
     cookieStore.set(ACCESS_COOKIE_NAME, accessToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
       sameSite: 'strict',
       maxAge: ACCESS_TOKEN_EXPIRY_MS / 1000
     });
     cookieStore.set(REFRESH_COOKIE_NAME, refreshToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
       sameSite: 'strict',
       maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60
@@ -107,7 +107,7 @@ export function setAuthCookies(res: NextResponse, accessToken: string, refreshTo
     name: ACCESS_COOKIE_NAME,
     value: accessToken,
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     sameSite: 'strict',
     maxAge: ACCESS_TOKEN_EXPIRY_MS / 1000
@@ -117,7 +117,7 @@ export function setAuthCookies(res: NextResponse, accessToken: string, refreshTo
     name: REFRESH_COOKIE_NAME,
     value: refreshToken,
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     sameSite: 'strict',
     maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60
