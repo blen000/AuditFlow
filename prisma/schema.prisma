@@ -126,6 +126,13 @@ model AuditFinding {
   auditeeAttachmentFilename String?
   progressUpdates           Json?
   dynamicValues             Json?
+  verbalComm                Json?
+  writtenComm               Json?
+  esc1                      Json?
+  esc2                      Json?
+  followUpRecommendations   String?
+  forwardingHistory         Json?
+  collaboratingWith         String?
   hierarchyNodeId           String
   isClosed                  Boolean            @default(false)
   followUpStatus            String?            @default("Pending")

@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import type { AuditFinding, Branch, RiskLevelData, StatusData, RiskLevel, FindingStatus, Department, AuditHierarchyNode } from '@/types';
 import { CaseReportDialog } from '@/components/audit/CaseReportDialog';
 import { getAuditeeViewData } from '@/app/actions/auditee-view';
+import { updateFinding } from '@/app/actions/findings';
 
 export default function AuditeeViewPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -102,8 +103,17 @@ export default function AuditeeViewPage() {
     }
   };
 
-  const handleUpdate = (id: string, updates: Partial<AuditFinding>) => {
-    setFindings(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+  const handleUpdate = async (id: string, updates: Partial<AuditFinding>) => {
+    try {
+      const result = await updateFinding(id, updates);
+      if (result.success) {
+        setFindings(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+      } else {
+        console.error('Failed to save finding update:', result.error);
+      }
+    } catch (error) {
+      console.error('Error saving finding update:', error);
+    }
   };
 
   const toggleFilter = <T extends string>(

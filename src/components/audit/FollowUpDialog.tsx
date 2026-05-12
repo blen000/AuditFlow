@@ -42,7 +42,7 @@ type FollowUpDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   finding: AuditFinding;
-  onUpdate: (id: string, updates: Partial<AuditFinding>) => void;
+  onUpdate: (id: string, updates: Partial<AuditFinding>) => Promise<void> | void;
 };
 
 export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: FollowUpDialogProps) {
@@ -71,19 +71,23 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
     }
   }, [open, finding]);
 
-  const handleSave = () => {
-    onUpdate(finding.id, {
-      followUpStatus: status,
-      verbalComm: verbal,
-      writtenComm: written,
-      esc1: esc1,
-      esc2: esc2,
-      followUpRecommendations: recommendations,
-      isClosed: isClosed,
-      forwardingHistory: forwardingHistory,
-      collaboratingWith: collaboratingWith,
-    });
-    onOpenChange(false);
+  const handleSave = async () => {
+    try {
+      await onUpdate(finding.id, {
+        followUpStatus: status,
+        verbalComm: verbal,
+        writtenComm: written,
+        esc1: esc1,
+        esc2: esc2,
+        followUpRecommendations: recommendations,
+        isClosed: isClosed,
+        forwardingHistory: forwardingHistory,
+        collaboratingWith: collaboratingWith,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to save follow-up update:', error);
+    }
   };
 
   const handleForwardCase = (target: string, comments: string) => {
