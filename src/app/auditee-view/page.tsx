@@ -423,7 +423,7 @@ export default function AuditeeViewPage() {
                                 
                                 {/* Level 3: Detailed Finding Cards */}
                                 {isSubExpanded && (
-                                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pl-7 animate-in fade-in zoom-in-95 duration-200">
+                                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pl-7 animate-in fade-in zoom-in-95 duration-200 items-stretch" style={{ gridAutoRows: '1fr' }}>
                                     {subGroup.findings.map(finding => (
                                       <AuditFindingCard
                                         key={finding.id}

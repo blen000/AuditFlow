@@ -119,7 +119,7 @@ export function AuditFindingCard({
 
   return (
     <>
-      <Card className={cn("flex flex-col relative", finding.isClosed && "bg-muted/30 border-dashed")}>
+      <Card className={cn("flex flex-col relative h-full max-w-full overflow-hidden", finding.isClosed && "bg-muted/30 border-dashed")}>
         {finding.isClosed && (
           <div className="absolute top-2 right-12 z-10">
             <Badge variant="secondary" className="gap-1.5 py-1 px-2.5 bg-green-100 text-green-800 border-green-200">
@@ -185,8 +185,10 @@ export function AuditFindingCard({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <CardTitle className="pt-2 text-lg">{finding.title}</CardTitle>
-          <CardDescription className="line-clamp-2 text-sm">
+          <CardTitle className="pt-2 text-lg max-w-full break-words break-all" style={{ wordBreak: 'break-word' }}>
+            {finding.title}
+          </CardTitle>
+          <CardDescription className="line-clamp-2 text-sm max-w-full break-words break-all whitespace-normal" style={{ wordBreak: 'break-word' }}>
             {finding.branchOrDepartment} &mdash; {finding.details}
           </CardDescription>
         </CardHeader>
@@ -327,8 +329,8 @@ export function AuditFindingCard({
             </Collapsible>
           )}
         </CardContent>
-        <CardFooter className="flex items-center justify-between text-sm text-muted-foreground border-t bg-muted/20 px-6 py-3">
-          <div className="flex shrink-0 items-center gap-2">
+        <CardFooter className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground border-t bg-muted/20 px-6 py-3">
+          <div className="flex flex-wrap items-center gap-2 max-w-full">
             <Bell className="h-4 w-4" />
             <span className="whitespace-nowrap">
               {revalDate ? `Re-validate by` : 'No reminder set'}

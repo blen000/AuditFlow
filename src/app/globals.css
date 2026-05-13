@@ -91,3 +91,77 @@ body {
     background-position: top left;
   }
 }
+
+@layer utilities {
+  .export-report {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .export-report table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .export-report th,
+  .export-report td {
+    word-break: break-word;
+    white-space: normal !important;
+  }
+  .export-report .avoid-page-break,
+  .export-report .avoid-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+@media print {
+  html,
+  body {
+    width: auto !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  * {
+    box-sizing: border-box !important;
+  }
+  .print-hidden {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .export-report {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .page-break {
+    page-break-after: always;
+    break-after: page;
+  }
+  .avoid-page-break,
+  .avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  table,
+  thead,
+  tbody,
+  tr,
+  td,
+  th {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-footer-group;
+  }
+}
