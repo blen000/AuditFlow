@@ -54,6 +54,10 @@ function getFingerprint(userAgent: string, ipAddress: string) {
   return crypto.createHash('sha256').update(`${userAgent}${normalizedIp}`).digest('hex');
 }
 
+function isLocalhostIp(ipAddress: string) {
+  return ipAddress === '::1' || ipAddress === '127.0.0.1' || ipAddress === 'localhost';
+}
+
 export async function createSecureSession(userId: string, res?: NextResponse) {
   const h = headers();
   const userAgent = h.get('user-agent') || 'unknown';
@@ -134,14 +138,23 @@ export async function getUserFromRequest(req: Request) {
     const payload = verifyToken(accessToken);
     if (!payload || !payload.userId || !payload.sessionId) return null;
 
-    // Validate binding (fingerprint)
+    // Fingerprint binding (user-agent + IP) caused auth to drop during
+    // responsive/mobile emulation because user-agent changes.
+    // We keep the legacy computation for logging/debugging, but we no longer
+    // hard-reject the session on mismatch so the UI doesn't flicker.
     const userAgent = req.headers.get('user-agent') || 'unknown';
     const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || '127.0.0.1';
     const currentFingerprint = getFingerprint(userAgent, ipAddress);
     
     if (payload.fingerprint !== currentFingerprint) {
-      console.warn(`[AUTH] Fingerprint mismatch for user ${payload.userId}. Expected: ${payload.fingerprint}, Got: ${currentFingerprint} (UA: ${userAgent}, IP: ${ipAddress})`);
-      return null;
+      // Responsive/mobile emulation often changes UA in the same browser session.
+      // Avoid noisy logs on localhost while keeping the signal in real environments.
+      if (!isLocalhostIp(ipAddress)) {
+        console.warn(
+          `[AUTH] Fingerprint mismatch for user ${payload.userId}. Expected: ${payload.fingerprint}, Got: ${currentFingerprint} (UA: ${userAgent}, IP: ${ipAddress})`
+        );
+      }
+      // Intentionally do not invalidate here.
     }
 
     // Check DB session status and idle timeout
@@ -193,15 +206,19 @@ export async function getUserFromCookiesServer() {
   const payload = verifyToken(accessToken);
   if (!payload || !payload.userId || !payload.sessionId) return null;
 
-  // Binding check
+  // Fingerprint binding (user-agent + IP) is best-effort only.
   const h = headers();
   const userAgent = h.get('user-agent') || 'unknown';
   const ipAddress = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
   const currentFingerprint = getFingerprint(userAgent, ipAddress);
 
   if (payload.fingerprint !== currentFingerprint) {
-    console.warn(`[AUTH] Fingerprint mismatch (Server) for user ${payload.userId}. Expected: ${payload.fingerprint}, Got: ${currentFingerprint} (UA: ${userAgent}, IP: ${ipAddress})`);
-    return null;
+    if (!isLocalhostIp(ipAddress)) {
+      console.warn(
+        `[AUTH] Fingerprint mismatch (Server) for user ${payload.userId}. Expected: ${payload.fingerprint}, Got: ${currentFingerprint} (UA: ${userAgent}, IP: ${ipAddress})`
+      );
+    }
+    // Intentionally do not invalidate here.
   }
 
   const session = await prisma.session.findUnique({

@@ -30,19 +30,22 @@ export async function POST(req: Request) {
     const ipAddress = h.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
     const currentFingerprint = crypto.createHash('sha256').update(`${userAgent}${ipAddress}`).digest('hex');
 
+    // NOTE: We previously invalidated sessions on fingerprint mismatch.
+    // During responsive/mobile emulation, browsers often change user-agent,
+    // which caused legitimate sessions to be dropped (auth flicker).
+    // We keep the fingerprint computation for logging, but we no longer
+    // hard-reject on mismatch.
     if (session.fingerprint !== currentFingerprint) {
-      // Potential session theft - invalidate all user sessions
-      await prisma.session.deleteMany({ where: { userId: session.userId } });
-      
-      await logSecurityEvent('AUTHZ_FAILURE', {
-        userId: session.userId,
-        email: session.user.email,
-        action: 'Security breach detected: Fingerprint mismatch during token refresh',
-        severity: 'HIGH_RISK',
-        details: `IP: ${ipAddress}, UA: ${userAgent}`
-      });
-
-      return NextResponse.json({ success: false, error: 'Security breach detected' }, { status: 401 });
+      const isLocalhost = ipAddress === '::1' || ipAddress === '127.0.0.1' || ipAddress === 'localhost';
+      if (!isLocalhost) {
+        await logSecurityEvent('AUTHZ_FAILURE', {
+          userId: session.userId,
+          email: session.user.email,
+          action: 'Fingerprint mismatch during token refresh (best-effort)',
+          severity: 'MEDIUM_RISK',
+          details: `IP: ${ipAddress}, UA: ${userAgent}`
+        });
+      }
     }
 
     // Rotate refresh token

@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -53,9 +54,9 @@ export function CaseReportDialog({ caseNum, caseSummary, findings }: CaseReportD
             </Badge>
             <div>
               <DialogTitle className="text-2xl font-black uppercase tracking-tight">{caseSummary}</DialogTitle>
-              <p className="text-xs font-bold uppercase tracking-widest opacity-80 mt-1">
+              <DialogDescription className="text-xs font-bold uppercase tracking-widest opacity-80 mt-1 text-primary-foreground">
                 Formal Internal Audit Report • Mission #{caseNum}
-              </p>
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>

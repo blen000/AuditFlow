@@ -64,30 +64,63 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    try {
-      const authStatus = localStorage.getItem('isAuthenticated') === 'true';
-      const userJson = localStorage.getItem('currentUser');
+    let mounted = true;
+    const bootstrap = async () => {
+      setIsLoading(true);
+      try {
+        const authStatus = localStorage.getItem('isAuthenticated') === 'true';
+        const userJson = localStorage.getItem('currentUser');
+        const u = userJson ? JSON.parse(userJson) : null;
 
-      const u = userJson ? JSON.parse(userJson) : null;
-      
-      // ❗ If we have auth status and user data, set it
-      if (authStatus && u) {
-        setUser(u);
-        setPermissions(withAdminPermissions(u?.role, u?.permissions || []));
-        setIsAuthenticated(true);
-      } else {
-        // Not authenticated
+        // If localStorage claims we're authenticated, verify with server to avoid stale state
+        if (authStatus && u) {
+          try {
+            const res = await fetch('/api/auth/me', {
+              method: 'GET',
+              cache: 'no-store',
+              credentials: 'same-origin',
+            });
+            if (res.ok) {
+              // Server confirms session; set user
+              if (!mounted) return;
+              setUser(u);
+              setPermissions(withAdminPermissions(u?.role, u?.permissions || []));
+              setIsAuthenticated(true);
+            } else {
+              // Server says no session - clear local state
+              if (!mounted) return;
+              setUser(null);
+              setPermissions([]);
+              setIsAuthenticated(false);
+              localStorage.setItem('isAuthenticated', 'false');
+              localStorage.removeItem('currentUser');
+            }
+          } catch (e) {
+            // On network error, be conservative: treat as not authenticated
+            if (!mounted) return;
+            setUser(null);
+            setPermissions([]);
+            setIsAuthenticated(false);
+          }
+        } else {
+          // Not authenticated locally
+          setUser(null);
+          setPermissions([]);
+          setIsAuthenticated(false);
+        }
+      } catch (e) {
+        if (!mounted) return;
         setUser(null);
         setPermissions([]);
         setIsAuthenticated(false);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
-    } catch (e) {
-      setUser(null);
-      setPermissions([]);
-      setIsAuthenticated(false);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    bootstrap();
+
+    return () => { mounted = false; };
   }, []); // Only run once on mount
 
   // Setup inactivity tracking and storage-event synchronization when authenticated

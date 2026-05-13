@@ -11,11 +11,9 @@ import {
   SidebarContent,
   SidebarHeader,
   SidebarInset,
-  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/layout/SidebarNav';
-import { Button } from '@/components/ui/button';
-import { ShieldCheck, Loader2, Menu, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import {
@@ -26,6 +24,21 @@ import {
   withAdminPermissions,
 } from '@/lib/permissions';
 
+function getFirstAllowedPathForUser(role: string | undefined, rawPermissions: string[] | undefined) {
+  const effectivePermissions = withAdminPermissions(role, rawPermissions || []);
+  if (effectivePermissions.includes('dashboard_access')) return '/dashboard';
+  if (effectivePermissions.includes('auditee_view_access')) return '/auditee-view';
+  if (AUDIT_REPORTS_HUB_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/reports';
+  if (effectivePermissions.includes('findings_new_access')) return '/findings/new';
+  if (effectivePermissions.includes('special_audits_new_access')) return '/special-audits/new';
+  if (effectivePermissions.includes('users_manage_access')) return '/users';
+  if (effectivePermissions.includes('roles_manage_access')) return '/roles';
+  if (effectivePermissions.includes('register_user_access')) return '/register';
+  if (effectivePermissions.includes('special_onboarding_access')) return '/special-onboarding';
+  if (SYSTEM_SETTINGS_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/settings';
+  return '/dashboard';
+}
+
 function LayoutContent({
   children,
 }: {
@@ -33,34 +46,28 @@ function LayoutContent({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, permissions, isLoading, setUserPermissions, setIsAuthenticated } = useAuth();
+  const { user, permissions, isLoading, isAuthenticated } = useAuth();
+  const userRole = user?.role;
+  const userPermissions = user?.permissions;
 
   useEffect(() => {
-    // Check authentication state from localStorage
-    const authStatus = localStorage.getItem('isAuthenticated') === 'true';
-    const userJson = localStorage.getItem('currentUser');
-    const parsedUser = userJson ? JSON.parse(userJson) : null;
+    // Wait until AuthContext finishes server verification (/api/auth/me) so we do not fight
+    // middleware (cookies) using stale localStorage — that causes login/dashboard flicker.
+    if (isLoading) return;
 
-    setIsAuthenticated(authStatus);
-    if (parsedUser) {
-      setUserPermissions(withAdminPermissions(parsedUser.role, parsedUser.permissions || []));
-    }
-
-    // Redirect to login if not authenticated and trying to access protected pages
-    if (!authStatus && pathname !== '/login') {
-      router.push('/login');
+    if (!isAuthenticated && pathname !== '/login') {
+      router.replace('/login');
       return;
     }
-    
-    // Redirect to dashboard if authenticated and trying to access login page
-    if (authStatus && pathname === '/login') {
-      router.push('/dashboard');
+
+    if (isAuthenticated && pathname === '/login') {
+      router.replace(getFirstAllowedPathForUser(userRole, userPermissions));
       return;
     }
 
     // Role-Based Route Guard
-    if (authStatus && parsedUser) {
-      const effectivePermissions = withAdminPermissions(parsedUser.role, parsedUser.permissions || []);
+    if (isAuthenticated && userRole) {
+      const effectivePermissions = withAdminPermissions(userRole, userPermissions || []);
 
       const requiredPermissions: PermissionKey[] = (() => {
       // Core pages
@@ -97,34 +104,18 @@ function LayoutContent({
 
       const isAllowed =
         requiredPermissions.length === 0 ||
-        isAdminRole(parsedUser.role) ||
+        isAdminRole(userRole) ||
         requiredPermissions.some((p) => effectivePermissions.includes(p));
 
       if (!isAllowed) {
-        const getFallbackPath = () => {
-          if (effectivePermissions.includes('dashboard_access')) return '/dashboard';
-          if (effectivePermissions.includes('auditee_view_access')) return '/auditee-view';
-          if (AUDIT_REPORTS_HUB_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/reports';
-          if (effectivePermissions.includes('findings_new_access')) return '/findings/new';
-          if (effectivePermissions.includes('special_audits_new_access')) return '/special-audits/new';
-          if (effectivePermissions.includes('users_manage_access')) return '/users';
-          if (effectivePermissions.includes('roles_manage_access')) return '/roles';
-          if (effectivePermissions.includes('register_user_access')) return '/register';
-          if (effectivePermissions.includes('special_onboarding_access')) return '/special-onboarding';
-          if (SYSTEM_SETTINGS_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/settings';
-          return '/dashboard';
-        };
-
         console.warn(
           `Unauthorized access attempt to ${pathname}. Required one of: ${requiredPermissions.join(', ')}`
         );
-        const fallbackPath = getFallbackPath();
-        if (fallbackPath !== pathname) router.push(fallbackPath);
+        const fallbackPath = getFirstAllowedPathForUser(userRole, userPermissions);
+        if (fallbackPath !== pathname) router.replace(fallbackPath);
       }
-    } else if (authStatus === false && pathname !== '/login') {
-      router.push('/login');
     }
-  }, [pathname, router, setIsAuthenticated, setUserPermissions]);
+  }, [pathname, router, isLoading, isAuthenticated, userRole, userPermissions]);
 
   const isLoginPage = pathname === '/login';
   const showShell = !isLoginPage; // Always show shell unless it's login page
