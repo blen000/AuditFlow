@@ -71,20 +71,24 @@ export function ViewSpecialAuditDialog({
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgProps = pdf.getImageProperties(imgData);
+      const margin = 10;
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const usableWidth = pdfWidth - margin * 2;
+      const usableHeight = pdfHeight - margin * 2;
+      const scaledHeight = (imgProps.height * usableWidth) / imgProps.width;
       
-      let heightLeft = pdfHeight;
+      let heightLeft = scaledHeight;
       let position = 0;
 
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pdf.internal.pageSize.getHeight();
+      pdf.addImage(imgData, 'PNG', margin, margin, usableWidth, scaledHeight);
+      heightLeft -= usableHeight;
 
-      while (heightLeft >= 0) {
-        position = heightLeft - pdfHeight;
+      while (heightLeft > 0) {
+        position = heightLeft - scaledHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
+        pdf.addImage(imgData, 'PNG', margin, position + margin, usableWidth, scaledHeight);
+        heightLeft -= usableHeight;
       }
 
       pdf.save(`Special-Audit-Report-${audit.id}-${new Date().toISOString().split('T')[0]}.pdf`);
@@ -103,11 +107,18 @@ export function ViewSpecialAuditDialog({
       const content = reportRef.current.innerHTML;
       const styles = `
         <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-          section { margin-bottom: 30px; }
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+          .export-report { width: 100%; max-width: 100%; box-sizing: border-box; }
+          .export-report table { width: 100%; border-collapse: collapse; table-layout: fixed; word-break: break-word; }
+          .export-report th, .export-report td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 9pt; white-space: normal; vertical-align: top; }
+          .export-report thead { display: table-header-group; }
+          .export-report tfoot { display: table-footer-group; }
+          .export-report tr, .export-report section { page-break-inside: avoid; break-inside: avoid; }
+          .export-report .page-break { page-break-after: always; break-after: page; }
           h1 { color: #8B5CF6; font-size: 18pt; text-align: center; text-transform: uppercase; margin-bottom: 10px; }
           h2 { font-size: 10pt; text-align: center; color: #666; margin-bottom: 20px; }
           h4 { color: #8B5CF6; font-size: 10pt; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 15px; }
+          section { margin-bottom: 30px; }
           .grid { display: flex; flex-wrap: wrap; gap: 20px; }
           .col { flex: 1; min-width: 200px; }
           .label { font-size: 8pt; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 4px; }
@@ -167,7 +178,7 @@ export function ViewSpecialAuditDialog({
         </DialogHeader>
 
         <ScrollArea className="flex-1 bg-background print:overflow-visible">
-          <div ref={reportRef} className="p-8 space-y-10 print:p-0 print:space-y-8">
+          <div ref={reportRef} className="export-report p-8 space-y-10 print:p-0 print:space-y-8">
             {/* Location & Summary Section */}
             <section className="space-y-4 print:break-inside-avoid">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary border-b pb-2 flex items-center gap-2">

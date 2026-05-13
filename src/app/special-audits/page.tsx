@@ -174,25 +174,31 @@ export default function SpecialAuditsPage() {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        windowWidth: reportRef.current.scrollWidth,
+        windowHeight: reportRef.current.scrollHeight,
       });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('l', 'mm', 'a4');
       const imgProps = pdf.getImageProperties(imgData);
+      const margin = 10;
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const usableWidth = pdfWidth - margin * 2;
+      const usableHeight = pdfHeight - margin * 2;
+      const scaledHeight = (imgProps.height * usableWidth) / imgProps.width;
       
-      let heightLeft = pdfHeight;
+      let heightLeft = scaledHeight;
       let position = 0;
 
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pdf.internal.pageSize.getHeight();
+      pdf.addImage(imgData, 'PNG', margin, margin, usableWidth, scaledHeight);
+      heightLeft -= usableHeight;
 
-      while (heightLeft >= 0) {
-        position = heightLeft - pdfHeight;
+      while (heightLeft > 0) {
+        position = heightLeft - scaledHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
+        pdf.addImage(imgData, 'PNG', margin, position + margin, usableWidth, scaledHeight);
+        heightLeft -= usableHeight;
       }
 
       pdf.save(`Special-Audit-Reports-${new Date().toISOString().split('T')[0]}.pdf`);
@@ -211,18 +217,23 @@ export default function SpecialAuditsPage() {
       const content = reportRef.current.innerHTML;
       const styles = `
         <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-          .summary-container { margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f8f9fa; }
-          .summary-item { margin-bottom: 10px; }
-          .summary-label { font-size: 8pt; font-weight: bold; color: #666; text-transform: uppercase; }
-          .summary-value { font-size: 14pt; font-weight: bold; color: #000; }
-          table { border-collapse: collapse; width: 100%; margin-top: 20px; border: 2px solid black; }
-          th, td { border: 1px solid black; padding: 6px; text-align: left; font-size: 8pt; }
-          th { background-color: #f3f4f6; font-weight: bold; text-transform: uppercase; }
-          h1 { color: #8B5CF6; font-size: 16pt; text-align: center; text-transform: uppercase; font-weight: bold; }
-          .text-center { text-align: center; }
-          .font-bold { font-weight: bold; }
-          .uppercase { text-transform: uppercase; }
+          @page { size: A4 landscape; margin: 14mm; }
+          html, body { width: 100%; margin: 0; padding: 0; }
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #000; background: #fff; }
+          .export-report { width: 100%; max-width: 100%; box-sizing: border-box; }
+          .export-report table { border-collapse: collapse; width: 100%; table-layout: fixed; word-break: break-word; }
+          .export-report th, .export-report td { border: 1px solid black; padding: 6px; text-align: left; font-size: 8pt; white-space: normal; }
+          .export-report thead { display: table-header-group; }
+          .export-report tfoot { display: table-footer-group; }
+          .export-report tr { page-break-inside: avoid; break-inside: avoid; }
+          .export-report h1 { color: #8B5CF6; font-size: 16pt; text-align: center; text-transform: uppercase; font-weight: bold; margin: 0 0 12px; }
+          .export-report .summary-container { margin-bottom: 24px; border: 1px solid #ddd; padding: 14px; border-radius: 8px; background-color: #f8f9fa; }
+          .export-report .summary-label { font-size: 8pt; font-weight: bold; color: #666; text-transform: uppercase; }
+          .export-report .summary-value { font-size: 14pt; font-weight: bold; color: #000; }
+          .export-report .text-center { text-align: center; }
+          .export-report .font-bold { font-weight: bold; }
+          .export-report .uppercase { text-transform: uppercase; }
+          .export-report .avoid-page-break { page-break-inside: avoid; break-inside: avoid; }
         </style>
       `;
 
@@ -250,11 +261,12 @@ export default function SpecialAuditsPage() {
       const header = `
         <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
         <head><meta charset='utf-8'>${styles}</head><body>
+        <div class="export-report">
         <h1>Special Audit Reports Summary</h1>
         ${summaryHtml}
       `;
       const footer = "</body></html>";
-      const sourceHTML = header + content + footer;
+      const sourceHTML = header + content + '</div>' + footer;
       
       const blob = new Blob(['\ufeff', sourceHTML], {
         type: 'application/msword'
@@ -508,7 +520,7 @@ export default function SpecialAuditsPage() {
             </div>
           </div>
 
-          <div ref={reportRef} className="space-y-6">
+          <div ref={reportRef} className="export-report space-y-6">
             {/* Summary Report Section */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 print:grid-cols-4">
               <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 space-y-1">
@@ -534,8 +546,8 @@ export default function SpecialAuditsPage() {
             </div>
 
             {/* Formal Structured Audit Table */}
-            <div className="rounded-sm border-2 border-black overflow-hidden shadow-sm bg-white">
-              <Table>
+            <div className="rounded-sm border-2 border-black overflow-hidden shadow-sm bg-white export-report">
+              <Table className="table-fixed w-full">
               <TableHeader>
                 <TableRow className="bg-muted/80 hover:bg-muted/80 border-b-2 border-black divide-x-2 divide-black">
                   <TableHead className="w-16 text-center font-black text-black uppercase text-xs">S.No</TableHead>

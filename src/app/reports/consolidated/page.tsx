@@ -65,22 +65,24 @@ export default function ConsolidatedReportPage() {
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
       const margin = 10;
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
       const usableWidth = pdfWidth - margin * 2;
-      const pdfHeight = (imgProps.height * usableWidth) / imgProps.width;
+      const usableHeight = pdfHeight - margin * 2;
+      const scaledHeight = (imgProps.height * usableWidth) / imgProps.width;
       
-      let heightLeft = pdfHeight;
+      let heightLeft = scaledHeight;
       let position = 0;
 
-      pdf.addImage(imgData, 'PNG', margin, position, usableWidth, pdfHeight);
-      heightLeft -= pdf.internal.pageSize.getHeight();
+      pdf.addImage(imgData, 'PNG', margin, margin, usableWidth, scaledHeight);
+      heightLeft -= usableHeight;
 
-      while (heightLeft >= 0) {
-        position = heightLeft - pdfHeight;
+      while (heightLeft > 0) {
+        position = heightLeft - scaledHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', margin, position, usableWidth, pdfHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
+        pdf.addImage(imgData, 'PNG', margin, position + margin, usableWidth, scaledHeight);
+        heightLeft -= usableHeight;
       }
 
       pdf.save(`Consolidated-Activity-Report-${new Date().toISOString().split('T')[0]}.pdf`);
