@@ -363,7 +363,7 @@ export default function SpecialAuditsPage() {
         description="Formal tracking of specialized internal audit missions and monetary reconciliation from live database."
         backHref="/reports"
       >
-        <div className="flex items-center gap-2 print:hidden">
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 

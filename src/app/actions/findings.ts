@@ -111,6 +111,7 @@ export async function updateFinding(id: string, data: any) {
     });
 
     revalidatePath('/auditee-view');
+    revalidatePath('/dashboard');
     revalidatePath(`/findings/edit/${id}`);
     return { success: true };
   } catch (error) {

@@ -63,6 +63,7 @@ export default function CommunicationsPage() {
       <PageHeader 
         title="Audit report Communications" 
         description="Track formal interactions, responses, and rectification agreements across all organizational levels."
+        backHref="/reports"
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-7xl space-y-6">

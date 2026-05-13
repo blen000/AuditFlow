@@ -20,8 +20,8 @@ export default function PageHeader({
   backHref,
 }: PageHeaderProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card px-4 shadow-sm md:px-6">
-      <div className="flex items-center gap-4 overflow-hidden">
+    <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-card px-4 shadow-sm md:px-6 overflow-visible">
+      <div className="flex min-w-0 flex-1 items-center gap-4 overflow-hidden">
         <SidebarTrigger />
         {backHref && (
           <Button variant="ghost" size="icon" asChild className="h-9 w-9 shrink-0">
@@ -30,7 +30,7 @@ export default function PageHeader({
             </Link>
           </Button>
         )}
-        <div className="flex flex-col truncate">
+        <div className="flex min-w-0 flex-col truncate">
           <h1 className="truncate text-lg font-bold tracking-tight text-foreground md:text-2xl">
             {title}
           </h1>
@@ -41,8 +41,8 @@ export default function PageHeader({
           )}
         </div>
       </div>
-      <div className="flex items-center gap-3 shrink-0 md:gap-4">
-        {children && <div className="hidden items-center gap-2 lg:flex">{children}</div>}
+      <div className="flex flex-wrap items-center gap-3 shrink-0 md:gap-4">
+        {children && <div className="hidden flex-wrap items-center gap-2 lg:flex">{children}</div>}
         <NotificationBell />
         <UserNav />
       </div>

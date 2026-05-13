@@ -31,7 +31,7 @@ import type { User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { EditUserDialog } from '@/components/audit/EditUserDialog';
-import { getUsers, deleteUser, updateUser } from '@/app/actions/users';
+import { getUsers, deleteUser, updateUser, resendInvitationEmail } from '@/app/actions/users';
 
 export default function UserManagementPage() {
   const { toast } = useToast();
@@ -89,6 +89,19 @@ export default function UserManagementPage() {
       }
     } catch (error) {
       toast({ variant: "destructive", title: "Error", description: "Failed to update status." });
+    }
+  };
+
+  const handleResendEmail = async (id: string) => {
+    try {
+      const result = await resendInvitationEmail(id);
+      if (result.success) {
+        toast({ title: "Email Resent", description: "A fresh invitation email has been sent to the user." });
+      } else {
+        throw new Error(result.error || 'Failed to resend email.');
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Unable to resend the email." });
     }
   };
 
@@ -220,6 +233,9 @@ export default function UserManagementPage() {
                             <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuItem onClick={() => handleEditClick(user)}>
                                 <Pencil className="mr-2 h-4 w-4" /> Edit Profile
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleResendEmail(user.id)}>
+                                <Mail className="mr-2 h-4 w-4" /> Resend Email
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => toggleStatus(user.id)}>
                                 {user.status === 'Active' ? 'Deactivate Account' : 'Activate Account'}

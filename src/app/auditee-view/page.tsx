@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import type { AuditFinding, Branch, RiskLevelData, StatusData, RiskLevel, FindingStatus, Department, AuditHierarchyNode } from '@/types';
 import { CaseReportDialog } from '@/components/audit/CaseReportDialog';
 import { getAuditeeViewData } from '@/app/actions/auditee-view';
+import { updateFinding } from '@/app/actions/findings';
 
 export default function AuditeeViewPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -102,8 +103,17 @@ export default function AuditeeViewPage() {
     }
   };
 
-  const handleUpdate = (id: string, updates: Partial<AuditFinding>) => {
-    setFindings(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+  const handleUpdate = async (id: string, updates: Partial<AuditFinding>) => {
+    try {
+      const result = await updateFinding(id, updates);
+      if (result.success) {
+        setFindings(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+      } else {
+        console.error('Failed to save finding update:', result.error);
+      }
+    } catch (error) {
+      console.error('Error saving finding update:', error);
+    }
   };
 
   const toggleFilter = <T extends string>(
@@ -154,10 +164,10 @@ export default function AuditeeViewPage() {
     });
 
     const level1Nodes = hierarchy.filter(n => n.level === 1);
-    
+
     return level1Nodes.map(mission => {
       const missionFindings: AuditFinding[] = [];
-      const subsections: Record<string, { title: string, findings: AuditFinding[] }> = {};
+      const subsections: Record<string, { id: string; title: string; number?: number; findings: AuditFinding[] }> = {};
 
       // Find all findings that belong to this Level 1 tree
       hierarchy.forEach(node => {
@@ -177,25 +187,44 @@ export default function AuditeeViewPage() {
           const findingsAtNode = nodesWithFindings.get(node.id) || [];
           if (findingsAtNode.length > 0) {
             missionFindings.push(...findingsAtNode);
-            
-            // For Level 2+ nodes, group them as subsections
+
             if (node.level >= 2) {
-              const subId = String(node.number ?? node.id);
-              if (!subsections[subId]) {
-                subsections[subId] = { title: node.title || 'Untitled', findings: [] };
+              if (!subsections[node.id]) {
+                subsections[node.id] = {
+                  id: node.id,
+                  title: node.title || 'Untitled',
+                  number: node.number,
+                  findings: [],
+                };
               }
-              subsections[subId].findings.push(...findingsAtNode);
+              subsections[node.id].findings.push(...findingsAtNode);
             }
           }
         }
       });
+
+      // If the mission itself has direct findings, expose them as a root subsection.
+      const missionRootFindings = nodesWithFindings.get(mission.id) || [];
+      if (missionRootFindings.length > 0) {
+        subsections[mission.id] = {
+          id: mission.id,
+          title: mission.title || 'Mission Overview',
+          number: mission.number,
+          findings: missionRootFindings,
+        };
+      }
 
       return {
         id: mission.id,
         number: mission.number,
         title: mission.title,
         allFindings: missionFindings,
-        subsections: Object.entries(subsections).sort((a, b) => String(a[0] ?? '').localeCompare(String(b[0] ?? ''), undefined, { numeric: true }))
+        subsections: Object.values(subsections).sort((a, b) => {
+          if (a.number !== undefined && b.number !== undefined) {
+            return a.number - b.number;
+          }
+          return String(a.title).localeCompare(String(b.title));
+        }),
       };
     }).filter(m => m.allFindings.length > 0);
   }, [filteredFindings, hierarchy]);
@@ -372,20 +401,20 @@ export default function AuditeeViewPage() {
 
                       {/* Level 2: Subsections & Findings */}
                       {isCaseExpanded && (
-                        <div className="space-y-6 pl-4 border-l-2 border-dashed border-muted ml-7 animate-in slide-in-from-top-2 duration-200">
-                          {mission.subsections.map(([subId, subGroup]) => {
-                            const subKey = `${mission.id}-${subId}`;
+                        <div className="space-y-6 pl-4 border-l-2 border-dashed border-muted ml-7 overflow-hidden animate-in slide-in-from-top-2 duration-200 ease-out">
+                          {mission.subsections.map((subGroup) => {
+                            const subKey = `${mission.id}-${subGroup.id}`;
                             const isSubExpanded = expandedSubsections.has(subKey);
                             
                             return (
-                              <div key={subId} className="space-y-4">
+                              <div key={subGroup.id} className="space-y-4">
                                 <div 
                                   className="flex items-center gap-3 cursor-pointer group hover:opacity-80 transition-opacity"
-                                  onClick={() => toggleSubsection(mission.id, subId)}
+                                  onClick={() => toggleSubsection(mission.id, subGroup.id)}
                                 >
                                   {isSubExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                                   <Badge variant="secondary" className="px-3 py-0.5 text-xs font-bold font-mono">
-                                    {subId}
+                                    {subGroup.number ?? subGroup.id}
                                   </Badge>
                                   <h4 className="text-lg font-bold text-muted-foreground uppercase tracking-tight">
                                     {subGroup.title}
@@ -394,7 +423,7 @@ export default function AuditeeViewPage() {
                                 
                                 {/* Level 3: Detailed Finding Cards */}
                                 {isSubExpanded && (
-                                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pl-7 animate-in fade-in zoom-in-95 duration-200">
+                                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pl-7 animate-in fade-in zoom-in-95 duration-200 items-stretch" style={{ gridAutoRows: '1fr' }}>
                                     {subGroup.findings.map(finding => (
                                       <AuditFindingCard
                                         key={finding.id}

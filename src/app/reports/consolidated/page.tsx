@@ -58,24 +58,28 @@ export default function ConsolidatedReportPage() {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        windowWidth: reportRef.current.scrollWidth,
+        windowHeight: reportRef.current.scrollHeight,
       });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      const margin = 10;
+      const usableWidth = pdfWidth - margin * 2;
+      const pdfHeight = (imgProps.height * usableWidth) / imgProps.width;
       
       let heightLeft = pdfHeight;
       let position = 0;
 
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, 'PNG', margin, position, usableWidth, pdfHeight);
       heightLeft -= pdf.internal.pageSize.getHeight();
 
       while (heightLeft >= 0) {
         position = heightLeft - pdfHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        pdf.addImage(imgData, 'PNG', margin, position, usableWidth, pdfHeight);
         heightLeft -= pdf.internal.pageSize.getHeight();
       }
 
@@ -95,29 +99,36 @@ export default function ConsolidatedReportPage() {
       const content = reportRef.current.innerHTML;
       const styles = `
         <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-          table { border-collapse: collapse; width: 100%; margin-bottom: 20px; border: 2px solid black; }
-          th, td { border: 1px solid black; padding: 8px; text-align: left; font-size: 9pt; }
-          th { background-color: #f3f4f6; font-weight: bold; text-transform: uppercase; font-size: 8pt; }
-          h1 { color: #8B5CF6; font-size: 18pt; text-align: center; text-transform: uppercase; font-weight: bold; }
-          h2 { font-size: 14pt; text-align: center; margin-bottom: 20px; text-transform: uppercase; }
-          h3 { font-size: 12pt; font-weight: bold; margin-top: 20px; text-transform: uppercase; border-bottom: 1px solid #eee; }
-          .font-mono { font-family: 'Courier New', Courier, monospace; }
-          .text-primary { color: #8B5CF6; }
-          .text-center { text-align: center; }
-          .uppercase { text-transform: uppercase; }
-          .font-bold { font-weight: bold; }
-          .underline { text-decoration: underline; }
-          .italic { font-style: italic; }
+          @page { size: A4 portrait; margin: 15mm; }
+          html, body { width: 100%; margin: 0; padding: 0; }
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #000; background: #fff; }
+          .export-report { width: 100%; max-width: 100%; box-sizing: border-box; }
+          .export-report table { border-collapse: collapse; width: 100%; table-layout: fixed; word-break: break-word; }
+          .export-report th, .export-report td { border: 1px solid black; padding: 8px; text-align: left; font-size: 9pt; white-space: normal; }
+          .export-report thead { display: table-header-group; }
+          .export-report tfoot { display: table-footer-group; }
+          .export-report tr { page-break-inside: avoid; break-inside: avoid; }
+          .export-report h1 { color: #8B5CF6; font-size: 18pt; text-align: center; text-transform: uppercase; font-weight: bold; margin: 0 0 12px; }
+          .export-report h2 { font-size: 14pt; text-align: center; margin: 0 0 20px; text-transform: uppercase; }
+          .export-report h3 { font-size: 12pt; font-weight: bold; margin: 24px 0 12px; text-transform: uppercase; border-bottom: 1px solid #eee; }
+          .export-report .font-mono { font-family: 'Courier New', Courier, monospace; }
+          .export-report .text-primary { color: #8B5CF6; }
+          .export-report .text-center { text-align: center; }
+          .export-report .uppercase { text-transform: uppercase; }
+          .export-report .font-bold { font-weight: bold; }
+          .export-report .underline { text-decoration: underline; }
+          .export-report .italic { font-style: italic; }
+          .export-report .avoid-page-break { page-break-inside: avoid; break-inside: avoid; }
         </style>
       `;
 
       const header = `
         <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
         <head><meta charset='utf-8'>${styles}</head><body>
+        <div class="export-report">
       `;
       const footer = "</body></html>";
-      const sourceHTML = header + content + footer;
+      const sourceHTML = header + content + '</div>' + footer;
       
       const blob = new Blob(['\ufeff', sourceHTML], {
         type: 'application/msword'
@@ -202,8 +213,8 @@ export default function ConsolidatedReportPage() {
 
           {/* Table for this specific node */}
           {hasDirectFindings && (
-            <div className="rounded-none border-2 border-black overflow-hidden shadow-sm bg-white mb-8">
-              <Table className="border-collapse">
+            <div className="rounded-none border-2 border-black overflow-hidden shadow-sm bg-white mb-8 export-report">
+              <Table className="border-collapse table-fixed w-full">
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50 border-b-2 border-black divide-x-2 divide-black">
                     <TableHead className="w-12 text-center font-black text-black uppercase text-[10px] h-12">S.N</TableHead>
@@ -329,17 +340,7 @@ export default function ConsolidatedReportPage() {
         description="Hierarchical master activity report grouped by missions and subsections."
         backHref="/reports"
       >
-        <div className="flex items-center gap-2 print:hidden">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => window.print()} 
-            className="font-bold border-primary/30"
-          >
-            <Printer className="mr-2 h-4 w-4" />
-            Print Report
-          </Button>
-
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
@@ -381,7 +382,7 @@ export default function ConsolidatedReportPage() {
       <main className="flex-1 p-4 sm:p-6 md:p-12 print:p-0">
         <div 
           ref={reportRef}
-          className="mx-auto max-w-full space-y-10 bg-white p-8 md:p-16 shadow-2xl print:shadow-none print:p-0"
+          className="export-report mx-auto max-w-full space-y-10 bg-white p-8 md:p-16 shadow-2xl print:shadow-none print:p-0"
         >
           
           {/* Institutional Header */}

@@ -44,6 +44,8 @@ export async function getAuditeeViewData() {
       esc1: Array.isArray(f.esc1) ? f.esc1 : [],
       esc2: Array.isArray(f.esc2) ? f.esc2 : [],
       forwardingHistory: Array.isArray(f.forwardingHistory) ? f.forwardingHistory : [],
+      followUpRecommendations: f.followUpRecommendations || '',
+      collaboratingWith: f.collaboratingWith || '',
     }));
 
     return {

@@ -322,6 +322,42 @@ export async function deleteUser(id: string) {
   }
 }
 
+export async function resendInvitationEmail(id: string) {
+  await authorizeAction({ allowedRoles: ['Admin'] });
+  try {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+
+    const tempPassword = crypto.randomBytes(9).toString('base64').replace(/\+/g, 'A').replace(/\//g, 'B').slice(0, 12);
+    const hashedPassword = await hashPassword(tempPassword);
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        password: hashedPassword,
+        requirePasswordChange: true,
+        passwordLastChanged: new Date(),
+      },
+    });
+
+    await sendTemporaryPasswordEmail(user.email, tempPassword);
+    await logSecurityEvent('EMAIL_RESEND', {
+      userId: id,
+      action: 'Resent user invitation/reset email',
+      resourceId: id,
+      resourceType: 'User',
+    });
+
+    revalidatePath('/users');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to resend invitation email:', error);
+    return { success: false, error: 'Unable to resend email' };
+  }
+}
+
 export async function createRole(data: any) {
   await authorizeAction({ allowedRoles: ['Admin'] });
   try {
