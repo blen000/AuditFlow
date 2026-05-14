@@ -29,6 +29,6 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to delete finding:', error);
-    return NextResponse.json({ success: false, error: 'Failed to delete finding' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }

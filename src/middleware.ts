@@ -37,18 +37,18 @@ export function middleware(req: NextRequest) {
         const originUrl = new URL(origin);
         if (originUrl.host !== host) throw new Error();
       } catch (e) {
-        return new NextResponse(JSON.stringify({ error: 'CSRF Origin mismatch' }), { status: 403, headers: { 'content-type': 'application/json' } });
+        return new NextResponse(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { 'content-type': 'application/json' } });
       }
     } else if (referer) {
       try {
         const refererUrl = new URL(referer);
         if (refererUrl.host !== host) throw new Error();
       } catch (e) {
-        return new NextResponse(JSON.stringify({ error: 'CSRF Referer mismatch' }), { status: 403, headers: { 'content-type': 'application/json' } });
+        return new NextResponse(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { 'content-type': 'application/json' } });
       }
     } else {
       // Missing both Origin and Referer
-      return new NextResponse(JSON.stringify({ error: 'Missing Origin/Referer' }), { status: 403, headers: { 'content-type': 'application/json' } });
+      return new NextResponse(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { 'content-type': 'application/json' } });
     }
   }
 
@@ -66,6 +66,11 @@ export function middleware(req: NextRequest) {
     response.headers.set('X-XSS-Protection', '1; mode=block');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
+    
+    // ❗ Security: Remove identifying headers
+    response.headers.delete('X-Powered-By');
+    response.headers.delete('Server');
+
     return response;
   }
 

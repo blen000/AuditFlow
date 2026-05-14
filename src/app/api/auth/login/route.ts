@@ -166,6 +166,6 @@ export async function POST(req: Request) {
     if (error.message === 'Connection timeout') {
       return NextResponse.json({ success: false, error: 'Request timed out' }, { status: 408 });
     }
-    return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
