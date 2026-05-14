@@ -20,6 +20,13 @@ export class AuthorizationError extends Error {
 
 export type ResourceType = 'finding' | 'user' | 'role' | 'specialAudit' | 'hierarchyNode';
 
+export class BusinessRuleError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BusinessRuleError';
+  }
+}
+
 export interface AuthOptions {
   allowedRoles?: string[];
   allowedPermissions?: string[];
@@ -234,4 +241,40 @@ export function enforceDefaultOwnership(user: any, type: ResourceType, resource:
       // Deny by default for other resource types if no custom ownership check provided
       throw new AuthorizationError();
   }
+}
+
+/**
+ * Enforces server-side business rules including maker-checker (role separation)
+ * and workflow state validation.
+ */
+export async function enforceBusinessRules(action: 'update' | 'close' | 'approve', user: any, resource: any) {
+  if (user.role.name === 'Admin') return; // Admin can override for emergency fixes
+
+  if (action === 'update' || action === 'close') {
+    // 1. Maker-Checker for Findings
+    // The user who created or last updated a finding cannot be the one to close it
+    // if role separation is required.
+    const isAuditor = user.role.name === 'Auditor';
+    
+    // Check if the current user was the team leader who logged this finding
+    if (resource.teamLeader === user.fullName) {
+      // In a strict maker-checker, the team leader who logs a finding 
+      // should not be the one to mark it as 'Closed' or 'Mitigated'.
+      // This requires another Auditor or a Chief to verify.
+      return {
+        isMaker: true,
+        message: 'Maker-Checker violation: Actions on this finding must be verified by a different authorized user.'
+      };
+    }
+  }
+
+  // 2. Workflow Validation
+  if (action === 'close') {
+    // Ensure finding has an auditee response before it can be closed
+    if (!resource.auditeeResponse || resource.auditeeAgreement === 'Pending') {
+      throw new BusinessRuleError('Finding cannot be closed without an auditee response and agreement status.');
+    }
+  }
+
+  return { isMaker: false };
 }

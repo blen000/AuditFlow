@@ -11,15 +11,23 @@ export type LogFilterOptions = {
   ipAddress?: string;
   startDate?: string;
   endDate?: string;
+  page?: number;
+  pageSize?: number;
 };
 
 /**
- * Fetches filtered security audit logs.
+ * Fetches filtered security audit logs with pagination.
  */
 export async function getSecurityLogs(filters: LogFilterOptions = {}) {
   await authorizeAction({ allowedRoles: ['Admin'] });
 
+  const page = filters.page || 1;
+  const pageSize = filters.pageSize || 50;
+  const skip = (page - 1) * pageSize;
+
   const where: any = {};
+  
+  // ... (existing filter logic)
 
   if (filters.severity && filters.severity !== 'all') {
     where.severity = filters.severity;

@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { authorizeAction } from '@/lib/authorization';
+import { authorizeAction, enforceBusinessRules } from '@/lib/authorization';
 import { submitFindingsSchema } from '@/lib/schemas';
 
 /**
@@ -95,8 +95,20 @@ export async function getFindingById(id: string) {
  * Updates an audit finding.
  */
 export async function updateFinding(id: string, data: any) {
-  await authorizeAction({ allowedPermissions: ['findings_new_access'] });
+  const user = await authorizeAction({ allowedPermissions: ['findings_new_access'] });
+  
   try {
+    const existing = await prisma.auditFinding.findUnique({ where: { id } });
+    if (!existing) return { success: false, error: 'Finding not found' };
+
+    // ❗ Enforce Maker-Checker if trying to close a finding
+    if (data.status === 'Closed' || data.status === 'Mitigated') {
+      const rules = await enforceBusinessRules('close', user, existing);
+      if (rules?.isMaker) {
+        return { success: false, error: rules.message };
+      }
+    }
+
     await prisma.auditFinding.update({
       where: { id },
       data: {
