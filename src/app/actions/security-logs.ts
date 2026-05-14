@@ -22,13 +22,11 @@ export async function getSecurityLogs(filters: LogFilterOptions = {}) {
   await authorizeAction({ allowedRoles: ['Admin'] });
 
   const page = filters.page || 1;
-  const pageSize = filters.pageSize || 50;
+  const pageSize = filters.pageSize || 10;
   const skip = (page - 1) * pageSize;
 
   const where: any = {};
   
-  // ... (existing filter logic)
-
   if (filters.severity && filters.severity !== 'all') {
     where.severity = filters.severity;
   }
@@ -55,11 +53,25 @@ export async function getSecurityLogs(filters: LogFilterOptions = {}) {
     }
   }
 
-  return await prisma.securityAuditLog.findMany({
-    where,
-    orderBy: { timestamp: 'desc' },
-    take: 500, // Limit for performance
-  });
+  const [logs, totalCount] = await Promise.all([
+    prisma.securityAuditLog.findMany({
+      where,
+      orderBy: { timestamp: 'desc' },
+      skip,
+      take: pageSize,
+    }),
+    prisma.securityAuditLog.count({ where })
+  ]);
+
+  return {
+    logs,
+    pagination: {
+      totalCount,
+      totalPages: Math.ceil(totalCount / pageSize),
+      currentPage: page,
+      pageSize
+    }
+  };
 }
 
 /**

@@ -44,7 +44,8 @@ import {
   Info,
   ExternalLink,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  ChevronLeft
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { getSecurityLogs, getSecurityAnalytics, type LogFilterOptions } from '@/app/actions/security-logs';
@@ -79,6 +80,7 @@ const CHART_COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6
 export default function SecurityLogsPage() {
   const { toast } = useToast();
   const [logs, setLogs] = useState<any[]>([]);
+  const [pagination, setPagination] = useState<any>(null);
   const [analytics, setSecurityAnalytics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -90,6 +92,8 @@ export default function SecurityLogsPage() {
     eventType: 'all',
     email: '',
     ipAddress: '',
+    page: 1,
+    pageSize: 10,
   });
 
   const loadData = async (currentFilters: LogFilterOptions = {}, showRefreshing = false) => {
@@ -97,12 +101,12 @@ export default function SecurityLogsPage() {
     else setIsLoading(true);
     
     try {
-      const [logsData, analyticsData] = await Promise.all([
+      const [logsResponse, analyticsData] = await Promise.all([
         getSecurityLogs(currentFilters),
         getSecurityAnalytics()
       ]);
-      console.log('Fetched Security Logs:', logsData.length);
-      setLogs(logsData);
+      setLogs(logsResponse.logs);
+      setPagination(logsResponse.pagination);
       setSecurityAnalytics(analyticsData);
     } catch (error) {
       console.error('Security Logs Fetch Error:', error);
@@ -118,7 +122,7 @@ export default function SecurityLogsPage() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData(filters);
     
     // Auto-refresh every 30 seconds to show new login/logout events
     const interval = setInterval(() => {
@@ -133,15 +137,25 @@ export default function SecurityLogsPage() {
   };
 
   const handleFilterChange = (key: keyof LogFilterOptions, value: string) => {
-    const newFilters = { ...filters, [key]: value };
+    const newFilters = { 
+      ...filters, 
+      [key]: key === 'pageSize' || key === 'page' ? parseInt(value) : value, 
+      page: key === 'page' ? parseInt(value) : 1 
+    };
     setFilters(newFilters);
     loadData(newFilters);
   };
 
   const clearFilters = () => {
-    const reset = { severity: 'all', eventType: 'all', email: '', ipAddress: '' };
+    const reset = { severity: 'all', eventType: 'all', email: '', ipAddress: '', page: 1, pageSize: 10 };
     setFilters(reset);
     loadData(reset);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    const newFilters = { ...filters, page: newPage };
+    setFilters(newFilters);
+    loadData(newFilters);
   };
 
   const toggleRow = (id: string) => {
@@ -385,6 +399,24 @@ export default function SecurityLogsPage() {
                     />
                   </div>
                 </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Logs Per Page</label>
+                  <Select 
+                    value={String(filters.pageSize)} 
+                    onValueChange={(v) => handleFilterChange('pageSize' as any, v)}
+                  >
+                    <SelectTrigger className="h-10 bg-slate-50 border-none">
+                      <SelectValue placeholder="10" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 per page</SelectItem>
+                      <SelectItem value="25">25 per page</SelectItem>
+                      <SelectItem value="50">50 per page</SelectItem>
+                      <SelectItem value="100">100 per page</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
@@ -540,6 +572,68 @@ export default function SecurityLogsPage() {
               </TableBody>
             </Table>
           </CardContent>
+          
+          {/* Pagination Controls */}
+          {pagination && logs.length > 0 && (
+            <div className="p-4 border-t bg-slate-50/30 flex items-center justify-between">
+              <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
+                Showing {((pagination.currentPage - 1) * pagination.pageSize) + 1} - {Math.min(pagination.currentPage * pagination.pageSize, pagination.totalCount)} of {pagination.totalCount} records
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.currentPage - 1)}
+                  disabled={pagination.currentPage === 1 || isRefreshing}
+                  className="h-8 w-8 p-0 border-primary/20 bg-white"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center gap-1">
+                  {[...Array(pagination.totalPages)].map((_, i) => {
+                    const pageNum = i + 1;
+                    // Show first, last, current, and pages around current
+                    if (
+                      pageNum === 1 || 
+                      pageNum === pagination.totalPages || 
+                      (pageNum >= pagination.currentPage - 1 && pageNum <= pagination.currentPage + 1)
+                    ) {
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={pagination.currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(pageNum)}
+                          disabled={isRefreshing}
+                          className={cn(
+                            "h-8 w-8 p-0 text-xs font-bold",
+                            pagination.currentPage === pageNum ? "bg-primary shadow-sm" : "bg-white border-primary/20"
+                          )}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    } else if (
+                      pageNum === pagination.currentPage - 2 || 
+                      pageNum === pagination.currentPage + 2
+                    ) {
+                      return <span key={pageNum} className="text-muted-foreground px-1">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.currentPage + 1)}
+                  disabled={pagination.currentPage === pagination.totalPages || isRefreshing}
+                  className="h-8 w-8 p-0 border-primary/20 bg-white"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       </main>
     </div>

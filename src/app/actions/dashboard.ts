@@ -9,10 +9,10 @@ export async function getDashboardData() {
   await authorizeAction({ allowedPermissions: ['dashboard_access'] });
   try {
     const [findings, specialAudits, branches, hierarchy] = await Promise.all([
-      securePrisma.finding.findMany({
+      (prisma as any).auditFinding.findMany({
         orderBy: { createdAt: 'desc' },
       }),
-      securePrisma.specialAudit.findMany({
+      (prisma as any).specialAudit.findMany({
         include: { category: true },
         orderBy: { dateCreated: 'desc' },
       }),
