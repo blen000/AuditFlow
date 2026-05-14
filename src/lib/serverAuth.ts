@@ -7,6 +7,7 @@ import { logSecurityEvent } from './securityLogger';
 const SECRET = process.env.AUTH_SECRET || 'dev-secret-change-me';
 const ACCESS_COOKIE_NAME = 'auth_access';
 const REFRESH_COOKIE_NAME = 'auth_refresh';
+const CSRF_COOKIE_NAME = 'csrf_token';
 
 // Session constraints
 const ACCESS_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour for development stability
@@ -66,6 +67,7 @@ export async function createSecureSession(userId: string, res?: NextResponse, ex
   const fingerprint = getFingerprint(userAgent, ipAddress);
   
   const refreshToken = crypto.randomBytes(32).toString('hex');
+  const csrfToken = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
   // Store session in DB
@@ -80,10 +82,10 @@ export async function createSecureSession(userId: string, res?: NextResponse, ex
     }
   });
 
-  const accessToken = signToken({ userId, sessionId: session.id, fingerprint, ...extraPayload });
+  const accessToken = signToken({ userId, sessionId: session.id, fingerprint, csrfToken, ...extraPayload });
 
   if (res) {
-    setAuthCookies(res, accessToken, refreshToken);
+    setAuthCookies(res, accessToken, refreshToken, csrfToken);
   } else {
     // For Server Actions
     const cookieStore = cookies();
@@ -101,12 +103,19 @@ export async function createSecureSession(userId: string, res?: NextResponse, ex
       sameSite: 'strict',
       maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60
     });
+    cookieStore.set(CSRF_COOKIE_NAME, csrfToken, {
+      httpOnly: false, // ❗ Must be readable by client JS
+      secure: true,
+      path: '/',
+      sameSite: 'strict',
+      maxAge: ACCESS_TOKEN_EXPIRY_MS / 1000
+    });
   }
   
   return session;
 }
 
-export function setAuthCookies(res: NextResponse, accessToken: string, refreshToken: string) {
+export function setAuthCookies(res: NextResponse, accessToken: string, refreshToken: string, csrfToken: string) {
   res.cookies.set({
     name: ACCESS_COOKIE_NAME,
     value: accessToken,
@@ -125,6 +134,16 @@ export function setAuthCookies(res: NextResponse, accessToken: string, refreshTo
     path: '/',
     sameSite: 'strict',
     maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60
+  });
+
+  res.cookies.set({
+    name: CSRF_COOKIE_NAME,
+    value: csrfToken,
+    httpOnly: false, // ❗ Readable by frontend
+    secure: true,
+    path: '/',
+    sameSite: 'strict',
+    maxAge: ACCESS_TOKEN_EXPIRY_MS / 1000
   });
 }
 
@@ -267,6 +286,7 @@ export async function invalidateAllUserSessions(userId: string) {
 export function clearAuthCookies(res: NextResponse) {
   res.cookies.delete(ACCESS_COOKIE_NAME);
   res.cookies.delete(REFRESH_COOKIE_NAME);
+  res.cookies.delete(CSRF_COOKIE_NAME);
 }
 
 export function requireUserApi(user: any) {

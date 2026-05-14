@@ -90,7 +90,11 @@ export default function AuditeeViewPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/findings/${id}`, { method: 'DELETE' });
+      const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrf_token='))?.split('=')[1] || '';
+      const res = await fetch(`/api/findings/${id}`, { 
+        method: 'DELETE',
+        headers: { 'X-CSRF-Token': csrfToken }
+      });
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error('Failed to delete finding:', payload);

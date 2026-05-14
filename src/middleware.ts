@@ -24,6 +24,34 @@ export function middleware(req: NextRequest) {
 
   const { pathname } = req.nextUrl;
 
+  // ❗ Global Origin/Referer Validation for state-changing requests
+  const method = req.method.toUpperCase();
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+    const origin = req.headers.get('origin');
+    const referer = req.headers.get('referer');
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+
+    // Strict validation: Must have origin or referer, and it must match the host
+    if (origin) {
+      try {
+        const originUrl = new URL(origin);
+        if (originUrl.host !== host) throw new Error();
+      } catch (e) {
+        return new NextResponse(JSON.stringify({ error: 'CSRF Origin mismatch' }), { status: 403, headers: { 'content-type': 'application/json' } });
+      }
+    } else if (referer) {
+      try {
+        const refererUrl = new URL(referer);
+        if (refererUrl.host !== host) throw new Error();
+      } catch (e) {
+        return new NextResponse(JSON.stringify({ error: 'CSRF Referer mismatch' }), { status: 403, headers: { 'content-type': 'application/json' } });
+      }
+    } else {
+      // Missing both Origin and Referer
+      return new NextResponse(JSON.stringify({ error: 'Missing Origin/Referer' }), { status: 403, headers: { 'content-type': 'application/json' } });
+    }
+  }
+
   // 1. Allow public paths and static assets immediately
   // Also allow common static file extensions
   const isStaticAsset = /\.(png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|otf)$/i.test(pathname);
@@ -110,6 +138,31 @@ export function middleware(req: NextRequest) {
         const invalidRedirect = NextResponse.redirect(url);
         invalidRedirect.headers.set('Content-Security-Policy', cspHeader);
         return invalidRedirect;
+      }
+    }
+  }
+
+  // ❗ Session-Bound CSRF Token Validation for API routes
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method) && pathname.startsWith('/api') && pathname !== '/api/auth/login') {
+    // Only enforced if they have an access token (i.e. authenticated requests)
+    if (accessToken) {
+      try {
+        const [header, body, sig] = accessToken.split('.');
+        const payload = JSON.parse(atob(body.replace(/-/g, '+').replace(/_/g, '/')));
+        const expectedCsrfToken = payload.csrfToken;
+        const providedCsrfToken = req.headers.get('x-csrf-token');
+
+        if (!expectedCsrfToken || expectedCsrfToken !== providedCsrfToken) {
+          return new NextResponse(JSON.stringify({ error: 'Invalid CSRF Token' }), { 
+            status: 403, 
+            headers: { 'content-type': 'application/json' } 
+          });
+        }
+      } catch (e) {
+        return new NextResponse(JSON.stringify({ error: 'Invalid CSRF configuration' }), { 
+          status: 403, 
+          headers: { 'content-type': 'application/json' } 
+        });
       }
     }
   }
