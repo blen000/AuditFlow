@@ -37,6 +37,43 @@ export default function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState<Date | null>(null);
+  const [remainingTime, setRemainingTime] = useState<number>(0);
+
+  // ❗ Fetch initial lockout status on mount
+  useEffect(() => {
+    fetch('/api/auth/lockout-status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.locked && data.lockedUntil) {
+          setLockedUntil(new Date(data.lockedUntil));
+        }
+      })
+      .catch(err => console.error('Failed to fetch lockout status', err));
+  }, []);
+
+  // ❗ Lockout countdown timer
+  useEffect(() => {
+    if (!lockedUntil) return;
+
+    const tick = () => {
+      const now = new Date();
+      const diff = Math.ceil((lockedUntil.getTime() - now.getTime()) / 1000);
+      if (diff <= 0) {
+        setLockedUntil(null);
+        setRemainingTime(0);
+      } else {
+        setRemainingTime(diff);
+      }
+    };
+
+    tick(); // initial tick
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [lockedUntil]);
+
+  const isLockedOut = lockedUntil !== null && remainingTime > 0;
+  const isFormDisabled = isSubmitting || isLockedOut;
 
   // ❗ Redirect if already authenticated
   useEffect(() => {
@@ -67,10 +104,13 @@ export default function LoginPage() {
       const result = await res.json();
 
       if (!result.success) {
+        if (result.lockedUntil) {
+          setLockedUntil(new Date(result.lockedUntil));
+        }
         toast({
           variant: 'destructive',
           title: 'Access Denied',
-          description: result.error || 'Invalid credentials. Try using the demo credentials.',
+          description: result.error || 'Invalid credentials.',
         });
         return;
       }
@@ -143,11 +183,17 @@ export default function LoginPage() {
 
           <div className="text-center space-y-2 mb-6">
             <h1 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Welcome </h1>
-            {/*<h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Nib Audit</h2>*/}
             <p className="text-sm text-gray-500 mt-2 px-4 leading-relaxed">
               Enter your credentials to access the secure internal audit platform.
             </p>
           </div>
+
+          {isLockedOut && (
+            <div className="mb-6 p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium text-center flex items-center justify-center gap-2">
+              <Lock className="h-4 w-4" />
+              Too many failed attempts. Please wait before trying again.
+            </div>
+          )}
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -165,7 +211,7 @@ export default function LoginPage() {
                             placeholder="e.g., user@nibbank.com" 
                             className="h-14 pl-12 rounded-xl bg-gray-50 border-gray-100 focus:ring-[#8b4513] focus:border-[#8b4513]" 
                             {...field} 
-                            disabled={isSubmitting}
+                            disabled={isFormDisabled}
                           />
                         </div>
                       </FormControl>
@@ -188,7 +234,7 @@ export default function LoginPage() {
                             placeholder="••••••••" 
                             className="h-14 pl-12 pr-12 rounded-xl bg-gray-50 border-gray-100 focus:ring-[#8b4513] focus:border-[#8b4513]" 
                             {...field} 
-                            disabled={isSubmitting}
+                            disabled={isFormDisabled}
                           />
                           <button
                             type="button"
@@ -208,10 +254,16 @@ export default function LoginPage() {
 
               <Button 
                 type="submit" 
-                disabled={isSubmitting}
-                className="w-full h-14 text-lg font-bold rounded-xl bg-[#8b4513] hover:bg-[#6d350f] text-white shadow-xl shadow-[#8b4513]/20 transition-all active:scale-[0.98]"
+                disabled={isFormDisabled}
+                className="w-full h-14 text-lg font-bold rounded-xl bg-[#8b4513] hover:bg-[#6d350f] text-white shadow-xl shadow-[#8b4513]/20 transition-all active:scale-[0.98] disabled:bg-gray-300 disabled:shadow-none disabled:active:scale-100"
               >
-                {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Verifying...</> : 'Log In Securely'}
+                {isSubmitting ? (
+                  <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Verifying...</>
+                ) : isLockedOut ? (
+                  `Try again in ${remainingTime}s`
+                ) : (
+                  'Log In Securely'
+                )}
               </Button>
             </form>
           </Form>

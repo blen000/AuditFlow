@@ -10,7 +10,8 @@ export async function GET(req: Request) {
       id: user.id,
       fullName: user.fullName,
       email: user.email,
-      role: user.role?.name
+      role: user.role?.name,
+      requirePasswordChange: user.requirePasswordChange
     }});
   } catch (error) {
     console.error('Auth me error:', error);

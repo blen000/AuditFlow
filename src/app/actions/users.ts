@@ -3,7 +3,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { normalizePermissions } from '@/lib/permissions';
 import { signToken, verifyToken, getUserFromCookiesServer, createSecureSession, clearAuthCookies, invalidateAllUserSessions, invalidateSession } from '@/lib/serverAuth';
 import { sendTemporaryPasswordEmail } from '@/lib/mailer';
@@ -13,89 +13,171 @@ import { isPasswordExpired, verifyPassword, hashPassword } from '@/lib/passwordU
 import { createUserSchema, updateUserSchema, loginSchema, roleSchema } from '@/lib/schemas';
 import { logSecurityEvent } from '@/lib/securityLogger';
 
+const LOCKOUT_MSG = 'Account temporarily locked due to too many failed attempts. Please try again in 30 seconds.';
+
+async function incrementAttempt(identifier: string) {
+  const existing = await (prisma as any).loginAttempt.findUnique({ where: { identifier } });
+  const now = new Date();
+
+  if (existing && existing.lockedUntil && existing.lockedUntil < now) {
+    // Lock has expired. Reset attempts to 1 for this new cycle.
+    await (prisma as any).loginAttempt.update({
+      where: { identifier },
+      data: { attempts: 1, lastAttemptAt: now, lockedUntil: null }
+    });
+    return null;
+  }
+
+  const record = await (prisma as any).loginAttempt.upsert({
+    where: { identifier },
+    update: { attempts: { increment: 1 }, lastAttemptAt: now },
+    create: { identifier, attempts: 1 }
+  });
+
+  if (record.attempts >= 5) {
+    const updated = await (prisma as any).loginAttempt.update({
+      where: { identifier },
+      data: { lockedUntil: new Date(now.getTime() + 30 * 1000) }
+    });
+    return updated.lockedUntil;
+  }
+  return null;
+}
+
+async function resetAttempt(identifier: string) {
+  await (prisma as any).loginAttempt.updateMany({
+    where: { identifier },
+    data: { attempts: 0, lockedUntil: null }
+  });
+}
+
 /**
  * Verifies user credentials and returns full profile with role-based permissions.
  */
 export async function loginUser(data: any) {
   try {
-    // ❗ Strict Input Validation
-    const validation = loginSchema.safeParse(data);
-    if (!validation.success) {
-      await logSecurityEvent('AUTH_LOGIN_FAILURE', {
-        email: data.email || 'unknown',
-        action: 'Invalid login input validation failed',
-      });
-      return { success: false, error: 'Invalid input data' };
+    const h = headers();
+    const contentLength = h.get('content-length');
+    if (contentLength && parseInt(contentLength) > 2048) {
+      return { success: false, error: 'Payload too large' };
     }
-    const { email, password } = validation.data;
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { 
-        role: true 
+    const loginPromise = async () => {
+      // ❗ Strict Input Validation
+      const validation = loginSchema.safeParse(data);
+      if (!validation.success) {
+        await logSecurityEvent('AUTH_LOGIN_FAILURE', {
+          email: data.email || 'unknown',
+          action: 'Invalid login input validation failed',
+        });
+        return { success: false, error: 'Invalid input data' };
       }
-    });
+      const { email, password } = validation.data;
+      const ip = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
 
-    // ❗ Generic error message to prevent user enumeration
-    const GENERIC_ERROR = 'Invalid email or password.';
+      // ❗ Failed Login Attempt Lockout Check
+      const [ipAttempt, emailAttempt] = await Promise.all([
+        (prisma as any).loginAttempt.findUnique({ where: { identifier: ip } }),
+        (prisma as any).loginAttempt.findUnique({ where: { identifier: email } })
+      ]);
 
-    if (!user) {
-      await logSecurityEvent('AUTH_LOGIN_FAILURE', {
-        email,
-        action: 'Login failed: user not found',
+      const now = new Date();
+      if ((ipAttempt && ipAttempt.attempts >= 5 && ipAttempt.lockedUntil && ipAttempt.lockedUntil > now) ||
+          (emailAttempt && emailAttempt.attempts >= 5 && emailAttempt.lockedUntil && emailAttempt.lockedUntil > now)) {
+        const lockedUntil = (ipAttempt && ipAttempt.lockedUntil && ipAttempt.lockedUntil > now) 
+          ? ipAttempt.lockedUntil 
+          : emailAttempt.lockedUntil;
+        return { success: false, error: LOCKOUT_MSG, lockedUntil };
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { email },
+        include: { 
+          role: true 
+        }
       });
-      return { success: false, error: GENERIC_ERROR };
-    }
 
-    const isMatch = await verifyPassword(password, user.password);
-    if (!isMatch) {
-      await logSecurityEvent('AUTH_LOGIN_FAILURE', {
+      // ❗ Generic error message to prevent user enumeration
+      const GENERIC_ERROR = 'Invalid email or password.';
+
+      if (!user) {
+        await logSecurityEvent('AUTH_LOGIN_FAILURE', {
+          email,
+          action: 'Login failed: user not found',
+        });
+        const ipLocked = await incrementAttempt(ip);
+        const emailLocked = await incrementAttempt(email);
+        const lockedUntil = ipLocked || emailLocked;
+        return { success: false, error: GENERIC_ERROR, lockedUntil };
+      }
+
+      const isMatch = await verifyPassword(password, user.password);
+      if (!isMatch) {
+        await logSecurityEvent('AUTH_LOGIN_FAILURE', {
+          userId: user.id,
+          email,
+          action: 'Login failed: incorrect password',
+        });
+        const ipLocked = await incrementAttempt(ip);
+        const emailLocked = await incrementAttempt(email);
+        const lockedUntil = ipLocked || emailLocked;
+        return { success: false, error: GENERIC_ERROR, lockedUntil };
+      }
+
+      if (user.status !== 'Active') {
+        await logSecurityEvent('AUTH_LOGIN_FAILURE', {
+          userId: user.id,
+          email,
+          action: 'Login failed: account inactive',
+        });
+        return { success: false, error: 'Account is currently inactive. Contact Admin.' };
+      }
+
+      const needsPasswordChange = user.requirePasswordChange || isPasswordExpired(user.passwordLastChanged);
+
+      // Return sanitized user object with permissions
+      const userData = {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role.name,
+        permissions: user.role.permissions,
+        branch: user.branch,
+        district: user.district,
+        dateJoined: user.dateJoined.toISOString().split('T')[0],
+        requirePasswordChange: needsPasswordChange, // Include this for the frontend
+      };
+
+      // ❗ Reset lockouts on successful login
+      await resetAttempt(ip);
+      await resetAttempt(email);
+
+      // ❗ Create a secure, bound session in DB and set cookies
+      await createSecureSession(user.id, undefined, { requirePasswordChange: needsPasswordChange });
+
+      await logSecurityEvent('AUTH_LOGIN_SUCCESS', {
         userId: user.id,
-        email,
-        action: 'Login failed: incorrect password',
+        email: user.email,
+        action: 'User successfully logged in',
       });
-      return { success: false, error: GENERIC_ERROR };
-    }
 
-    if (user.status !== 'Active') {
-      await logSecurityEvent('AUTH_LOGIN_FAILURE', {
-        userId: user.id,
-        email,
-        action: 'Login failed: account inactive',
-      });
-      return { success: false, error: 'Account is currently inactive. Contact Admin.' };
-    }
-
-    const needsPasswordChange = user.requirePasswordChange || isPasswordExpired(user.passwordLastChanged);
-
-    // Return sanitized user object with permissions
-    const userData = {
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role.name,
-      permissions: user.role.permissions,
-      branch: user.branch,
-      district: user.district,
-      dateJoined: user.dateJoined.toISOString().split('T')[0],
-      requirePasswordChange: needsPasswordChange, // Include this for the frontend
+      return {
+        success: true,
+        user: userData
+      };
     };
 
-    // ❗ Create a secure, bound session in DB and set cookies
-    await createSecureSession(user.id);
+    // ❗ Connection Timeout
+    const timeoutPromise = new Promise<any>((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timeout')), 10000)
+    );
 
-    await logSecurityEvent('AUTH_LOGIN_SUCCESS', {
-      userId: user.id,
-      email: user.email,
-      action: 'User successfully logged in',
-    });
-
-    return {
-      success: true,
-      user: userData
-    };
-  } catch (error) {
+    return await Promise.race([loginPromise(), timeoutPromise]);
+  } catch (error: any) {
     console.error('Login verification error:', error);
+    if (error.message === 'Connection timeout') {
+      return { success: false, error: 'Request timed out' };
+    }
     return { success: false, error: 'Authentication failed. Please try again later.' };
   }
 }

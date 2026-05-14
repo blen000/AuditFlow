@@ -8,28 +8,64 @@ const ACCESS_COOKIE_NAME = 'auth_access';
 const REFRESH_COOKIE_NAME = 'auth_refresh';
 
 export function middleware(req: NextRequest) {
+  const isProd = process.env.NODE_ENV === 'production';
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval';
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    img-src 'self' blob: data: https://placehold.co https://picsum.photos;
+    img-src 'self' blob: data:;
     font-src 'self' https://fonts.gstatic.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'none';
-    upgrade-insecure-requests;
-    connect-src 'self' ws: wss:;
+    ${isProd ? 'upgrade-insecure-requests;' : ''}
   `.replace(/\s{2,}/g, ' ').trim();
 
   const { pathname } = req.nextUrl;
+
+  // ❗ Global Origin/Referer Validation for state-changing requests
+  const method = req.method.toUpperCase();
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+    const origin = req.headers.get('origin');
+    const referer = req.headers.get('referer');
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+
+    // Strict validation: Must have origin or referer, and it must match the host
+    if (origin) {
+      try {
+        const originUrl = new URL(origin);
+        if (originUrl.host !== host) throw new Error();
+      } catch (e) {
+        return new NextResponse(JSON.stringify({ error: 'CSRF Origin mismatch' }), { status: 403, headers: { 'content-type': 'application/json' } });
+      }
+    } else if (referer) {
+      try {
+        const refererUrl = new URL(referer);
+        if (refererUrl.host !== host) throw new Error();
+      } catch (e) {
+        return new NextResponse(JSON.stringify({ error: 'CSRF Referer mismatch' }), { status: 403, headers: { 'content-type': 'application/json' } });
+      }
+    } else {
+      // Missing both Origin and Referer
+      return new NextResponse(JSON.stringify({ error: 'Missing Origin/Referer' }), { status: 403, headers: { 'content-type': 'application/json' } });
+    }
+  }
 
   // 1. Allow public paths and static assets immediately
   // Also allow common static file extensions
   const isStaticAsset = /\.(png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|otf)$/i.test(pathname);
   if (PUBLIC_PATHS.some(p => pathname.startsWith(p)) || isStaticAsset) {
     const response = NextResponse.next();
+    
+    // ❗ Enforce HTTPS and Modern Security Headers
     response.headers.set('Content-Security-Policy', cspHeader);
+    response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
     return response;
   }
 
@@ -83,7 +119,9 @@ export function middleware(req: NextRequest) {
        // Force password change check
       if (payload.requirePasswordChange && 
           pathname !== '/force-password-change' && 
-          !pathname.startsWith('/api/auth/change-password')) {
+          !pathname.startsWith('/api/auth/change-password') &&
+          pathname !== '/api/auth/me' &&
+          pathname !== '/api/auth/refresh') {
         
         const url = req.nextUrl.clone();
         url.pathname = '/force-password-change';
@@ -100,6 +138,31 @@ export function middleware(req: NextRequest) {
         const invalidRedirect = NextResponse.redirect(url);
         invalidRedirect.headers.set('Content-Security-Policy', cspHeader);
         return invalidRedirect;
+      }
+    }
+  }
+
+  // ❗ Session-Bound CSRF Token Validation for API routes
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method) && pathname.startsWith('/api') && pathname !== '/api/auth/login') {
+    // Only enforced if they have an access token (i.e. authenticated requests)
+    if (accessToken) {
+      try {
+        const [header, body, sig] = accessToken.split('.');
+        const payload = JSON.parse(atob(body.replace(/-/g, '+').replace(/_/g, '/')));
+        const expectedCsrfToken = payload.csrfToken;
+        const providedCsrfToken = req.headers.get('x-csrf-token');
+
+        if (!expectedCsrfToken || expectedCsrfToken !== providedCsrfToken) {
+          return new NextResponse(JSON.stringify({ error: 'Invalid CSRF Token' }), { 
+            status: 403, 
+            headers: { 'content-type': 'application/json' } 
+          });
+        }
+      } catch (e) {
+        return new NextResponse(JSON.stringify({ error: 'Invalid CSRF configuration' }), { 
+          status: 403, 
+          headers: { 'content-type': 'application/json' } 
+        });
       }
     }
   }

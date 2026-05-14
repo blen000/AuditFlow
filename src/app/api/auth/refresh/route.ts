@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { cookies, headers } from 'next/headers';
 import { signToken, setAuthCookies, verifyToken } from '@/lib/serverAuth';
 import { logSecurityEvent } from '@/lib/securityLogger';
+import { isPasswordExpired } from '@/lib/passwordUtils';
 
 export async function POST(req: Request) {
   try {
@@ -61,10 +62,13 @@ export async function POST(req: Request) {
       }
     });
 
+    const needsPasswordChange = session.user.requirePasswordChange || isPasswordExpired(session.user.passwordLastChanged);
+
     const accessToken = signToken({ 
       userId: session.userId, 
       sessionId: updatedSession.id, 
-      fingerprint: currentFingerprint 
+      fingerprint: currentFingerprint,
+      requirePasswordChange: needsPasswordChange
     });
 
     const res = NextResponse.json({ success: true });
