@@ -35,6 +35,7 @@ export default function AuditeeViewPage() {
   const [hierarchy, setHierarchy] = useState<AuditHierarchyNode[]>([]);
   const [allRiskLevels, setAllRiskLevels] = useState<RiskLevelData[]>([]);
   const [allStatuses, setAllStatuses] = useState<StatusData[]>([]);
+  const [followUpStatuses, setFollowUpStatuses] = useState<StatusData[]>([]);
   
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
@@ -57,6 +58,7 @@ export default function AuditeeViewPage() {
         setDepartments(data.departments as any);
         setAllRiskLevels(data.riskLevels as any);
         setAllStatuses(data.statuses as any);
+        setFollowUpStatuses(data.followUpStatuses as any);
       } catch (error: any) {
         if (error.message === 'NEXT_REDIRECT') return;
         console.error('Error loading auditee view data:', error);
@@ -171,7 +173,7 @@ export default function AuditeeViewPage() {
 
     return level1Nodes.map(mission => {
       const missionFindings: AuditFinding[] = [];
-      const subsections: Record<string, { id: string; title: string; number?: number; findings: AuditFinding[] }> = {};
+      const subsections: Record<string, { id: string; title: string; number?: string; findings: AuditFinding[] }> = {};
 
       // Find all findings that belong to this Level 1 tree
       hierarchy.forEach(node => {
@@ -225,7 +227,7 @@ export default function AuditeeViewPage() {
         allFindings: missionFindings,
         subsections: Object.values(subsections).sort((a, b) => {
           if (a.number !== undefined && b.number !== undefined) {
-            return a.number - b.number;
+            return String(a.number).localeCompare(String(b.number), undefined, { numeric: true, sensitivity: 'base' });
           }
           return String(a.title).localeCompare(String(b.title));
         }),
@@ -434,6 +436,8 @@ export default function AuditeeViewPage() {
                                         finding={finding}
                                         onDelete={handleDelete}
                                         onUpdate={handleUpdate}
+                                        statuses={allStatuses}
+                                        followUpStatuses={followUpStatuses}
                                       />
                                     ))}
                                   </div>

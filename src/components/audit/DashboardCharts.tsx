@@ -45,6 +45,7 @@ type DashboardChartsProps = {
   specialAudits: SpecialAudit[];
   hierarchy: AuditHierarchyNode[];
   selectedPeriod: string;
+  followUpStatuses: { id?: string; name: string }[];
 };
 
 const CATEGORY_COLORS = [
@@ -60,7 +61,7 @@ const STATUS_COLORS: Record<string, string> = {
   'Action Plan': '#7c3aed',
 };
 
-export function DashboardCharts({ findings, specialAudits, hierarchy, selectedPeriod }: DashboardChartsProps) {
+export function DashboardCharts({ findings, specialAudits, hierarchy, selectedPeriod, followUpStatuses = [] }: DashboardChartsProps) {
   const router = useRouter();
   const totalFindings = findings.length;
   
@@ -87,20 +88,24 @@ export function DashboardCharts({ findings, specialAudits, hierarchy, selectedPe
 
   // Status Lifecycle
   const statusCounts = findings.reduce((acc: Record<string, number>, finding) => {
-    const s = finding.followUpStatus || 'Pending';
-    acc[s] = (acc[s] || 0) + 1;
+    const statusKey = finding.followUpStatus || followUpStatuses[0]?.name || 'Pending';
+    acc[statusKey] = (acc[statusKey] || 0) + 1;
     return acc;
   }, {});
 
-  const statusData = [
-    'Pending', 'Rectified', 'Partially Rectified', 'Refereed', 'Action Plan'
-  ].map(status => {
+  const followUpStatusNames = followUpStatuses.length > 0
+    ? followUpStatuses.map((item) => item.name)
+    : ['Pending', 'Rectified', 'Partially Rectified', 'Refereed', 'Action Plan'];
+
+  const fallbackColors = ['#94a3b8', '#16a34a', '#f59e0b', '#2563eb', '#7c3aed', '#0f766e', '#b45309'];
+
+  const statusData = followUpStatusNames.map((status, index) => {
     const count = statusCounts[status] || 0;
     return {
-      name: status === 'Refereed' ? 'Referred' : status,
+      name: status,
       count,
       percentage: totalFindings > 0 ? Math.round((count / totalFindings) * 100) : 0,
-      fill: STATUS_COLORS[status] || '#888888',
+      fill: STATUS_COLORS[status] || fallbackColors[index % fallbackColors.length],
     };
   });
 

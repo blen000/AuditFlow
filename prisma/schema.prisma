@@ -81,6 +81,11 @@ model FindingStatus {
   name String @unique
 }
 
+model FollowUpStatus {
+  id   String @id @default(cuid())
+  name String @unique
+}
+
 model SpecialFindingCategory {
   id     String         @id @default(cuid())
   name   String         @unique

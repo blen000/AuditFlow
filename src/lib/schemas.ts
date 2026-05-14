@@ -118,6 +118,10 @@ export const findingStatusSchema = z.object({
   name: z.string().min(1),
 });
 
+export const followUpStatusSchema = z.object({
+  name: z.string().min(1),
+});
+
 export const specialFindingCategorySchema = z.object({
   name: z.string().min(1),
 });

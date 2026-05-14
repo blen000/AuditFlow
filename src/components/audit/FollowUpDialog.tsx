@@ -32,7 +32,7 @@ import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import type { AuditFinding, FollowUpStatus, CommunicationEntry, ForwardingEntry } from '@/types';
+import type { AuditFinding, CommunicationEntry, ForwardingEntry, StatusData } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ForwardCaseDialog } from './ForwardCaseDialog';
 import { Separator } from '@/components/ui/separator';
@@ -42,11 +42,13 @@ type FollowUpDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   finding: AuditFinding;
+  followUpStatuses: StatusData[];
   onUpdate: (id: string, updates: Partial<AuditFinding>) => Promise<void> | void;
 };
 
-export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: FollowUpDialogProps) {
-  const [status, setStatus] = useState<FollowUpStatus>(finding.followUpStatus || 'Pending');
+export function FollowUpDialog({ open, onOpenChange, finding, followUpStatuses, onUpdate }: FollowUpDialogProps) {
+  const defaultStatus = followUpStatuses[0]?.name || finding.followUpStatus || 'Pending';
+  const [status, setStatus] = useState<string>(finding.followUpStatus || defaultStatus);
   const [verbal, setVerbal] = useState<CommunicationEntry[]>(finding.verbalComm || []);
   const [written, setWritten] = useState<CommunicationEntry[]>(finding.writtenComm || []);
   const [esc1, setEsc1] = useState<CommunicationEntry[]>(finding.esc1 || []);
@@ -59,7 +61,8 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
 
   useEffect(() => {
     if (open) {
-      setStatus(finding.followUpStatus || 'Pending');
+      const defaultStatusWhenOpen = finding.followUpStatus || followUpStatuses[0]?.name || 'Pending';
+      setStatus(defaultStatusWhenOpen);
       setVerbal(finding.verbalComm || []);
       setWritten(finding.writtenComm || []);
       setEsc1(finding.esc1 || []);
@@ -69,7 +72,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
       setForwardingHistory(finding.forwardingHistory || []);
       setCollaboratingWith(finding.collaboratingWith);
     }
-  }, [open, finding]);
+  }, [open, finding, followUpStatuses]);
 
   const handleSave = async () => {
     try {
@@ -244,16 +247,26 @@ export function FollowUpDialog({ open, onOpenChange, finding, onUpdate }: Follow
                         </Button>
                       )}
                     </div>
-                    <Select value={status} onValueChange={(v) => setStatus(v as FollowUpStatus)}>
+                    <Select value={status} onValueChange={setStatus}>
                       <SelectTrigger className="bg-background">
                         <SelectValue placeholder="Select Status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Pending">Pending</SelectItem>
-                        <SelectItem value="Partially Rectified">Partially Rectified</SelectItem>
-                        <SelectItem value="Rectified">Rectified</SelectItem>
-                        <SelectItem value="Refereed">Refereed</SelectItem>
-                        <SelectItem value="Action Plan">Action Plan</SelectItem>
+                        {followUpStatuses.length > 0 ? (
+                          followUpStatuses.map((item) => (
+                            <SelectItem key={item.id ?? item.name} value={item.name}>
+                              {item.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <>
+                            <SelectItem value="Pending">Pending</SelectItem>
+                            <SelectItem value="Partially Rectified">Partially Rectified</SelectItem>
+                            <SelectItem value="Rectified">Rectified</SelectItem>
+                            <SelectItem value="Refereed">Refereed</SelectItem>
+                            <SelectItem value="Action Plan">Action Plan</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { securePrisma } from '@/lib/securePrisma';
 import { authorizeAction } from '@/lib/authorization';
+import { ensureFollowUpStatuses } from '@/app/actions/settings';
 
 export async function getDashboardData() {
   await authorizeAction({ allowedPermissions: ['dashboard_access'] });
@@ -18,6 +19,8 @@ export async function getDashboardData() {
       prisma.branch.findMany(),
       prisma.auditHierarchyNode.findMany(),
     ]);
+
+    const followUpStatuses = await ensureFollowUpStatuses();
 
     // Format findings to match frontend types (handling dates and JSON)
     const formattedFindings = findings.map(f => ({
@@ -43,6 +46,7 @@ export async function getDashboardData() {
       specialAudits: formattedSpecialAudits,
       branches,
       hierarchy,
+      followUpStatuses,
     };
   } catch (error) {
     console.error('Failed to fetch dashboard data:', error);

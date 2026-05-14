@@ -7,7 +7,7 @@ import { PlusCircle, Loader2 } from 'lucide-react';
 import { AddEditStatusDialog } from '@/components/audit/AddEditStatusDialog';
 import PageHeader from '@/components/layout/PageHeader';
 import type { StatusData } from '@/types';
-import { getFindingStatuses, createFindingStatus, updateFindingStatus } from '@/app/actions/settings';
+import { getFindingStatuses, createFindingStatus, updateFindingStatus, deleteFindingStatus } from '@/app/actions/settings';
 import { useToast } from '@/hooks/use-toast';
 
 export default function StatusesPage() {
@@ -40,6 +40,22 @@ export default function StatusesPage() {
   const handleEdit = (status: StatusData) => {
     setEditingStatus(status);
     setDialogOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this status? This action cannot be undone.')) return;
+    try {
+      const result = await deleteFindingStatus(id);
+      if (result.success) {
+        toast({ title: 'Status deleted' });
+        const freshData = await getFindingStatuses();
+        setStatuses(freshData as any);
+      } else {
+        throw new Error(result.error || 'Delete failed');
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Delete failed' });
+    }
   };
 
   const handleSubmit = async (statusData: StatusData) => {
@@ -96,13 +112,23 @@ export default function StatusesPage() {
                       <div>
                         <span className="font-medium">{status.name}</span>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(status)}
-                      >
-                        Edit
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(status)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => handleDelete(status.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>

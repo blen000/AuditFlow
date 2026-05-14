@@ -3,11 +3,12 @@
 import { prisma } from '@/lib/prisma';
 import { securePrisma } from '@/lib/securePrisma';
 import { authorizeAction } from '@/lib/authorization';
+import { ensureFollowUpStatuses } from '@/app/actions/settings';
 
 export async function getAuditeeViewData() {
   await authorizeAction({ allowedPermissions: ['auditee_view_access'] });
   try {
-    const [findings, hierarchy, branches, departments, riskLevels, statuses] = await Promise.all([
+    const [findings, hierarchy, branches, departments, riskLevels, statuses, followUpStatuses] = await Promise.all([
       securePrisma.finding.findMany({
         orderBy: { createdAt: 'desc' },
       }),
@@ -18,6 +19,7 @@ export async function getAuditeeViewData() {
       prisma.department.findMany({ orderBy: { name: 'asc' } }),
       prisma.riskLevel.findMany({ orderBy: { name: 'asc' } }),
       prisma.findingStatus.findMany({ orderBy: { name: 'asc' } }),
+      ensureFollowUpStatuses(),
     ]);
 
     // Format findings to match frontend types and ensure JSON fields are arrays
@@ -55,6 +57,7 @@ export async function getAuditeeViewData() {
       departments,
       riskLevels,
       statuses,
+      followUpStatuses,
     };
   } catch (error) {
     console.error('Failed to fetch auditee view data:', error);

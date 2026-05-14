@@ -97,6 +97,7 @@ function LayoutContent({
         if (pathname.startsWith('/departments')) return ['settings_departments_access'];
         if (pathname.startsWith('/risk-levels')) return ['settings_risk_levels_access'];
         if (pathname.startsWith('/statuses')) return ['settings_statuses_access'];
+        if (pathname.startsWith('/settings/follow-up-statuses')) return ['settings_follow_up_statuses_access'];
         if (pathname === '/settings') return SYSTEM_SETTINGS_PERMISSIONS;
 
         return [];
