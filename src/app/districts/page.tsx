@@ -11,6 +11,7 @@ import {
   getDistricts, 
   createDistrict, 
   updateDistrict,
+  deleteDistrict,
   bulkImportDistricts 
 } from '@/app/actions/settings';
 import { useToast } from '@/hooks/use-toast';
@@ -114,6 +115,22 @@ export default function DistrictsPage() {
     setDialogOpen(true);
   };
 
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this district? This action cannot be undone.')) return;
+    try {
+      const result = await deleteDistrict(id);
+      if (result.success) {
+        toast({ title: 'District deleted' });
+        const freshData = await getDistricts();
+        setDistricts(freshData as any);
+      } else {
+        throw new Error(result.error || 'Delete failed');
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Delete failed' });
+    }
+  };
+
   const handleSubmit = async (districtData: District) => {
     try {
       if (editingDistrict && editingDistrict.id) {
@@ -201,13 +218,23 @@ export default function DistrictsPage() {
                       <div>
                         <span className="font-medium">{district.name}</span>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(district)}
-                      >
-                        Edit
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(district)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => handleDelete(district.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>

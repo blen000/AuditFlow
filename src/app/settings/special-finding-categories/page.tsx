@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { AddEditSpecialCategoryDialog } from '@/components/audit/AddEditSpecialCategoryDialog';
 import PageHeader from '@/components/layout/PageHeader';
-import { getSpecialFindingCategories, createSpecialFindingCategory, updateSpecialFindingCategory } from '@/app/actions/settings';
+import { getSpecialFindingCategories, createSpecialFindingCategory, updateSpecialFindingCategory, deleteSpecialFindingCategory } from '@/app/actions/settings';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SpecialFindingCategoriesPage() {
@@ -39,6 +39,22 @@ export default function SpecialFindingCategoriesPage() {
   const handleEdit = (category: {id: string, name: string}) => {
     setEditingCategory(category);
     setDialogOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this category? This action cannot be undone.')) return;
+    try {
+      const result = await deleteSpecialFindingCategory(id);
+      if (result.success) {
+        toast({ title: 'Category deleted' });
+        const freshData = await getSpecialFindingCategories();
+        setCategories(freshData as any);
+      } else {
+        throw new Error(result.error || 'Delete failed');
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Delete failed' });
+    }
   };
 
   const handleSubmit = async (categoryData: {name: string}) => {
@@ -100,13 +116,23 @@ export default function SpecialFindingCategoriesPage() {
                       <div>
                         <span className="font-medium">{category.name}</span>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(category)}
-                      >
-                        Edit
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(category)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => handleDelete(category.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>

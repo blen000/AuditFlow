@@ -24,7 +24,7 @@ export async function getFindingFormData() {
         where: {
           status: 'Active',
           role: {
-            name: 'Auditee'
+            name: 'Auditor'
           }
         },
         select: {

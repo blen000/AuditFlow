@@ -11,6 +11,7 @@ import {
   departmentSchema, 
   riskLevelSchema, 
   findingStatusSchema,
+  followUpStatusSchema,
   specialFindingCategorySchema
 } from '@/lib/schemas';
 import { logSecurityEvent } from '@/lib/securityLogger';
@@ -152,6 +153,17 @@ export async function updateDistrict(id: string, data: any) {
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Update failed.' };
+  }
+}
+
+export async function deleteDistrict(id: string) {
+  await authorizeAction({ allowedRoles: ['Admin'] });
+  try {
+    await prisma.district.delete({ where: { id } });
+    revalidatePath('/districts');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Delete failed.' };
   }
 }
 
@@ -302,12 +314,42 @@ export async function updateRiskLevel(id: string, data: any) {
   }
 }
 
+export async function deleteRiskLevel(id: string) {
+  await authorizeAction({ allowedRoles: ['Admin'] });
+  try {
+    await prisma.riskLevel.delete({ where: { id } });
+    revalidatePath('/risk-levels');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Delete failed.' };
+  }
+}
+
 /**
  * Finding Status Actions
  */
+const DEFAULT_FOLLOW_UP_STATUSES = [
+  'Pending',
+  'Rectified',
+  'Partially Rectified',
+  'Refereed',
+  'Action Plan',
+];
+
 export async function getFindingStatuses() {
   await authorizeAction();
   return await prisma.findingStatus.findMany({ orderBy: { name: 'asc' } });
+}
+
+export async function ensureFollowUpStatuses() {
+  const existing = await prisma.followUpStatus.findMany({ orderBy: { name: 'asc' } });
+  if (existing.length > 0) return existing;
+
+  const created = await prisma.$transaction(
+    DEFAULT_FOLLOW_UP_STATUSES.map((name) => prisma.followUpStatus.create({ data: { name } }))
+  );
+
+  return created;
 }
 
 export async function createFindingStatus(data: any) {
@@ -335,6 +377,61 @@ export async function updateFindingStatus(id: string, data: any) {
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Update failed.' };
+  }
+}
+
+export async function deleteFindingStatus(id: string) {
+  await authorizeAction({ allowedRoles: ['Admin'] });
+  try {
+    await prisma.findingStatus.delete({ where: { id } });
+    revalidatePath('/statuses');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Delete failed.' };
+  }
+}
+
+export async function getFollowUpStatuses() {
+  await authorizeAction();
+  return await ensureFollowUpStatuses();
+}
+
+export async function createFollowUpStatus(data: any) {
+  await authorizeAction({ allowedRoles: ['Admin'] });
+  try {
+    const validation = followUpStatusSchema.safeParse(data);
+    if (!validation.success) return { success: false, error: 'Invalid data' };
+
+    await prisma.followUpStatus.create({ data: validation.data });
+    revalidatePath('/settings/follow-up-statuses');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Creation failed.' };
+  }
+}
+
+export async function updateFollowUpStatus(id: string, data: any) {
+  await authorizeAction({ allowedRoles: ['Admin'] });
+  try {
+    const validation = followUpStatusSchema.partial().safeParse(data);
+    if (!validation.success) return { success: false, error: 'Invalid data' };
+
+    await prisma.followUpStatus.update({ where: { id }, data: validation.data });
+    revalidatePath('/settings/follow-up-statuses');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Update failed.' };
+  }
+}
+
+export async function deleteFollowUpStatus(id: string) {
+  await authorizeAction({ allowedRoles: ['Admin'] });
+  try {
+    await prisma.followUpStatus.delete({ where: { id } });
+    revalidatePath('/settings/follow-up-statuses');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Delete failed.' };
   }
 }
 

@@ -126,6 +126,12 @@ export const PERMISSION_DEFINITIONS = [
     group: 'System Settings',
   },
   {
+    key: 'settings_follow_up_statuses_access',
+    label: 'Follow-up Lifecycle Status',
+    description: 'Manage lifecycle stages used in audit follow-up management.',
+    group: 'System Settings',
+  },
+  {
     key: 'settings_special_finding_categories_access',
     label: 'Special Finding Categories',
     description: 'Manage classification categories for special audit reports.',
@@ -176,6 +182,7 @@ const LEGACY_PERMISSION_MAP: Record<string, PermissionKey[]> = {
     'settings_departments_access',
     'settings_risk_levels_access',
     'settings_statuses_access',
+    'settings_follow_up_statuses_access',
     'settings_special_finding_categories_access',
   ],
 };

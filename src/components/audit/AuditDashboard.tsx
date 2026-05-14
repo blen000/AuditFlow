@@ -20,6 +20,7 @@ export default function AuditDashboard() {
   const [specialAudits, setSpecialAudits] = useState<SpecialAudit[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [hierarchy, setHierarchy] = useState<AuditHierarchyNode[]>([]);
+  const [followUpStatuses, setFollowUpStatuses] = useState<{ id?: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -36,6 +37,7 @@ export default function AuditDashboard() {
         setSpecialAudits(data.specialAudits as any);
         setBranches(data.branches as any);
         setHierarchy(data.hierarchy as any);
+        setFollowUpStatuses(data.followUpStatuses as any || []);
       } catch (error: any) {
         if (error.message === 'NEXT_REDIRECT') {
           // Let Next.js handle the redirect
@@ -210,7 +212,7 @@ export default function AuditDashboard() {
         <DashboardStats findings={filteredFindings} specialAudits={specialAudits} />
 
         {/* 2. Charts Row */}
-        <DashboardCharts findings={filteredFindings} specialAudits={specialAudits} hierarchy={hierarchy} selectedPeriod={selectedPeriod} />
+        <DashboardCharts findings={filteredFindings} specialAudits={specialAudits} hierarchy={hierarchy} selectedPeriod={selectedPeriod} followUpStatuses={followUpStatuses} />
       </div>
       
       <div className="rounded-lg border bg-muted/30 p-8 text-center border-dashed border-primary/20">

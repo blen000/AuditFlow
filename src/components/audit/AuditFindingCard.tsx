@@ -54,22 +54,25 @@ import {
 } from '@/components/ui/collapsible';
 import { Badge } from '../ui/badge';
 import type { StatusData } from '@/types';
-import { initialStatuses } from '@/lib/mock-data';
 
 type AuditFindingCardProps = {
   finding: AuditFinding;
   onDelete: (id: string) => void;
   onUpdate: (id: string, updates: Partial<AuditFinding>) => void;
+  statuses: StatusData[];
+  followUpStatuses: StatusData[];
 };
 
 export function AuditFindingCard({
   finding,
   onDelete,
   onUpdate,
+  statuses,
+  followUpStatuses,
 }: AuditFindingCardProps) {
   const [isProgressDialogOpen, setProgressDialogOpen] = useState(false);
   const [isFollowUpDialogOpen, setFollowUpDialogOpen] = useState(false);
-  const [allStatuses] = useState<StatusData[]>(initialStatuses);
+  const allStatuses = statuses;
 
   const safeDate = (d: any): Date | null => {
     if (!d) return null;
@@ -380,6 +383,7 @@ export function AuditFindingCard({
         open={isFollowUpDialogOpen}
         onOpenChange={setFollowUpDialogOpen}
         finding={finding}
+        followUpStatuses={followUpStatuses}
         onUpdate={onUpdate}
       />
     </>

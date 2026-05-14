@@ -7,7 +7,7 @@ import { PlusCircle, Loader2 } from 'lucide-react';
 import { AddEditRiskLevelDialog } from '@/components/audit/AddEditRiskLevelDialog';
 import PageHeader from '@/components/layout/PageHeader';
 import type { RiskLevelData } from '@/types';
-import { getRiskLevels, createRiskLevel, updateRiskLevel } from '@/app/actions/settings';
+import { getRiskLevels, createRiskLevel, updateRiskLevel, deleteRiskLevel } from '@/app/actions/settings';
 import { useToast } from '@/hooks/use-toast';
 
 export default function RiskLevelsPage() {
@@ -40,6 +40,22 @@ export default function RiskLevelsPage() {
   const handleEdit = (riskLevel: RiskLevelData) => {
     setEditingRiskLevel(riskLevel);
     setDialogOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this risk level? This action cannot be undone.')) return;
+    try {
+      const result = await deleteRiskLevel(id);
+      if (result.success) {
+        toast({ title: 'Risk Level deleted' });
+        const freshData = await getRiskLevels();
+        setRiskLevels(freshData as any);
+      } else {
+        throw new Error(result.error || 'Delete failed');
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Delete failed' });
+    }
   };
 
   const handleSubmit = async (riskLevelData: RiskLevelData) => {
@@ -96,13 +112,23 @@ export default function RiskLevelsPage() {
                       <div>
                         <span className="font-medium">{riskLevel.name}</span>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(riskLevel)}
-                      >
-                        Edit
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(riskLevel)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => handleDelete(riskLevel.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>

@@ -8,14 +8,23 @@ import {
   MapPin, 
   Briefcase, 
   ShieldAlert, 
+  ShieldCheck,
   Tags,
   ArrowRight,
   Layers
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 
-const settingsModules = [
+const settingsModules: Array<{
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  href: string;
+  buttonText: string;
+  requiredPermission: string;
+}> = [
   {
     title: 'Hierarchy & Titles',
     description: 'Predefine Audit Case Numbers, Main Mission Summaries, and Subsection Titles for hierarchical logging.',
@@ -63,6 +72,14 @@ const settingsModules = [
     href: '/statuses',
     buttonText: 'Go to Statuses',
     requiredPermission: 'settings_statuses_access',
+  },
+  {
+    title: 'Follow-up Lifecycle Status',
+    description: 'Manage the lifecycle stages used in audit follow-up management and dashboard reporting.',
+    icon: ShieldCheck,
+    href: '/settings/follow-up-statuses',
+    buttonText: 'Go to Follow-up Statuses',
+    requiredPermission: 'settings_follow_up_statuses_access',
   },
   {
     title: 'Special Finding Category',

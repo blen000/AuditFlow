@@ -31,7 +31,7 @@ export type ForwardingEntry = {
   comments?: string;
 };
 
-export type FollowUpStatus = 'Pending' | 'Partially Rectified' | 'Rectified' | 'Refereed' | 'Action Plan';
+export type FollowUpStatus = string;
 
 export type ProgressUpdate = {
   id: string;
@@ -85,6 +85,7 @@ export type AuditFinding = {
   auditCauseAttachments?: string[];
   auditEffect?: string;
   auditEffectAttachments?: string[];
+  auditeeAttachmentFilename?: string;
   involvedAmounts?: InvolvedAmount[];
   involvedCases?: InvolvedCase[];
   teamLeader: string;
