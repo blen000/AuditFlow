@@ -452,7 +452,7 @@ export async function createRole(data: any) {
     return { success: true };
   } catch (error) {
     console.error('Failed to create role:', error);
-    return { success: false, error: 'Role creation failed' };
+    return { success: false, error: 'Role creation failed.' };
   }
 }
 
@@ -471,7 +471,7 @@ export async function updateRole(id: string, data: any) {
     return { success: true };
   } catch (error) {
     console.error('Failed to update role:', error);
-    return { success: false, error: 'Role update failed' };
+    return { success: false, error: 'Role update failed.' };
   }
 }
 

@@ -80,13 +80,17 @@ export default function RoleManagementPage() {
     }
   };
 
-  const handleSubmit = async (roleData: Omit<Role, 'id'>) => {
+  const handleSubmit = async (roleData: Omit<Role, 'id'>): Promise<boolean> => {
     try {
       if (editingRole) {
         const result = await updateRole(editingRole.id, roleData);
         if (result.success) {
           setRoles(prev => prev.map(r => r.id === editingRole.id ? { ...r, ...roleData } : r));
           toast({ title: "Profile Updated", description: `${roleData.name} capabilities have been modified in the database.` });
+          return true;
+        } else {
+          toast({ variant: "destructive", title: "Update Failed", description: result.error || "Failed to update role." });
+          return false;
         }
       } else {
         const result = await createRole(roleData);
@@ -94,12 +98,19 @@ export default function RoleManagementPage() {
           const data = await getRoles();
           setRoles(data as any);
           toast({ title: "Role Defined", description: `New profile "${roleData.name}" is now active for personnel assignment.` });
+          return true;
+        } else {
+          toast({ variant: "destructive", title: "Creation Failed", description: result.error || "Failed to create role." });
+          return false;
         }
       }
     } catch (error) {
+      console.error('Error in handleSubmit:', error);
       toast({ variant: "destructive", title: "Persistence Error", description: "An error occurred while communicating with the database." });
+      return false;
+    } finally {
+      setEditingRole(null);
     }
-    setEditingRole(null);
   };
 
   if (isLoading) {
@@ -163,7 +174,7 @@ export default function RoleManagementPage() {
                         </DropdownMenuItem>
                         {role.name !== 'Admin' && (
                           <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(role.id)}>
-                            <Trash2 className="mr-2 h-4 w-4" /> Purge Role
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete Role
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>

@@ -35,7 +35,9 @@ export const updateUserSchema = createUserSchema.partial().extend({
 
 export const roleSchema = z.object({
   name: z.string().min(2, 'Role name must be at least 2 characters'),
+  description: z.string().min(5, 'Description must be at least 5 characters'),
   permissions: z.array(z.string()).min(1, 'At least one permission is required'),
+  isSpecial: z.boolean().optional(),
 });
 
 // --- Audit Findings Schemas ---
