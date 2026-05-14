@@ -5,7 +5,6 @@ import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { PasswordInput } from '@/components/ui/password-input';
 import {
   Select,
   SelectContent,
@@ -13,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ShieldCheck, Mail, UserCheck, Star, Lock, Loader2 } from 'lucide-react';
+import { ShieldCheck, Mail, UserCheck, Star, UserPlus, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -33,7 +32,6 @@ import type { Role } from '@/types';
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name is required.'),
   email: z.string().email('Invalid email address.'),
-  password: z.string().min(6, 'Password must be at least 6 characters.'),
   role: z.string().min(1, 'Executive role is required.'),
   status: z.string().min(1, 'Status is required.'),
 });
@@ -50,7 +48,6 @@ export default function SpecialOnboardingPage() {
     defaultValues: {
       fullName: '',
       email: '',
-      password: '',
       role: '',
       status: 'Active',
     },
@@ -167,22 +164,11 @@ export default function SpecialOnboardingPage() {
                     />
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Lock className="h-4 w-4 text-muted-foreground" />
-                          Secure Login Password
-                        </FormLabel>
-                        <FormControl>
-                          <PasswordInput placeholder="Assign a secure password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="rounded-md border p-3 bg-muted/10">
+                    <p className="text-sm text-muted-foreground">
+                      The system will generate a secure temporary password and email it to the executive's official address. They can change it after first login.
+                    </p>
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField

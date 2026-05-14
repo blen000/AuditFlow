@@ -41,7 +41,7 @@ const formSchema = z.object({
 type AddEditRoleDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (role: Omit<Role, 'id'>) => void;
+  onSubmit: (role: Omit<Role, 'id'>) => Promise<boolean>;
   role: Role | null;
 };
 
@@ -76,9 +76,11 @@ export function AddEditRoleDialog({
     }
   }, [role, form, open]);
 
-  const handleFormSubmit = (values: z.infer<typeof formSchema>) => {
-    onSubmit(values as any);
-    onOpenChange(false);
+  const handleFormSubmit = async (values: z.infer<typeof formSchema>) => {
+    const success = await onSubmit(values as any);
+    if (success) {
+      onOpenChange(false);
+    }
   };
 
   return (
