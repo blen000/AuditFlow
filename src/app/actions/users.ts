@@ -82,7 +82,7 @@ export async function loginUser(data: any) {
     };
 
     // ❗ Create a secure, bound session in DB and set cookies
-    await createSecureSession(user.id);
+    await createSecureSession(user.id, undefined, { requirePasswordChange: needsPasswordChange });
 
     await logSecurityEvent('AUTH_LOGIN_SUCCESS', {
       userId: user.id,

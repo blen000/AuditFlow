@@ -33,6 +33,13 @@ export async function sendTemporaryPasswordEmail(to: string, tempPassword: strin
         user: SMTP_USER,
         pass: SMTP_PASS,
       },
+      // ❗ Enforce Modern TLS and Secure Cipher Suites
+      requireTLS: true,
+      tls: {
+        minVersion: 'TLSv1.2',
+        rejectUnauthorized: true,
+        ciphers: 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384',
+      }
     });
 
     const loginUrl = process.env.LOGIN_URL || 'https://nibaudit.nibbank.com.et';

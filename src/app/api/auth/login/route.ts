@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     const res = NextResponse.json({ success: true, user: safeUser });
     
     // ❗ Create a secure, bound session in DB and set cookies
-    await createSecureSession(user.id, res);
+    await createSecureSession(user.id, res, { requirePasswordChange: needsPasswordChange });
 
     await logSecurityEvent('AUTH_LOGIN_SUCCESS', {
       userId: user.id,

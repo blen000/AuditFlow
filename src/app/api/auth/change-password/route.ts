@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     await invalidateAllUserSessions(updatedUser.id);
     
     // ❗ Create a new secure session for the current context
-    await createSecureSession(updatedUser.id, response);
+    await createSecureSession(updatedUser.id, response, { requirePasswordChange: false });
 
     return response;
   } catch (err) {

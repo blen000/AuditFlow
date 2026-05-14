@@ -8,18 +8,18 @@ const ACCESS_COOKIE_NAME = 'auth_access';
 const REFRESH_COOKIE_NAME = 'auth_refresh';
 
 export function middleware(req: NextRequest) {
+  const isProd = process.env.NODE_ENV === 'production';
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval';
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    img-src 'self' blob: data: https://placehold.co https://picsum.photos;
+    img-src 'self' blob: data:;
     font-src 'self' https://fonts.gstatic.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'none';
-    upgrade-insecure-requests;
-    connect-src 'self' ws: wss:;
+    ${isProd ? 'upgrade-insecure-requests;' : ''}
   `.replace(/\s{2,}/g, ' ').trim();
 
   const { pathname } = req.nextUrl;
@@ -29,7 +29,15 @@ export function middleware(req: NextRequest) {
   const isStaticAsset = /\.(png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|otf)$/i.test(pathname);
   if (PUBLIC_PATHS.some(p => pathname.startsWith(p)) || isStaticAsset) {
     const response = NextResponse.next();
+    
+    // ❗ Enforce HTTPS and Modern Security Headers
     response.headers.set('Content-Security-Policy', cspHeader);
+    response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
     return response;
   }
 
@@ -83,7 +91,9 @@ export function middleware(req: NextRequest) {
        // Force password change check
       if (payload.requirePasswordChange && 
           pathname !== '/force-password-change' && 
-          !pathname.startsWith('/api/auth/change-password')) {
+          !pathname.startsWith('/api/auth/change-password') &&
+          pathname !== '/api/auth/me' &&
+          pathname !== '/api/auth/refresh') {
         
         const url = req.nextUrl.clone();
         url.pathname = '/force-password-change';

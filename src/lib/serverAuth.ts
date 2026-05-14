@@ -58,7 +58,7 @@ function isLocalhostIp(ipAddress: string) {
   return ipAddress === '::1' || ipAddress === '127.0.0.1' || ipAddress === 'localhost';
 }
 
-export async function createSecureSession(userId: string, res?: NextResponse) {
+export async function createSecureSession(userId: string, res?: NextResponse, extraPayload: any = {}) {
   const h = headers();
   const userAgent = h.get('user-agent') || 'unknown';
   const ipAddress = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
@@ -80,7 +80,7 @@ export async function createSecureSession(userId: string, res?: NextResponse) {
     }
   });
 
-  const accessToken = signToken({ userId, sessionId: session.id, fingerprint });
+  const accessToken = signToken({ userId, sessionId: session.id, fingerprint, ...extraPayload });
 
   if (res) {
     setAuthCookies(res, accessToken, refreshToken);
@@ -89,14 +89,14 @@ export async function createSecureSession(userId: string, res?: NextResponse) {
     const cookieStore = cookies();
     cookieStore.set(ACCESS_COOKIE_NAME, accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true, // MANDATORY: Enforced for all environments per security policy
       path: '/',
       sameSite: 'strict',
       maxAge: ACCESS_TOKEN_EXPIRY_MS / 1000
     });
     cookieStore.set(REFRESH_COOKIE_NAME, refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true, // MANDATORY: Enforced for all environments per security policy
       path: '/',
       sameSite: 'strict',
       maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60
@@ -111,7 +111,7 @@ export function setAuthCookies(res: NextResponse, accessToken: string, refreshTo
     name: ACCESS_COOKIE_NAME,
     value: accessToken,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true, // MANDATORY: Enforced for all environments per security policy
     path: '/',
     sameSite: 'strict',
     maxAge: ACCESS_TOKEN_EXPIRY_MS / 1000
@@ -121,7 +121,7 @@ export function setAuthCookies(res: NextResponse, accessToken: string, refreshTo
     name: REFRESH_COOKIE_NAME,
     value: refreshToken,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true, // MANDATORY: Enforced for all environments per security policy
     path: '/',
     sameSite: 'strict',
     maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60
