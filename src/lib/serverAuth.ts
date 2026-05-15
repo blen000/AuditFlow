@@ -48,11 +48,8 @@ export function verifyToken(token: string) {
   }
 }
 
-function getFingerprint(userAgent: string, ipAddress: string) {
-  // In local development, IP addresses can switch between ::1 and 127.0.0.1
-  // We normalize localhost IPs to keep the fingerprint stable.
-  const normalizedIp = (ipAddress === '::1' || ipAddress === '127.0.0.1') ? 'localhost' : ipAddress;
-  return crypto.createHash('sha256').update(`${userAgent}${normalizedIp}`).digest('hex');
+function getFingerprint(userAgent: string) {
+  return crypto.createHash('sha256').update(userAgent).digest('hex');
 }
 
 function isLocalhostIp(ipAddress: string) {
@@ -64,7 +61,7 @@ export async function createSecureSession(userId: string, res?: NextResponse, ex
   const userAgent = h.get('user-agent') || 'unknown';
   const ipAddress = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
   
-  const fingerprint = getFingerprint(userAgent, ipAddress);
+  const fingerprint = getFingerprint(userAgent);
   
   const refreshToken = crypto.randomBytes(32).toString('hex');
   const csrfToken = crypto.randomBytes(32).toString('hex');
@@ -163,7 +160,7 @@ export async function getUserFromRequest(req: Request) {
     // hard-reject the session on mismatch so the UI doesn't flicker.
     const userAgent = req.headers.get('user-agent') || 'unknown';
     const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || '127.0.0.1';
-    const currentFingerprint = getFingerprint(userAgent, ipAddress);
+    const currentFingerprint = getFingerprint(userAgent);
     
     if (payload.fingerprint !== currentFingerprint) {
       // Responsive/mobile emulation often changes UA in the same browser session.
@@ -228,15 +225,12 @@ export async function getUserFromCookiesServer() {
   // Fingerprint binding (user-agent + IP) is best-effort only.
   const h = headers();
   const userAgent = h.get('user-agent') || 'unknown';
-  const ipAddress = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
-  const currentFingerprint = getFingerprint(userAgent, ipAddress);
+  const currentFingerprint = getFingerprint(userAgent);
 
   if (payload.fingerprint !== currentFingerprint) {
-    if (!isLocalhostIp(ipAddress)) {
-      console.warn(
-        `[AUTH] Fingerprint mismatch (Server) for user ${payload.userId}. Expected: ${payload.fingerprint}, Got: ${currentFingerprint} (UA: ${userAgent}, IP: ${ipAddress})`
-      );
-    }
+    console.warn(
+      `[AUTH] Fingerprint mismatch (Server) for user ${payload.userId}. Expected: ${payload.fingerprint}, Got: ${currentFingerprint} (UA: ${userAgent})`
+    );
     // Intentionally do not invalidate here.
   }
 

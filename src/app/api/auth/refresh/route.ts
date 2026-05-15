@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     const h = headers();
     const userAgent = h.get('user-agent') || 'unknown';
     const ipAddress = h.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
-    const currentFingerprint = crypto.createHash('sha256').update(`${userAgent}${ipAddress}`).digest('hex');
+    const currentFingerprint = crypto.createHash('sha256').update(userAgent).digest('hex');
 
     // NOTE: We previously invalidated sessions on fingerprint mismatch.
     // During responsive/mobile emulation, browsers often change user-agent,
