@@ -11,7 +11,7 @@ import { submitFindingsSchema } from '@/lib/schemas';
 export async function getFindingFormData() {
   await authorizeAction({ allowedPermissions: ['findings_new_access'] });
   try {
-    const [hierarchy, branches, riskLevels, users] = await Promise.all([
+    const [hierarchy, branches, departments, districts, riskLevels, users] = await Promise.all([
       prisma.auditHierarchyNode.findMany({
         orderBy: [
           { level: 'asc' },
@@ -19,6 +19,8 @@ export async function getFindingFormData() {
         ]
       }),
       prisma.branch.findMany({ orderBy: { name: 'asc' } }),
+      prisma.department.findMany({ orderBy: { name: 'asc' } }),
+      prisma.district.findMany({ orderBy: { name: 'asc' } }),
       prisma.riskLevel.findMany({ orderBy: { name: 'asc' } }),
       prisma.user.findMany({
         where: {
@@ -47,6 +49,8 @@ export async function getFindingFormData() {
         customFields: (node.customFields as any[]) || []
       })),
       branches,
+      departments,
+      districts,
       riskLevels,
       auditors: users.map(u => ({
         id: u.id,
@@ -153,13 +157,17 @@ export async function submitFindings(data: any) {
 
     // Persist all findings within a transaction
     await prisma.$transaction(
-      findings.map((f: any) => 
-        prisma.auditFinding.create({
+      findings.map((f: any) => {
+        const branchOrDepartment = [f.branch, f.department, f.district].filter(Boolean).join(' - ');
+        return prisma.auditFinding.create({
           data: {
             title: f.title,
             details: f.details,
             riskLevel: f.riskLevel,
-            branchOrDepartment: f.branchOrDepartment,
+            branch: f.branch,
+            department: f.department,
+            district: f.district,
+            branchOrDepartment,
             recommendation: f.recommendation || '',
             status: 'Open',
             auditeeAgreement: 'Pending',
@@ -173,8 +181,8 @@ export async function submitFindings(data: any) {
             hierarchyNodeId: hierarchyNodeId,
             dynamicValues: f.dynamicValues || {},
           }
-        })
-      )
+        });
+      })
     );
 
     revalidatePath('/auditee-view');

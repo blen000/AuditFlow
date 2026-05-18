@@ -111,6 +111,9 @@ model AuditFinding {
   title                     String
   details                   String
   riskLevel                 String
+  branch                    String?
+  department                String?
+  district                  String?
   branchOrDepartment        String
   recommendation            String
   status                    String             @default("Open")
