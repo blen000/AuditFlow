@@ -187,6 +187,7 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       <PageHeader
         title="Edit Audit Finding"
         description="Update team structure and finding details."
+        backHref="/auditee-view"
       />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-3xl">
