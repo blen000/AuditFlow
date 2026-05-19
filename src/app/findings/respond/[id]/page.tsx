@@ -46,7 +46,6 @@ export default async function RespondToFindingPage({ params }: { params: Params 
               <Card>
                 <CardHeader>
                   <CardTitle>{serializableFinding.title}</CardTitle>
-                  <CardDescription>Case No: {serializableFinding.id}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>

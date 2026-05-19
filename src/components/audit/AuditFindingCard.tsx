@@ -135,9 +135,6 @@ export function AuditFindingCard({
           <div className="flex items-start justify-between">
             <div className="flex flex-col gap-2">
               <RiskBadge riskLevel={finding.riskLevel} />
-              <span className="text-xs font-mono text-muted-foreground">
-                Case No: {finding.id}
-              </span>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

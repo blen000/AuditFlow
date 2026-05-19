@@ -223,7 +223,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, followUpStatuses, 
               Audit Follow-up Management
             </DialogTitle>
             <DialogDescription>
-              Record communication serials, escalations, and track final closure for Case No: {finding.id}
+              Record communication serials, escalations, and track final closure for this audit finding.
             </DialogDescription>
           </DialogHeader>
 
