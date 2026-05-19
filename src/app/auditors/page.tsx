@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, UserPlus, Mail, Phone, MoreHorizontal, Trash2, Edit } from 'lucide-react';
+import { PlusCircle, UserPlus, Mail, MoreHorizontal, Trash2, Edit } from 'lucide-react';
 import { AddEditAuditorDialog } from '@/components/audit/AddEditAuditorDialog';
 import PageHeader from '@/components/layout/PageHeader';
 import type { Auditor } from '@/types';
@@ -123,10 +123,6 @@ export default function AuditorsPage() {
                     <div className="flex items-center gap-2 text-sm">
                       <Mail className="h-4 w-4 text-primary" />
                       <span className="truncate">{auditor.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-primary" />
-                      <span>{auditor.phone}</span>
                     </div>
                   </CardContent>
                 </Card>

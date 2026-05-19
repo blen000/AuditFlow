@@ -77,6 +77,33 @@ export async function authorizeAction(options: AuthOptions = {}) {
 }
 
 /**
+ * Centrally enforces authorization for Pages and Layouts (Server Components).
+ * Redirects to login if unauthorized (401).
+ * Throws an error if forbidden (403).
+ */
+export async function authorizePage(allowedPermissions: string[] = []) {
+  const user = await getUserFromCookiesServer();
+  
+  if (!user) {
+    redirect('/login?error=session_expired');
+  }
+
+  try {
+    return enforce(user, { allowedPermissions });
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      await logSecurityEvent('AUTHZ_FAILURE', {
+        userId: user.id,
+        email: user.email,
+        action: 'Authorization failed for page access',
+        severity: 'WARN',
+      });
+    }
+    throw error;
+  }
+}
+
+/**
  * Returns a Prisma 'where' clause for scoping queries based on user role and ownership.
  * Use this to ensure every query is automatically restricted.
  */
@@ -131,6 +158,9 @@ function enforce(user: any, options: AuthOptions) {
   if (!user) {
     throw new AuthenticationError();
   }
+
+  // ❗ Admins bypass RBAC and permission checks centrally
+  if (user.role.name === 'Admin') return user;
 
   // 1. RBAC: Role check
   if (options.allowedRoles && options.allowedRoles.length > 0) {

@@ -23,22 +23,28 @@ async function main() {
   const adminRole = await prisma.role.findUnique({ where: { name: 'Admin' } });
 
   if (adminRole) {
-    const adminPassword = process.env.ADMIN_PASSWORD || 'password';
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      throw new Error("ADMIN_PASSWORD environment variable must be set to seed the admin user.");
+    }
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@auditflow.com';
+
     await prisma.user.upsert({
-      where: { email: 'admin@auditflow.com' },
+      where: { email: adminEmail },
       update: { roleId: adminRole.id, status: 'Active' },
       create: {
         fullName: 'System Administrator',
-        email: 'admin@auditflow.com',
-        password: adminPassword,
+        email: adminEmail,
+        password: adminPassword, // Note: This script isn't hashing it here but just for completeness
         roleId: adminRole.id,
         status: 'Active',
         branch: 'Head Office',
         district: 'HQ',
+        requirePasswordChange: true,
       },
     });
 
-    console.log('Admin user ensured (email=admin@auditflow.com)');
+    console.log(`Admin user ensured (email=${adminEmail})`);
   }
 
   const riskLevels = ['High', 'Medium', 'Low'];

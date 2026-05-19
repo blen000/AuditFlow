@@ -4,8 +4,9 @@ import type { NextRequest } from 'next/server';
 import { isSafeRedirect } from '@/lib/redirect';
 
 const PUBLIC_PATHS = ['/api/auth/login', '/login', '/register', '/favicon.ico', '/_next', '/public'];
-const ACCESS_COOKIE_NAME = 'auth_access';
-const REFRESH_COOKIE_NAME = 'auth_refresh';
+const ACCESS_COOKIE_NAME = '__Secure-auth_access';
+const REFRESH_COOKIE_NAME = '__Secure-auth_refresh';
+const PERMISSIONS_POLICY = 'accelerometer=(), autoplay=(), camera=(), cross-origin-isolated=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), interest-cohort=()';
 
 export function middleware(req: NextRequest) {
   const isProd = process.env.NODE_ENV === 'production';
@@ -65,7 +66,7 @@ export function middleware(req: NextRequest) {
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-XSS-Protection', '1; mode=block');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
+    response.headers.set('Permissions-Policy', PERMISSIONS_POLICY);
     
     // ❗ Security: Remove identifying headers
     response.headers.delete('X-Powered-By');
@@ -119,6 +120,11 @@ export function middleware(req: NextRequest) {
        // ❗ Expiration check for Access Token
        if (payload.exp && Date.now() > payload.exp * 1000) {
          throw new Error('Token expired');
+       }
+
+       // ❗ Contextual and Versioning Binding check
+       if (!payload.fingerprint || payload.sessionVersion === undefined || payload.version === undefined) {
+         throw new Error('Invalid session binding');
        }
 
        // Force password change check

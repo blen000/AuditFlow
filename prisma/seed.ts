@@ -117,27 +117,32 @@ async function main() {
 
   // 2. Users
   if (adminRole) {
-    const adminPassword = process.env.ADMIN_PASSWORD ?? 'password';
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      throw new Error("ADMIN_PASSWORD environment variable must be set to seed the admin user.");
+    }
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@auditflow.com';
     const hashedPassword = await bcrypt.hash(adminPassword, SALT_ROUNDS);
     
     await prisma.user.upsert({
-      where: { email: 'admin@auditflow.com' },
+      where: { email: adminEmail },
       update: {
         roleId: adminRole.id,
         status: 'Active',
       },
       create: {
         fullName: 'System Administrator',
-        email: 'admin@auditflow.com',
+        email: adminEmail,
         password: hashedPassword,
         roleId: adminRole.id,
         status: 'Active',
         branch: 'Head Office',
         district: 'HQ',
+        requirePasswordChange: true,
       }
     });
 
-    console.log(`Admin user ensured (email=admin@auditflow.com)`);
+    console.log(`Admin user ensured (email=${adminEmail})`);
   }
 
   // 3. Risk Levels & Statuses

@@ -5,9 +5,9 @@ import { cookies, headers } from 'next/headers';
 import { logSecurityEvent } from './securityLogger';
 
 const SECRET = process.env.AUTH_SECRET || 'dev-secret-change-me';
-const ACCESS_COOKIE_NAME = 'auth_access';
-const REFRESH_COOKIE_NAME = 'auth_refresh';
-const CSRF_COOKIE_NAME = 'csrf_token';
+const ACCESS_COOKIE_NAME = '__Secure-auth_access';
+const REFRESH_COOKIE_NAME = '__Secure-auth_refresh';
+const CSRF_COOKIE_NAME = '__Secure-csrf_token';
 
 // Session constraints
 const ACCESS_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour for development stability
@@ -70,6 +70,10 @@ export async function createSecureSession(userId: string, res?: NextResponse, ex
   const csrfToken = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
+  // ❗ Fetch user to get current sessionVersion for binding
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error('User not found');
+
   // Store session in DB
   const session = await prisma.session.create({
     data: {
@@ -79,10 +83,19 @@ export async function createSecureSession(userId: string, res?: NextResponse, ex
       ipAddress,
       fingerprint,
       expiresAt,
+      version: 1, // ❗ Individual session versioning
     }
   });
 
-  const accessToken = signToken({ userId, sessionId: session.id, fingerprint, csrfToken, ...extraPayload });
+  const accessToken = signToken({ 
+    userId, 
+    sessionId: session.id, 
+    fingerprint, 
+    csrfToken, 
+    sessionVersion: user.sessionVersion, // ❗ Contextual binding to user's global session state
+    version: session.version, // ❗ Specific session version
+    ...extraPayload 
+  });
 
   if (res) {
     setAuthCookies(res, accessToken, refreshToken, csrfToken);
@@ -157,23 +170,19 @@ export async function getUserFromRequest(req: Request) {
     const payload = verifyToken(accessToken);
     if (!payload || !payload.userId || !payload.sessionId) return null;
 
-    // Fingerprint binding (user-agent + IP) caused auth to drop during
-    // responsive/mobile emulation because user-agent changes.
-    // We keep the legacy computation for logging/debugging, but we no longer
-    // hard-reject the session on mismatch so the UI doesn't flicker.
     const userAgent = req.headers.get('user-agent') || 'unknown';
     const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || '127.0.0.1';
     const currentFingerprint = getFingerprint(userAgent, ipAddress);
-    
+
     if (payload.fingerprint !== currentFingerprint) {
-      // Responsive/mobile emulation often changes UA in the same browser session.
-      // Avoid noisy logs on localhost while keeping the signal in real environments.
+      // ❗ Strict Contextual Binding: Reject session if fingerprint (IP + UserAgent) changed.
+      // This prevents session hijacking even if the token is stolen.
       if (!isLocalhostIp(ipAddress)) {
         console.warn(
           `[AUTH] Fingerprint mismatch for user ${payload.userId}. Expected: ${payload.fingerprint}, Got: ${currentFingerprint} (UA: ${userAgent}, IP: ${ipAddress})`
         );
+        return null;
       }
-      // Intentionally do not invalidate here.
     }
 
     // Check DB session status and idle timeout
@@ -183,6 +192,16 @@ export async function getUserFromRequest(req: Request) {
     });
 
     if (!session) return null;
+
+    // ❗ Session Versioning Validation
+    if (payload.sessionVersion !== session.user.sessionVersion) {
+      console.warn(`[AUTH] Global session version mismatch for user ${payload.userId}`);
+      return null;
+    }
+    if (payload.version !== session.version) {
+      console.warn(`[AUTH] Individual session version mismatch for session ${payload.sessionId}`);
+      return null;
+    }
   
   if (Date.now() > session.expiresAt.getTime()) {
     await prisma.session.delete({ where: { id: session.id } });
@@ -236,8 +255,8 @@ export async function getUserFromCookiesServer() {
       console.warn(
         `[AUTH] Fingerprint mismatch (Server) for user ${payload.userId}. Expected: ${payload.fingerprint}, Got: ${currentFingerprint} (UA: ${userAgent}, IP: ${ipAddress})`
       );
+      return null; // ❗ Enforce strict binding
     }
-    // Intentionally do not invalidate here.
   }
 
   const session = await prisma.session.findUnique({
@@ -246,6 +265,16 @@ export async function getUserFromCookiesServer() {
   });
 
   if (!session) return null;
+
+  // ❗ Session Versioning Validation
+  if (payload.sessionVersion !== session.user.sessionVersion) {
+    console.warn(`[AUTH] Global session version mismatch (Server) for user ${payload.userId}`);
+    return null;
+  }
+  if (payload.version !== session.version) {
+    console.warn(`[AUTH] Individual session version mismatch (Server) for session ${payload.sessionId}`);
+    return null;
+  }
   
   if (Date.now() > session.expiresAt.getTime()) {
     await prisma.session.delete({ where: { id: session.id } });
@@ -280,6 +309,12 @@ export async function invalidateSession(sessionId: string) {
 }
 
 export async function invalidateAllUserSessions(userId: string) {
+  // ❗ Increment global session version for the user to invalidate all existing tokens instantly
+  await prisma.user.update({
+    where: { id: userId },
+    data: { sessionVersion: { increment: 1 } }
+  });
+  // Also delete DB sessions for defense in depth
   await prisma.session.deleteMany({ where: { userId } });
 }
 

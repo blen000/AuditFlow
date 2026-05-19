@@ -9,7 +9,7 @@ import { isPasswordExpired } from '@/lib/passwordUtils';
 export async function POST(req: Request) {
   try {
     const ck = cookies();
-    const refreshToken = ck.get('auth_refresh')?.value;
+    const refreshToken = ck.get('__Secure-auth_refresh')?.value;
     
     if (!refreshToken) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
@@ -49,8 +49,9 @@ export async function POST(req: Request) {
       }
     }
 
-    // Rotate refresh token
+    // Rotate tokens
     const newRefreshToken = crypto.randomBytes(32).toString('hex');
+    const newCsrfToken = crypto.randomBytes(32).toString('hex');
     const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     const updatedSession = await prisma.session.update({
@@ -58,7 +59,8 @@ export async function POST(req: Request) {
       data: {
         refreshToken: newRefreshToken,
         expiresAt: newExpiresAt,
-        lastActiveAt: new Date()
+        lastActiveAt: new Date(),
+        version: { increment: 1 } // ❗ Individual session rotation
       }
     });
 
@@ -68,11 +70,14 @@ export async function POST(req: Request) {
       userId: session.userId, 
       sessionId: updatedSession.id, 
       fingerprint: currentFingerprint,
+      csrfToken: newCsrfToken,
+      sessionVersion: session.user.sessionVersion,
+      version: updatedSession.version,
       requirePasswordChange: needsPasswordChange
     });
 
     const res = NextResponse.json({ success: true });
-    setAuthCookies(res, accessToken, newRefreshToken);
+    setAuthCookies(res, accessToken, newRefreshToken, newCsrfToken);
     
     // Optional: Log token refresh for high-security environments
     /*
