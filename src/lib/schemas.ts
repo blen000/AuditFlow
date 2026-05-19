@@ -25,8 +25,9 @@ export const createUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   role: z.string().min(1, 'Role is required'),
   status: z.enum(['Active', 'Inactive']).optional().default('Active'),
-  branch: z.string().optional(),
-  district: z.string().optional(),
+  branch: z.string().optional().or(z.literal('')),
+  department: z.string().optional().or(z.literal('')),
+  district: z.string().optional().or(z.literal('')),
 });
 
 export const updateUserSchema = createUserSchema.partial().extend({

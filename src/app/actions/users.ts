@@ -143,6 +143,7 @@ export async function loginUser(data: any) {
         role: user.role.name,
         permissions: user.role.permissions,
         branch: user.branch,
+        department: user.department,
         district: user.district,
         dateJoined: user.dateJoined.toISOString().split('T')[0],
         requirePasswordChange: needsPasswordChange, // Include this for the frontend
@@ -212,6 +213,7 @@ export async function getCurrentUser() {
       email: user.email,
       role: user.role?.name,
       branch: user.branch,
+      department: user.department,
       district: user.district,
       dateJoined: user.dateJoined.toISOString().split('T')[0]
     };
@@ -231,6 +233,7 @@ export async function getUsers() {
         email: true,
         status: true,
         branch: true,
+        department: true,
         district: true,
         dateJoined: true,
         role: {
@@ -297,8 +300,9 @@ export async function createUser(data: any) {
         password: hashedPassword,
         roleId: role.id,
         status: validatedData.status || 'Active',
-        branch: validatedData.branch || 'Head Office',
-        district: validatedData.district || 'HQ',
+        branch: validatedData.branch || null,
+        department: validatedData.department || null,
+        district: validatedData.district || null,
         requirePasswordChange: true, // ❗ Mandatory change on first login
         passwordLastChanged: new Date(),
       }

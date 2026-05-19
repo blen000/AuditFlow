@@ -85,7 +85,7 @@ export function AddEditBranchDialog({
           <DialogDescription>
             {branch
               ? `Update the details for ${branch.name}.`
-              : 'Add a new branch or department to your organization.'}
+              : 'Add a new branch to your organization.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -100,7 +100,7 @@ export function AddEditBranchDialog({
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Branch / Department Name</FormLabel>
+                      <FormLabel>Branch Name</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., Downtown Main" {...field} />
                       </FormControl>

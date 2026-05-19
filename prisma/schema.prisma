@@ -15,6 +15,7 @@ model User {
   roleId                String
   status                String           @default("Active")
   branch                String?
+  department            String?
   district              String?
   dateJoined            DateTime         @default(now())
   requirePasswordChange Boolean          @default(true)

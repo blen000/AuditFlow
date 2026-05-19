@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { UserPlus, Mail, ShieldCheck, UserCheck, Lock, Loader2 } from 'lucide-react';
+import { UserPlus, Mail, ShieldCheck, UserCheck, Lock, Loader2, MapPin, Building2, Users } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -27,19 +27,26 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import { getRoles, createUser } from '@/app/actions/users';
-import type { Role } from '@/types';
+import { getFindingFormData } from '@/app/actions/findings';
+import type { Role, Branch, Department, District } from '@/types';
 
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name is required.'),
   email: z.string().email('Invalid email address.'),
   role: z.string().min(1, 'Role is required.'),
   status: z.string().min(1, 'Status is required.'),
+  branch: z.string().optional().or(z.literal('')),
+  department: z.string().optional().or(z.literal('')),
+  district: z.string().optional().or(z.literal('')),
 });
 
 export default function UserRegistrationPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [roles, setRoles] = useState<Role[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -50,21 +57,30 @@ export default function UserRegistrationPage() {
       email: '',
       role: '',
       status: 'Active',
+      branch: '',
+      department: '',
+      district: '',
     },
   });
 
   useEffect(() => {
-    async function loadRoles() {
+    async function loadData() {
       try {
-        const data = await getRoles();
-        setRoles(data as any);
+        const [rolesData, formData] = await Promise.all([
+          getRoles(),
+          getFindingFormData()
+        ]);
+        setRoles(rolesData as any);
+        setBranches(formData.branches as any);
+        setDepartments(formData.departments as any);
+        setDistricts(formData.districts as any);
       } catch (error) {
-        toast({ variant: "destructive", title: "Sync Error", description: "Failed to load roles from database." });
+        toast({ variant: "destructive", title: "Sync Error", description: "Failed to load data from database." });
       } finally {
         setIsLoading(false);
       }
     }
-    loadRoles();
+    loadData();
   }, [toast]);
 
   const regularRoles = roles.filter(role => !role.isSpecial);
@@ -199,6 +215,87 @@ export default function UserRegistrationPage() {
                             <SelectContent>
                               <SelectItem value="Active">Active</SelectItem>
                               <SelectItem value="Inactive">Inactive</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="rounded-md border p-3 bg-primary/5 border-primary/10">
+                    <p className="text-sm font-medium text-primary mb-2 flex items-center gap-2">
+                      <MapPin className="h-4 w-4" /> Organizational Assignment (Optional)
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Assign this user to a Branch, Department, or District to link them with relevant audit findings and notifications.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="branch"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            Branch
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Branch" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {branches.map(b => <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="department"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            Department
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Department" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="district"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                            District
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select District" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {districts.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
                             </SelectContent>
                           </Select>
                           <FormMessage />
