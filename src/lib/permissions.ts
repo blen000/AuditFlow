@@ -228,5 +228,6 @@ export const SYSTEM_SETTINGS_PERMISSIONS: PermissionKey[] = [
   'settings_departments_access',
   'settings_risk_levels_access',
   'settings_statuses_access',
+  'settings_follow_up_statuses_access',
   'settings_special_finding_categories_access',
 ];

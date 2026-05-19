@@ -28,7 +28,6 @@ import type { Auditor } from '@/types';
 const formSchema = z.object({
   fullName: z.string().min(3, 'Full name must be at least 3 characters.'),
   email: z.string().email('Please enter a valid email address.'),
-  phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
 });
 
 type AddEditAuditorDialogProps = {
@@ -49,7 +48,6 @@ export function AddEditAuditorDialog({
     defaultValues: {
       fullName: '',
       email: '',
-      phone: '',
     },
   });
 
@@ -59,10 +57,9 @@ export function AddEditAuditorDialog({
         form.reset({
           fullName: auditor.fullName,
           email: auditor.email,
-          phone: auditor.phone,
         });
       } else {
-        form.reset({ fullName: '', email: '', phone: '' });
+        form.reset({ fullName: '', email: '' });
       }
     }
   }, [auditor, form, open]);
@@ -114,19 +111,6 @@ export function AddEditAuditorDialog({
                       <FormLabel>Email Address</FormLabel>
                       <FormControl>
                         <Input type="email" placeholder="john.doe@bank.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="+251 9XX XXX XXX" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

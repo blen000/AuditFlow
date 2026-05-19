@@ -58,7 +58,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
     // Call server API to persist the change
     (async () => {
       try {
-        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrf_token='))?.split('=')[1] || '';
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('__Secure-csrf_token='))?.split('=')[1] || '';
         const res = await fetch('/api/auth/change-password', {
           method: 'POST',
           headers: { 

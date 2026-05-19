@@ -133,7 +133,20 @@ export async function loginUser(data: any) {
         return { success: false, error: 'Account is currently inactive. Contact Admin.' };
       }
 
-      const needsPasswordChange = user.requirePasswordChange || isPasswordExpired(user.passwordLastChanged);
+      // ❗ Enforce strict expiration on temporary credentials
+      if (user.requirePasswordChange && isPasswordExpired(user.passwordLastChanged, true)) {
+        await logSecurityEvent('AUTH_LOGIN_FAILURE', {
+          userId: user.id,
+          email,
+          action: 'Login failed: temporary password expired',
+        });
+        return { 
+          success: false, 
+          error: 'Your temporary password has expired. Please contact your administrator to resend the invitation.' 
+        };
+      }
+
+      const needsPasswordChange = user.requirePasswordChange || isPasswordExpired(user.passwordLastChanged, false);
 
       // Return sanitized user object with permissions
       const userData = {
@@ -185,7 +198,7 @@ export async function loginUser(data: any) {
 
 export async function logoutUser() {
   const cookieStore = cookies();
-  const accessToken = cookieStore.get('auth_access')?.value;
+  const accessToken = cookieStore.get('__Secure-auth_access')?.value;
   
   if (accessToken) {
     const payload = verifyToken(accessToken);
@@ -198,8 +211,15 @@ export async function logoutUser() {
     }
   }
 
-  cookieStore.delete('auth_access');
-  cookieStore.delete('auth_refresh');
+  // ❗ Clear all security-bound cookies centrally
+  const res = NextResponse.next();
+  clearAuthCookies(res);
+  
+  // Note: Since this is a Server Action, we rely on the cookie store directly
+  cookieStore.delete('__Secure-auth_access');
+  cookieStore.delete('__Secure-auth_refresh');
+  cookieStore.delete('__Secure-csrf_token');
+  
   return { success: true };
 }
 
@@ -428,6 +448,9 @@ export async function resendInvitationEmail(id: string) {
       },
     });
 
+    // ❗ Invalidate all active sessions when credentials are reset
+    await invalidateAllUserSessions(id);
+
     await sendTemporaryPasswordEmail(user.email, tempPassword);
     await logSecurityEvent('EMAIL_RESEND', {
       userId: id,
@@ -467,10 +490,29 @@ export async function updateRole(id: string, data: any) {
     if (!validation.success) {
       return { success: false, error: 'Invalid role update data' };
     }
+    
+    // ❗ Invalidate all sessions for users assigned to this role when permissions/privileges change
+    // This ensures that token rotation and strict validation are enforced upon privilege change.
+    await prisma.user.updateMany({
+      where: { roleId: id },
+      data: { sessionVersion: { increment: 1 } }
+    });
+    
+    // Also remove the actual session records to force a fresh login/refresh
+    await prisma.session.deleteMany({
+      where: { user: { roleId: id } }
+    });
+
     await prisma.role.update({
       where: { id },
       data: validation.data,
     });
+    
+    await logSecurityEvent('PRIVILEGE_CHANGE', {
+      action: `Role permissions updated for role ID: ${id}`,
+      severity: 'HIGH',
+    });
+
     revalidatePath('/roles');
     return { success: true };
   } catch (error) {

@@ -68,9 +68,9 @@ export const initialStatuses: StatusData[] = [
 ];
 
 export const initialAuditors: Auditor[] = [
-  { id: 'AUD-1', fullName: 'Abebe Shirega', email: 'abebe@bank.com', phone: '+251911000001' },
-  { id: 'AUD-2', fullName: 'Fikre Tollossa', email: 'fikre@bank.com', phone: '+251911000002' },
-  { id: 'AUD-3', fullName: 'Ze', email: 'ze@bank.com', phone: '+251911000003' },
+  { id: 'AUD-1', fullName: 'Abebe Shirega', email: 'abebe@bank.com' },
+  { id: 'AUD-2', fullName: 'Fikre Tollossa', email: 'fikre@bank.com' },
+  { id: 'AUD-3', fullName: 'Ze', email: 'ze@bank.com' },
 ];
 
 // Recursive Predefined Audit Hierarchy

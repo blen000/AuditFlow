@@ -206,7 +206,6 @@ export type Auditor = {
   id?: string;
   fullName: string;
   email: string;
-  phone: string;
   role?: string;
 };
 

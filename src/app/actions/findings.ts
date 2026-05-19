@@ -56,7 +56,6 @@ export async function getFindingFormData() {
         id: u.id,
         fullName: u.fullName,
         email: u.email,
-        phone: 'N/A',
         role: u.role.name
       }))
     };

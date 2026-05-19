@@ -46,11 +46,21 @@ export function validatePasswordComplexity(password: string): { isValid: boolean
 
 /**
  * Checks if a password has expired.
- * Default expiration is 90 days.
+ * Default expiration is 90 days for regular passwords.
+ * Temporary passwords (requirePasswordChange = true) expire in 24 hours.
  */
-export function isPasswordExpired(lastChanged: Date, days: number = 90): boolean {
+export function isPasswordExpired(lastChanged: Date, isTemporary: boolean = false): boolean {
   const now = new Date();
-  const expirationDate = new Date(lastChanged);
-  expirationDate.setDate(expirationDate.getDate() + days);
+  const lastChangedDate = new Date(lastChanged);
+  
+  if (isTemporary) {
+    // Temporary credentials expire in 24 hours
+    const expirationDate = new Date(lastChangedDate.getTime() + 24 * 60 * 60 * 1000);
+    return now > expirationDate;
+  }
+
+  // Regular credentials expire in 90 days
+  const expirationDate = new Date(lastChangedDate);
+  expirationDate.setDate(expirationDate.getDate() + 90);
   return now > expirationDate;
 }

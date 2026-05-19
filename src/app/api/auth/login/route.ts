@@ -125,7 +125,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Account is inactive. Contact Admin.' }, { status: 403 });
     }
 
-    const needsPasswordChange = user.requirePasswordChange || isPasswordExpired(user.passwordLastChanged);
+    // ❗ Enforce strict expiration on temporary credentials
+    if (user.requirePasswordChange && isPasswordExpired(user.passwordLastChanged, true)) {
+      await logSecurityEvent('AUTH_LOGIN_FAILURE', {
+        userId: user.id,
+        email,
+        action: 'Login failed: temporary password expired',
+      });
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Your temporary password has expired. Please contact your administrator to resend the invitation.' 
+      }, { status: 401 });
+    }
+
+    const needsPasswordChange = user.requirePasswordChange || isPasswordExpired(user.passwordLastChanged, false);
 
     const safeUser = {
       id: user.id,
