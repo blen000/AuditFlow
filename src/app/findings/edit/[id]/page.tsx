@@ -15,7 +15,7 @@ export default async function EditFindingPage({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background p-4 sm:p-6 md:p-8">
+    <div className="flex min-h-screen w-full flex-col bg-background">
       <EditFindingForm finding={finding as any} />
     </div>
   );

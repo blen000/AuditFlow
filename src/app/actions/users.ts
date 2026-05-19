@@ -356,13 +356,13 @@ export async function updateUser(id: string, data: any) {
     const validatedData = validation.data;
 
     // ❗ Prevent self-role escalation or role modification by non-admins
-    if (validatedData.role && authUser.role !== 'Admin') {
+    if (validatedData.role && authUser.role?.name !== 'Admin') {
       console.warn(`User ${authUser.email} attempted to modify role to ${validatedData.role} without Admin privileges`);
       return { success: false, error: 'Forbidden: Role escalation attempt detected' };
     }
 
     // ❗ Even Admins should be careful about changing their own role to something else
-    if (authUser.id === id && validatedData.role && validatedData.role !== authUser.role) {
+    if (authUser.id === id && validatedData.role && validatedData.role !== authUser.role?.name) {
       return { success: false, error: 'Cannot change your own role' };
     }
 

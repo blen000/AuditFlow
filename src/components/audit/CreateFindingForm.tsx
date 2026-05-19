@@ -35,7 +35,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import type { Branch, RiskLevelData, Auditor, AuditHierarchyNode } from '@/types';
+import type { Branch, Department, District, RiskLevelData, Auditor, AuditHierarchyNode } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
@@ -53,7 +53,9 @@ const leafFindingSchema = z.object({
   title: z.string(),
   details: z.string().min(20, 'Finding details must be at least 20 characters.'),
   riskLevel: z.string({ required_error: 'Select a risk level.' }),
-  branchOrDepartment: z.string({ required_error: 'Select a branch/department.' }),
+  branch: z.string().optional().or(z.literal('')),
+  department: z.string().optional().or(z.literal('')),
+  district: z.string().optional().or(z.literal('')),
   teamLeader: z.string({ required_error: 'Assign a team leader.' }),
   teamMembers: z.array(z.string()).min(1, 'Select at least one team member.'),
   auditCause: z.string().optional(),
@@ -81,6 +83,8 @@ export function CreateFindingForm() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
   const [riskLevels, setRiskLevels] = useState<RiskLevelData[]>([]);
   const [auditors, setAuditors] = useState<Auditor[]>([]);
   const [hierarchy, setHierarchy] = useState<AuditHierarchyNode[]>([]);
@@ -96,7 +100,9 @@ export function CreateFindingForm() {
         teamLeader: '',
         teamMembers: [],
         riskLevel: '',
-        branchOrDepartment: '',
+        branch: '',
+        department: '',
+        district: '',
         auditCause: '',
         auditEffect: '',
         recommendation: '',
@@ -118,6 +124,8 @@ export function CreateFindingForm() {
         const data = await getFindingFormData();
         setHierarchy(data.hierarchy as any);
         setBranches(data.branches as any);
+        setDepartments(data.departments as any);
+        setDistricts(data.districts as any);
         setRiskLevels(data.riskLevels as any);
         setAuditors(data.auditors as any);
       } catch (error) {
@@ -334,7 +342,9 @@ export function CreateFindingForm() {
                       teamLeader: '',
                       teamMembers: [],
                       riskLevel: '',
-                      branchOrDepartment: '',
+                      branch: '',
+                      department: '',
+                      district: '',
                       auditCause: '',
                       auditEffect: '',
                       recommendation: '',
@@ -388,6 +398,8 @@ export function CreateFindingForm() {
                             prefix={`findings.${index}`} 
                             control={form.control} 
                             branches={branches} 
+                            departments={departments}
+                            districts={districts}
                             riskLevels={riskLevels} 
                             auditors={auditors} 
                             selectedNode={selectedNode}
@@ -415,6 +427,8 @@ function LeafDetailFields({
   prefix, 
   control, 
   branches, 
+  departments,
+  districts,
   riskLevels, 
   auditors,
   selectedNode
@@ -422,6 +436,8 @@ function LeafDetailFields({
   prefix: string; 
   control: Control<FormValues>;
   branches: Branch[];
+  departments: Department[];
+  districts: District[];
   riskLevels: RiskLevelData[];
   auditors: Auditor[];
   selectedNode?: AuditHierarchyNode;
@@ -584,7 +600,7 @@ function LeafDetailFields({
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <FormField
             control={control}
             name={`${prefix}.riskLevel` as any}
@@ -603,14 +619,46 @@ function LeafDetailFields({
           />
           <FormField
             control={control}
-            name={`${prefix}.branchOrDepartment` as any}
+            name={`${prefix}.branch` as any}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Audited Entity</FormLabel>
+                <FormLabel>Branch</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Branch / Dept" /></SelectTrigger></FormControl>
+                  <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Branch" /></SelectTrigger></FormControl>
                   <SelectContent>
                     {branches.map(b => <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name={`${prefix}.department` as any}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Department</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Department" /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    {departments.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name={`${prefix}.district` as any}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>District</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select District" /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    {districts.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <FormMessage />

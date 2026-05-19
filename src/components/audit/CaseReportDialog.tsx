@@ -97,9 +97,9 @@ export function CaseReportDialog({ caseNum, caseSummary, findings }: CaseReportD
                 <ListOrdered className="h-3 w-3" /> Executive Finding Index
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {findings.map((f) => (
+                {findings.map((f, index) => (
                   <div key={f.id} className="flex items-center gap-3 text-xs bg-muted/20 p-2 rounded border border-dashed">
-                    <span className="font-mono font-bold text-primary">{f.id}</span>
+                    <span className="font-mono font-bold text-primary">#{index + 1}</span>
                     <span className="truncate font-medium">{f.title}</span>
                   </div>
                 ))}
@@ -118,12 +118,12 @@ export function CaseReportDialog({ caseNum, caseSummary, findings }: CaseReportD
                   </div>
 
                   <div className="space-y-6">
-                    {subGroup.findings.map((finding) => (
+                    {subGroup.findings.map((finding, index) => (
                       <div key={finding.id} className="bg-muted/10 p-6 rounded-xl border border-muted-foreground/10 space-y-4">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div className="space-y-1">
                             <h6 className="font-bold text-base leading-tight">{finding.title}</h6>
-                            <p className="text-[10px] font-mono text-muted-foreground">ID: {finding.id} • {finding.branchOrDepartment}</p>
+                            <p className="text-[10px] font-mono text-muted-foreground">Unit: {finding.branchOrDepartment}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <RiskBadge riskLevel={finding.riskLevel} />

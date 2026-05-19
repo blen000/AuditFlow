@@ -38,7 +38,7 @@ export default async function RespondToFindingPage({ params }: { params: Params 
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <PageHeader title="Respond to Audit Finding" />
+      <PageHeader title="Respond to Audit Finding" backHref="/auditee-view" />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
@@ -46,7 +46,6 @@ export default async function RespondToFindingPage({ params }: { params: Params 
               <Card>
                 <CardHeader>
                   <CardTitle>{serializableFinding.title}</CardTitle>
-                  <CardDescription>Case No: {serializableFinding.id}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
