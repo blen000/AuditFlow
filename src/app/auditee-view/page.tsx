@@ -1,6 +1,7 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import PageHeader from '@/components/layout/PageHeader';
 import {
   Select,
@@ -27,7 +28,10 @@ import { CaseReportDialog } from '@/components/audit/CaseReportDialog';
 import { getAuditeeViewData } from '@/app/actions/auditee-view';
 import { updateFinding } from '@/app/actions/findings';
 
-export default function AuditeeViewPage() {
+function AuditeeViewContent() {
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get('id');
+
   const [isLoading, setIsLoading] = useState(true);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -47,6 +51,12 @@ export default function AuditeeViewPage() {
   // Expansion State
   const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
   const [expandedSubsections, setExpandedSubsections] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (highlightId) {
+      setSearchQuery(highlightId);
+    }
+  }, [highlightId]);
 
   useEffect(() => {
     async function loadData() {
@@ -464,5 +474,17 @@ export default function AuditeeViewPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function AuditeeViewPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    }>
+      <AuditeeViewContent />
+    </Suspense>
   );
 }

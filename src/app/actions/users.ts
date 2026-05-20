@@ -4,6 +4,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { cookies, headers } from 'next/headers';
+import { NextResponse } from 'next/server';
 import { normalizePermissions } from '@/lib/permissions';
 import { signToken, verifyToken, getUserFromCookiesServer, createSecureSession, clearAuthCookies, invalidateAllUserSessions, invalidateSession } from '@/lib/serverAuth';
 import { sendTemporaryPasswordEmail } from '@/lib/mailer';

@@ -121,6 +121,8 @@ export async function updateFinding(id: string, data: any) {
         teamMembers: data.teamMembers || undefined,
         progressUpdates: data.progressUpdates || undefined,
         dynamicValues: data.dynamicValues || undefined,
+        rectificationDate: data.rectificationDate ? new Date(data.rectificationDate) : undefined,
+        mitigationDueDate: data.rectificationDate ? new Date(data.rectificationDate) : undefined,
         updatedAt: new Date(),
       }
     });
@@ -139,7 +141,7 @@ export async function updateFinding(id: string, data: any) {
  * Submits new audit findings to the database.
  */
 export async function submitFindings(data: any) {
-  await authorizeAction({ allowedRoles: ['Auditor', 'Admin'] });
+  const user = await authorizeAction({ allowedRoles: ['Auditor', 'Admin'] });
   try {
     const validation = submitFindingsSchema.safeParse(data);
     if (!validation.success) {
@@ -155,7 +157,7 @@ export async function submitFindings(data: any) {
     }
 
     // Persist all findings within a transaction
-    await prisma.$transaction(
+    const createdFindings = await prisma.$transaction(
       findings.map((f: any) => {
         const branchOrDepartment = [f.branch, f.department, f.district].filter(Boolean).join(' - ');
         return prisma.auditFinding.create({
@@ -175,14 +177,66 @@ export async function submitFindings(data: any) {
             involvedAmounts: f.involvedAmounts || [],
             teamLeader: f.teamLeader,
             teamMembers: f.teamMembers || [],
-            assignedDate: f.assignedDate ? new Date(f.assignedDate) : null,
-            tatDays: f.tatDays || 0,
+            assignedDate: f.assignedDate ? new Date(f.assignedDate) : new Date(),
+            rectificationDate: f.rectificationDate ? new Date(f.rectificationDate) : null,
+            tatDays: f.tatDays || 15,
             hierarchyNodeId: hierarchyNodeId,
             dynamicValues: f.dynamicValues || {},
+            auditorId: user.id, // ❗ Bind current user as the Auditor
+            auditeeId: f.auditeeId, // ❗ Explicitly bound if provided
           }
         });
       })
     );
+
+    // ❗ Trigger notifications for newly registered findings
+    for (const finding of createdFindings) {
+      const deadline = new Date(finding.assignedDate || new Date());
+      deadline.setDate(deadline.getDate() + (finding.tatDays || 15));
+
+      const branchName = finding.branch || finding.department || finding.district || 'your unit';
+      const message = `A new audit finding has been registered for ${branchName}. Please review and submit your response within ${finding.tatDays || 15} days (by ${deadline.toDateString()}).`;
+
+      // Identify recipients:
+      // 1. Explicitly assigned auditee
+      // 2. All active users in the same branch/department/district with 'Auditee' role
+      const auditeeUsers = await prisma.user.findMany({
+        where: {
+          OR: [
+            { id: finding.auditeeId || undefined },
+            {
+              status: 'Active',
+              role: { name: 'Auditee' },
+              OR: [
+                { branch: finding.branch || undefined },
+                { department: finding.department || undefined },
+                { district: finding.district || undefined }
+              ].filter(v => v.OR !== undefined)
+            }
+          ]
+        },
+        select: { id: true }
+      });
+
+      const recipientIds = Array.from(new Set(auditeeUsers.map(u => u.id)));
+
+      if (recipientIds.length > 0) {
+        await prisma.notification.createMany({
+          data: recipientIds.map(userId => ({
+            userId,
+            findingId: finding.id,
+            title: 'New Audit Finding Registered',
+            message,
+            type: 'info',
+            metadata: {
+              branchName,
+              deadline: deadline.toISOString(),
+              reference: finding.id.slice(0, 8).toUpperCase()
+            }
+          }))
+        });
+      }
+    }
 
     revalidatePath('/auditee-view');
     revalidatePath('/');
@@ -198,11 +252,11 @@ export async function submitFindings(data: any) {
  */
 export async function respondToFinding(findingId: string, data: {
   agreement: string;
-  mitigationDueDate?: Date;
+  rectificationDate?: Date;
   response: string;
   attachmentId?: string;
 }) {
-  await authorizeAction({ 
+  const user = await authorizeAction({ 
     resourceId: findingId, 
     resourceType: 'finding' 
   });
@@ -212,10 +266,10 @@ export async function respondToFinding(findingId: string, data: {
       where: { id: findingId },
       data: {
         auditeeAgreement: data.agreement,
-        mitigationDueDate: data.mitigationDueDate,
+        rectificationDate: data.rectificationDate,
+        mitigationDueDate: data.rectificationDate, // Keep in sync for legacy compatibility
         auditeeResponse: data.response,
-        // If an attachment was uploaded, it will be linked via FileAttachment model automatically
-        // but we can also store the ID if needed. For now, we rely on the relation.
+        auditeeId: user.id, // ❗ Bind current user as the Auditee who responded
       }
     });
 

@@ -9,6 +9,7 @@ import { Filter, Calendar, Building2, Layers, FilterX, Loader2, FileDown } from 
 import { Button } from '@/components/ui/button';
 import { isWithinInterval, subMonths } from 'date-fns';
 import { getDashboardData } from '@/app/actions/dashboard';
+import { processRectificationDeadlines } from '@/app/actions/notifications/actions';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -32,6 +33,10 @@ export default function AuditDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
+        // ❗ Trigger rectification deadline processing on dashboard load
+        // In a production environment, this should be a cron job.
+        await processRectificationDeadlines();
+
         const data = await getDashboardData();
         setFindings(data.findings as any);
         setSpecialAudits(data.specialAudits as any);

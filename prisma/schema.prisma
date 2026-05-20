@@ -25,6 +25,9 @@ model User {
   updatedAt             DateTime         @updatedAt
   uploads               FileAttachment[]
   sessions              Session[]
+  notifications         Notification[]
+  auditorFindings       AuditFinding[]   @relation("AuditorFindings")
+  auditeeFindings       AuditFinding[]   @relation("AuditeeFindings")
   role                  Role             @relation(fields: [roleId], references: [id])
 }
 
@@ -133,6 +136,7 @@ model AuditFinding {
   tatDays                   Int?               @default(15)
   revalidationDate          DateTime?
   mitigationDueDate         DateTime?
+  rectificationDate         DateTime?
   auditeeResponse           String?
   auditeeAttachmentFilename String?
   progressUpdates           Json?
@@ -147,10 +151,15 @@ model AuditFinding {
   hierarchyNodeId           String
   isClosed                  Boolean            @default(false)
   followUpStatus            String?            @default("Pending")
+  auditorId                 String?
+  auditeeId                 String?
   createdAt                 DateTime           @default(now())
   updatedAt                 DateTime           @updatedAt
   hierarchyNode             AuditHierarchyNode @relation(fields: [hierarchyNodeId], references: [id])
+  auditor                   User?              @relation("AuditorFindings", fields: [auditorId], references: [id])
+  auditee                   User?              @relation("AuditeeFindings", fields: [auditeeId], references: [id])
   attachments               FileAttachment[]
+  notifications             Notification[]
 }
 
 model FileAttachment {
@@ -228,3 +237,22 @@ model LoginAttempt {
 
   @@unique([identifier])
 }
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // 'info', 'warning', 'alert'
+  read      Boolean  @default(false)
+  findingId String?
+  metadata  Json?    // For storing additional info like remaining days
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  finding   AuditFinding? @relation(fields: [findingId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
