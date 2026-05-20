@@ -60,8 +60,11 @@ export const findingSchema = z.object({
   teamLeader: z.string().optional(),
   teamMembers: z.array(z.string()).optional(),
   assignedDate: z.string().optional().or(z.date()),
+  rectificationDate: z.string().optional().or(z.date()),
   tatDays: z.coerce.number().optional(),
   dynamicValues: z.record(z.any()).optional(),
+  auditorId: z.string().optional(),
+  auditeeId: z.string().optional(),
 });
 
 export const submitFindingsSchema = z.object({

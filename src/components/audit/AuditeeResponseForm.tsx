@@ -40,7 +40,8 @@ export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
   const [agreement, setAgreement] = useState<AuditeeAgreement>(
     finding.auditeeAgreement
   );
-  const [mitigationDueDate, setMitigationDueDate] = useState<Date | undefined>(
+  const [rectificationDate, setRectificationDate] = useState<Date | undefined>(
+    finding.rectificationDate ? new Date(finding.rectificationDate) : 
     finding.mitigationDueDate ? new Date(finding.mitigationDueDate) : undefined
   );
   const [disagreementReason, setDisagreementReason] = useState(
@@ -70,7 +71,7 @@ export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
       // 2. Submit response
       const res = await respondToFinding(finding.id, {
         agreement,
-        mitigationDueDate,
+        rectificationDate,
         response: disagreementReason,
         attachmentId,
       });
@@ -129,22 +130,22 @@ export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
 
         {(agreement === 'Agreed' || agreement === 'Partially Agreed') && (
           <div className="space-y-2 pt-2">
-            <Label htmlFor="mitigation-date" className="text-sm font-semibold">
-              Proposed Mitigation Due Date
+            <Label htmlFor="rectification-date" className="text-sm font-semibold">
+              Rectification Date
             </Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
-                  id="mitigation-date"
+                  id="rectification-date"
                   variant={'outline'}
                   className={cn(
                     'w-full justify-start text-left font-normal',
-                    !mitigationDueDate && 'text-muted-foreground'
+                    !rectificationDate && 'text-muted-foreground'
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {mitigationDueDate ? (
-                    format(mitigationDueDate, 'PPP')
+                  {rectificationDate ? (
+                    format(rectificationDate, 'PPP')
                   ) : (
                     <span>Pick a date</span>
                   )}
@@ -153,8 +154,8 @@ export function AuditeeResponseForm({ finding }: AuditeeResponseFormProps) {
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={mitigationDueDate}
-                  onSelect={setMitigationDueDate}
+                  selected={rectificationDate}
+                  onSelect={setRectificationDate}
                   initialFocus
                 />
               </PopoverContent>

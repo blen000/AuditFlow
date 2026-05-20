@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Bell, Check, Info, AlertTriangle } from 'lucide-react';
+import { Bell, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -11,60 +11,24 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { format, differenceInDays, isSameDay, startOfDay } from 'date-fns';
-import { initialFindings } from '@/lib/mock-data';
-import type { Notification, AuditFinding } from '@/types';
+import { format } from 'date-fns';
 import Link from 'next/link';
+import { getUserNotifications, markAsRead, markAllAsRead } from '@/app/actions/notifications/actions';
 
 export function NotificationBell() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
+  const fetchNotifications = async () => {
+    const data = await getUserNotifications();
+    setNotifications(data);
+  };
+
   useEffect(() => {
-    const generated: Notification[] = [];
-    const today = startOfDay(new Date());
-
-    initialFindings.forEach((finding: AuditFinding) => {
-      const targetDate = finding.revalidationDate || finding.mitigationDueDate;
-      if (!targetDate) return;
-
-      const date = new Date(targetDate as Date);
-      const diffDays = differenceInDays(date, today);
-
-      if (isSameDay(date, today)) {
-        generated.push({
-          id: `due-${finding.id}`,
-          title: 'Deadline Today',
-          message: `The deadline for "${finding.title}" is today.`,
-          date: new Date(),
-          read: false,
-          type: 'alert',
-          findingId: finding.id,
-        });
-      } else if (diffDays === 1) {
-        generated.push({
-          id: `due-1d-${finding.id}`,
-          title: 'Due Tomorrow',
-          message: `"${finding.title}" is due in 1 day.`,
-          date: new Date(),
-          read: false,
-          type: 'warning',
-          findingId: finding.id,
-        });
-      } else if (diffDays === 7) {
-        generated.push({
-          id: `due-7d-${finding.id}`,
-          title: 'Upcoming Deadline',
-          message: `"${finding.title}" is due in 1 week.`,
-          date: new Date(),
-          read: false,
-          type: 'info',
-          findingId: finding.id,
-        });
-      }
-    });
-
-    setNotifications(generated);
+    fetchNotifications();
+    // Refresh notifications every 5 minutes
+    const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const unreadCount = useMemo(
@@ -72,14 +36,25 @@ export function NotificationBell() {
     [notifications]
   );
 
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  const handleMarkRead = async (id: string) => {
+    const notification = notifications.find(n => n.id === id);
+    if (notification?.read) return; // Already read
+
+    const res = await markAsRead(id);
+    if (res.success) {
+      setNotifications(prev => 
+        prev.map(n => n.id === id ? { ...n, read: true } : n)
+      );
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const handleMarkAllRead = async () => {
+    if (unreadCount === 0) return;
+    
+    const res = await markAllAsRead();
+    if (res.success) {
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
   };
 
   return (
@@ -105,7 +80,7 @@ export function NotificationBell() {
               variant="ghost"
               size="sm"
               className="h-auto p-0 text-xs text-primary hover:bg-transparent"
-              onClick={markAllAsRead}
+              onClick={handleMarkAllRead}
             >
               Mark all as read
             </Button>
@@ -119,9 +94,9 @@ export function NotificationBell() {
                 <div
                   key={notification.id}
                   className={`flex flex-col gap-1 p-4 transition-colors hover:bg-muted/50 ${
-                    !notification.read ? 'bg-primary/5' : ''
+                    !notification.read ? 'bg-primary/5' : 'opacity-70'
                   }`}
-                  onClick={() => markAsRead(notification.id)}
+                  onClick={() => handleMarkRead(notification.id)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -147,11 +122,11 @@ export function NotificationBell() {
                   </p>
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-[10px] text-muted-foreground">
-                      {format(notification.date, 'MMM d, h:mm a')}
+                      {format(new Date(notification.createdAt), 'MMM d, h:mm a')}
                     </span>
                     {notification.findingId && (
                       <Link
-                        href={`/findings/respond/${notification.findingId}`}
+                        href={`/auditee-view?id=${notification.findingId}`}
                         className="text-[10px] font-medium text-primary hover:underline"
                         onClick={() => setIsOpen(false)}
                       >
@@ -164,7 +139,7 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="flex h-full items-center justify-center p-8 text-center text-sm text-muted-foreground">
-              No new notifications
+              No notifications yet
             </div>
           )}
         </ScrollArea>
