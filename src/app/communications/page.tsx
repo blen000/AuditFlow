@@ -82,11 +82,11 @@ export default function CommunicationsPage() {
               </Select>
             </div>
             <div className="flex-[2] space-y-2">
-              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest ml-1">Search Reference or Entity</label>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest ml-1">Search Finding or Entity</label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  placeholder="Search by Case ID, Title, or Branch..." 
+                  placeholder="Search by Title, Branch, or Department..." 
                   className="pl-9 h-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -117,7 +117,7 @@ export default function CommunicationsPage() {
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="w-16 text-center font-bold text-[10px] uppercase tracking-widest">S.No</TableHead>
                       <TableHead className="font-bold text-[10px] uppercase tracking-widest">Audit Types</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase tracking-widest">Reference</TableHead>
+                      <TableHead className="font-bold text-[10px] uppercase tracking-widest">Reference Number</TableHead>
                       <TableHead className="font-bold text-[10px] uppercase tracking-widest">Date of Report</TableHead>
                       <TableHead className="font-bold text-[10px] uppercase tracking-widest">Date Communicated</TableHead>
                       <TableHead className="font-bold text-[10px] uppercase tracking-widest">Rectification Timeline</TableHead>
@@ -135,10 +135,7 @@ export default function CommunicationsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="pt-4">
-                            <div className="flex flex-col">
-                              <span className="font-bold text-sm">{finding.branchOrDepartment}</span>
-                              <span className="text-[10px] text-muted-foreground uppercase font-mono">Ref: {finding.id}</span>
-                            </div>
+                            <span className="font-bold text-sm">{finding.branchOrDepartment}</span>
                           </TableCell>
                           <TableCell className="text-xs font-medium pt-4">
                             {mounted && finding.assignedDate ? format(new Date(finding.assignedDate as any), 'MMM d, yyyy') : '--'}

@@ -18,6 +18,42 @@ export const PERMISSION_DEFINITIONS = [
     group: 'Core Actions',
   },
   {
+    key: 'auditee_view_edit_finding',
+    label: 'Edit Finding',
+    description: 'Edit existing audit finding details.',
+    group: 'Core Actions → Auditee View',
+  },
+  {
+    key: 'auditee_view_follow_up',
+    label: 'Follow Up',
+    description: 'Access follow-up management for findings.',
+    group: 'Core Actions → Auditee View',
+  },
+  {
+    key: 'auditee_view_auditee_response',
+    label: 'Auditee Response',
+    description: 'Submit or view auditee responses to findings.',
+    group: 'Core Actions → Auditee View',
+  },
+  {
+    key: 'auditee_view_add_progress',
+    label: 'Add Progress',
+    description: 'Add progress updates to findings.',
+    group: 'Core Actions → Auditee View',
+  },
+  {
+    key: 'auditee_view_change_status',
+    label: 'Change Status',
+    description: 'Modify finding workflow status.',
+    group: 'Core Actions → Auditee View',
+  },
+  {
+    key: 'auditee_view_delete_finding',
+    label: 'Delete',
+    description: 'Remove audit findings from the system.',
+    group: 'Core Actions → Auditee View',
+  },
+  {
     key: 'findings_new_access',
     label: 'Log New Finding',
     description: 'Create a new audit finding record.',

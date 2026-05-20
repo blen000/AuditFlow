@@ -54,6 +54,7 @@ import {
 } from '@/components/ui/collapsible';
 import { Badge } from '../ui/badge';
 import type { StatusData } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 type AuditFindingCardProps = {
   finding: AuditFinding;
@@ -70,9 +71,12 @@ export function AuditFindingCard({
   statuses,
   followUpStatuses,
 }: AuditFindingCardProps) {
+  const { permissions } = useAuth();
   const [isProgressDialogOpen, setProgressDialogOpen] = useState(false);
   const [isFollowUpDialogOpen, setFollowUpDialogOpen] = useState(false);
   const allStatuses = statuses;
+
+  const hasPermission = (key: string) => permissions.includes(key);
 
   const safeDate = (d: any): Date | null => {
     if (!d) return null;
@@ -143,45 +147,57 @@ export function AuditFindingCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href={`/findings/edit/${finding.id}`}>Edit</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFollowUpDialogOpen(true)}>
-                  <Repeat className="mr-2 h-4 w-4" />
-                  Follow-up
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`/findings/respond/${finding.id}`}>
-                    <Handshake className="mr-2 h-4 w-4" />
-                    Auditee Response
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setProgressDialogOpen(true)}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Progress
-                </DropdownMenuItem>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    {allStatuses.map((status) => (
-                      <DropdownMenuItem
-                        key={status.id}
-                        onClick={() => handleStatusChange(status.name)}
-                        disabled={finding.status === status.name}
-                      >
-                        {status.name}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => onDelete(finding.id)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
+                {hasPermission('auditee_view_edit_finding') && (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/findings/edit/${finding.id}`}>Edit</Link>
+                  </DropdownMenuItem>
+                )}
+                {hasPermission('auditee_view_follow_up') && (
+                  <DropdownMenuItem onClick={() => setFollowUpDialogOpen(true)}>
+                    <Repeat className="mr-2 h-4 w-4" />
+                    Follow-up
+                  </DropdownMenuItem>
+                )}
+                {hasPermission('auditee_view_auditee_response') && (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/findings/respond/${finding.id}`}>
+                      <Handshake className="mr-2 h-4 w-4" />
+                      Auditee Response
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {hasPermission('auditee_view_add_progress') && (
+                  <DropdownMenuItem onClick={() => setProgressDialogOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Progress
+                  </DropdownMenuItem>
+                )}
+                {hasPermission('auditee_view_change_status') && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      {allStatuses.map((status) => (
+                        <DropdownMenuItem
+                          key={status.id}
+                          onClick={() => handleStatusChange(status.name)}
+                          disabled={finding.status === status.name}
+                        >
+                          {status.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                )}
+                {(hasPermission('auditee_view_edit_finding') || hasPermission('auditee_view_follow_up') || hasPermission('auditee_view_auditee_response') || hasPermission('auditee_view_add_progress') || hasPermission('auditee_view_change_status')) && hasPermission('auditee_view_delete_finding') && <DropdownMenuSeparator />}
+                {hasPermission('auditee_view_delete_finding') && (
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => onDelete(finding.id)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
