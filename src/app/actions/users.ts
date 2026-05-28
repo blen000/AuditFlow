@@ -134,8 +134,9 @@ export async function loginUser(data: any) {
         return { success: false, error: 'Account is currently inactive. Contact Admin.' };
       }
 
-      // ❗ Enforce strict expiration on temporary credentials
-      if (user.requirePasswordChange && isPasswordExpired(user.passwordLastChanged, true)) {
+      // ❗ Enforce strict expiration on temporary credentials (except for Admins)
+      const isAdmin = user.role.name === 'Admin';
+      if (user.requirePasswordChange && !isAdmin && isPasswordExpired(user.passwordLastChanged, true)) {
         await logSecurityEvent('AUTH_LOGIN_FAILURE', {
           userId: user.id,
           email,
