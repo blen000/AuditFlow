@@ -62,6 +62,9 @@
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.24.2"
   },
+  "overrides": {
+    "tmp": "0.2.7"
+  },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/html2canvas": "^0.5.35",

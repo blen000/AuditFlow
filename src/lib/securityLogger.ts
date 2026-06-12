@@ -1,6 +1,15 @@
 import { prisma } from './prisma';
 import { headers } from 'next/headers';
 
+// Strip control characters (newlines, carriage returns, tabs, ANSI escapes) to prevent log forging.
+function sanitizeLogField(value: string | undefined): string {
+  if (!value) return '';
+  return value
+    .replace(/\x1b\[[0-9;]*m/g, '')   // ANSI colour/style escape sequences
+    .replace(/[\r\n\t\x00-\x1f\x7f]/g, ' ') // all other control characters → space
+    .trim();
+}
+
 export type SecurityEventType = 
   | 'AUTH_LOGIN_SUCCESS' 
   | 'AUTH_LOGIN_FAILURE' 
@@ -36,10 +45,9 @@ export async function logSecurityEvent(
 
   try {
     const h = headers();
-    userAgent = h.get('user-agent') || 'unknown';
-    ipAddress = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
+    userAgent = sanitizeLogField(h.get('user-agent') || 'unknown');
+    ipAddress = sanitizeLogField(h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1');
   } catch (headerError) {
-    // headers() can fail in certain contexts (like during build or specific edge cases)
     console.warn('Could not access headers for security log:', eventType);
   }
 
@@ -66,10 +74,11 @@ export async function logSecurityEvent(
 
     // Simple alerting for HIGH_RISK activities
     if (severity === 'HIGH_RISK') {
-      console.warn(`[SECURITY ALERT] High-risk activity detected: ${options.action}`, {
+      console.warn('[SECURITY ALERT] High-risk activity detected:', {
         eventType,
-        userId: options.userId,
-        resourceId: options.resourceId,
+        action: sanitizeLogField(options.action),
+        userId: sanitizeLogField(options.userId),
+        resourceId: sanitizeLogField(options.resourceId),
       });
     }
 

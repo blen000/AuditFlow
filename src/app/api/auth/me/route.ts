@@ -11,7 +11,9 @@ export async function GET(req: Request) {
       fullName: user.fullName,
       email: user.email,
       role: user.role?.name,
-      requirePasswordChange: user.requirePasswordChange
+      permissions: user.role?.permissions ?? [],
+      status: user.status,
+      requirePasswordChange: user.requirePasswordChange,
     }});
   } catch (error) {
     console.error('Auth me error:', error);

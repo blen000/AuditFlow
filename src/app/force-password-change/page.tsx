@@ -51,7 +51,8 @@ export default function ForcePasswordChangePage() {
       const csrfToken = document.cookie.split('; ').find(row => row.startsWith('__Secure-csrf_token='))?.split('=')[1] || '';
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
-        headers: { 
+        credentials: 'include',
+        headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': csrfToken
         },

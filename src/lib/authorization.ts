@@ -56,7 +56,7 @@ export async function authorizeAction(options: AuthOptions = {}) {
   }
 
   try {
-    return enforce(user, options);
+    return await enforce(user, options);
   } catch (error) {
     if (error instanceof AuthorizationError) {
       await logSecurityEvent('AUTHZ_FAILURE', {
@@ -67,7 +67,7 @@ export async function authorizeAction(options: AuthOptions = {}) {
         resourceType: options.resourceType,
         severity: 'WARN',
       });
-      // For server actions, we might want to redirect to a forbidden page 
+      // For server actions, we might want to redirect to a forbidden page
       // or just re-throw and let the action handle it.
       // Re-throwing for now as actions often have their own error UI.
       throw error;
@@ -89,7 +89,7 @@ export async function authorizePage(allowedPermissions: string[] = []) {
   }
 
   try {
-    return enforce(user, { allowedPermissions });
+    return await enforce(user, { allowedPermissions });
   } catch (error) {
     if (error instanceof AuthorizationError) {
       await logSecurityEvent('AUTHZ_FAILURE', {
@@ -147,14 +147,14 @@ export async function getScopingFilter(resourceType: ResourceType) {
 export async function authorizeRoute(req: Request, options: AuthOptions = {}) {
   const user = await getUserFromRequest(req);
   try {
-    return enforce(user, options);
+    return await enforce(user, options);
   } catch (error: any) {
     const status = error instanceof AuthenticationError ? 401 : 403;
     return NextResponse.json({ success: false, error: error.message }, { status });
   }
 }
 
-function enforce(user: any, options: AuthOptions) {
+async function enforce(user: any, options: AuthOptions) {
   if (!user) {
     throw new AuthenticationError();
   }
@@ -182,7 +182,7 @@ function enforce(user: any, options: AuthOptions) {
 
   // 3. Ownership check
   if (options.resourceId && options.resourceType) {
-    return handleOwnership(user, options);
+    return await handleOwnership(user, options);
   }
 
   return user;

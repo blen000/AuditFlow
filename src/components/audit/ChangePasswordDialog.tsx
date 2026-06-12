@@ -46,11 +46,11 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       return;
     }
 
-    if (passwords.new.length < 6) {
+    if (passwords.new.length < 12) {
       toast({
         variant: "destructive",
         title: "Weak Password",
-        description: "New password must be at least 6 characters long.",
+        description: "New password must be at least 12 characters long.",
       });
       return;
     }
@@ -61,7 +61,8 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('__Secure-csrf_token='))?.split('=')[1] || '';
         const res = await fetch('/api/auth/change-password', {
           method: 'POST',
-          headers: { 
+          credentials: 'include',
+          headers: {
             'Content-Type': 'application/json',
             'X-CSRF-Token': csrfToken
           },
@@ -125,7 +126,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
           <div className="space-y-2">
             <Label htmlFor="new-pass" className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">New Secure Password</Label>
             <div className="relative">
-              <Input 
+              <Input
                 id="new-pass"
                 type={showNew ? 'text' : 'password'}
                 required
@@ -141,6 +142,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
                 {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            <p className="text-xs text-muted-foreground ml-1">Min. 12 chars, A–Z, a–z, 0–9, and a special character (!@#$%…)</p>
           </div>
 
           <div className="space-y-2">
