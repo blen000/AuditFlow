@@ -52,7 +52,8 @@ export default function ForcePasswordChangePage() {
       const csrfToken = await getCsrfToken();
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
-        headers: { 
+        credentials: 'include',
+        headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': csrfToken
         },

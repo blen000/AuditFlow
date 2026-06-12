@@ -88,11 +88,34 @@ export async function saveFileSecurely(file: File, uploaderId: string, findingId
 }
 
 /**
+ * Rejects any filename that would escape UPLOAD_DIR after path resolution.
+ * Allows only the basename (no path separators, no traversal sequences).
+ */
+export function sanitizeFilename(filename: string): string {
+  // Strip any directory components — only the leaf name is valid
+  const base = path.basename(filename);
+
+  // Reject names that are empty or consist only of dots (e.g. ".", "..")
+  if (!base || /^\.+$/.test(base)) {
+    throw new Error('Invalid filename');
+  }
+
+  // Confirm the resolved path stays inside UPLOAD_DIR
+  const resolved = path.resolve(UPLOAD_DIR, base);
+  if (!resolved.startsWith(path.resolve(UPLOAD_DIR) + path.sep)) {
+    throw new Error('Invalid filename');
+  }
+
+  return base;
+}
+
+/**
  * Retrieves a file's buffer if the user is authorized.
  * Auth checks should be performed before calling this.
  */
 export async function getFileBuffer(filename: string) {
-  const filePath = path.join(UPLOAD_DIR, filename);
+  const safe = sanitizeFilename(filename);
+  const filePath = path.join(UPLOAD_DIR, safe);
   try {
     return await fs.readFile(filePath);
   } catch (error) {

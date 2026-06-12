@@ -34,7 +34,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  // Session timeout in milliseconds. Default to 30 minutes.
   const SESSION_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_SESSION_TIMEOUT_MS) || 30 * 60 * 1000;
   const inactivityTimerRef = useRef<number | null>(null);
   const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'] as const;
@@ -48,13 +47,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetInactivityTimer = () => {
     clearInactivityTimer();
-    // persist last activity time so other tabs/windows can sync
     try {
       localStorage.setItem('lastActivity', Date.now().toString());
     } catch (e) {}
 
     inactivityTimerRef.current = window.setTimeout(() => {
-      // perform logout when timer expires
       logout();
     }, SESSION_TIMEOUT_MS);
   };
@@ -94,29 +91,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let mounted = true;
     const bootstrap = async () => {
       setIsLoading(true);
+      // Purge any sensitive keys that may have been written by older versions of this app
+      ['currentUser', 'user_role', 'userData', 'authUser'].forEach(k => {
+        try { localStorage.removeItem(k); } catch (_) {}
+      });
       try {
-        const authStatus = localStorage.getItem('isAuthenticated') === 'true';
-        const userJson = localStorage.getItem('currentUser');
-        const u = userJson ? JSON.parse(userJson) : null;
-
-        // If localStorage claims we're authenticated, verify with server to avoid stale state
-        if (authStatus && u) {
-          const sessionValid = await verifySessionWithServer();
+        // Always verify session with server — never trust localStorage for user identity
+        const res = await fetch('/api/auth/me', {
+          method: 'GET',
+          cache: 'no-store',
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
           if (!mounted) return;
-          
-          if (sessionValid) {
-            setAuthenticatedState(u);
-          } else {
-            clearLocalAuthState();
-          }
+          const u: User = data.user;
+          setUser(u);
+          setPermissions(withAdminPermissions(u?.role, u?.permissions || []));
+          setIsAuthenticated(true);
         } else {
           if (!mounted) return;
-          // Not authenticated locally
           setUser(null);
           setPermissions([]);
           setIsAuthenticated(false);
+          // Clear the cross-tab flag so other tabs also recognise the session is gone
+          localStorage.setItem('isAuthenticated', 'false');
         }
       } catch (e) {
+        // On network error, treat as unauthenticated
         if (!mounted) return;
         setUser(null);
         setPermissions([]);
@@ -129,21 +131,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     bootstrap();
 
     return () => { mounted = false; };
-  }, []); // Only run once on mount
+  }, []);
 
-  // Setup inactivity tracking and storage-event synchronization when authenticated
+  // Setup inactivity tracking and cross-tab synchronization when authenticated
   useEffect(() => {
     if (!isAuthenticated) {
-      // ensure timers/listeners are cleared when not authenticated
       clearInactivityTimer();
       activityEvents.forEach((ev) => window.removeEventListener(ev, activityListener));
       return;
     }
 
-    // initialize lastActivity and start the timer
     try {
       const last = Number(localStorage.getItem('lastActivity')) || Date.now();
-      // if last activity already exceeded timeout, logout immediately
       if (Date.now() - last > SESSION_TIMEOUT_MS) {
         logout();
         return;
@@ -151,19 +150,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) {}
 
     resetInactivityTimer();
-
-    // attach listeners to reset timer on activity
     activityEvents.forEach((ev) => window.addEventListener(ev, activityListener));
 
-    // sync across tabs/windows: if another tab logs out, respond
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'isAuthenticated' && e.newValue === 'false') {
-        // forced logout from another tab
         logout();
       }
-
       if (e.key === 'lastActivity') {
-        // another tab reported activity - reset our timer
         resetInactivityTimer();
       }
     };
@@ -181,21 +174,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(u);
     setPermissions(withAdminPermissions(u?.role, u.permissions || []));
     setIsAuthenticated(true);
-    localStorage.setItem('currentUser', JSON.stringify(u));
+    // Store only the non-sensitive boolean flag for cross-tab sync — no user data in localStorage
     localStorage.setItem('isAuthenticated', 'true');
     try {
-      // set initial last activity timestamp
       localStorage.setItem('lastActivity', Date.now().toString());
     } catch (e) {}
 
-    // ❗ If user needs to change password, redirect to the force page
     if (u.requirePasswordChange) {
       router.push('/force-password-change');
     }
   };
 
   const logout = async () => {
-    // ❗ Notify server about logout to invalidate session and log activity
     try {
       await logoutUser();
     } catch (e) {
@@ -205,25 +195,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setPermissions([]);
     setIsAuthenticated(false);
-    localStorage.removeItem('currentUser');
     localStorage.setItem('isAuthenticated', 'false');
     try {
-      // navigate to login page after clearing auth
       router.push('/login');
-    } catch (e) {
-      // swallow - navigation may fail during SSR or tests
-    }
+    } catch (e) {}
   };
 
   const handleSetUser = (u: User | null) => {
     setUser(u);
     if (u) {
-      localStorage.setItem('currentUser', JSON.stringify(u));
       setPermissions(withAdminPermissions(u?.role, u.permissions || []));
     } else {
-      localStorage.removeItem('currentUser');
       setPermissions([]);
     }
+    // No localStorage writes for user data
   };
 
   return (
@@ -252,4 +237,3 @@ export function useAuth() {
 }
 
 export default AuthContext;
-
