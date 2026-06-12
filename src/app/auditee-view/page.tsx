@@ -1,6 +1,7 @@
 'use client';
 import { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { getCsrfToken } from '@/lib/csrf';
 import { useSearchParams } from 'next/navigation';
 import PageHeader from '@/components/layout/PageHeader';
 import {
@@ -102,8 +103,8 @@ function AuditeeViewContent() {
 
   const handleDelete = async (id: string) => {
     try {
-      const csrfToken = document.cookie.split('; ').find(row => row.startsWith('__Secure-csrf_token='))?.split('=')[1] || '';
-      const res = await fetch(`/api/findings/${id}`, { 
+      const csrfToken = await getCsrfToken();
+      const res = await fetch(`/api/findings/${id}`, {
         method: 'DELETE',
         headers: { 'X-CSRF-Token': csrfToken }
       });

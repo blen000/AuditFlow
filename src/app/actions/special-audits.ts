@@ -60,13 +60,20 @@ export async function submitSpecialAudit(data: any) {
   try {
     const validation = specialAuditSchema.safeParse(data);
     if (!validation.success) {
-      return { success: false, error: 'Invalid special audit data' };
+      return {
+        success: false,
+        error: 'Please correct the highlighted fields.',
+        fieldErrors: validation.error.flatten().fieldErrors,
+      };
     }
-    const { individuals, ...rest } = validation.data;
+
+    const { individuals, categoryId, ...rest } = validation.data;
 
     await prisma.specialAudit.create({
       data: {
         ...rest,
+        // Only connect category when a valid id is supplied
+        ...(categoryId ? { categoryId } : {}),
         dateCreated: new Date(),
         individuals: {
           create: individuals.map((ind: any) => ({
@@ -74,10 +81,10 @@ export async function submitSpecialAudit(data: any) {
             position: ind.position,
             tenure: ind.tenure,
             age: ind.age,
-            sex: ind.sex
-          }))
-        }
-      }
+            sex: ind.sex,
+          })),
+        },
+      },
     });
 
     revalidatePath('/special-audits');
@@ -85,7 +92,7 @@ export async function submitSpecialAudit(data: any) {
     return { success: true };
   } catch (error) {
     console.error('Failed to submit special audit:', error);
-    return { success: false, error: 'Failed to persist special audit data.' };
+    return { success: false, error: 'Failed to save the report. Please try again.' };
   }
 }
 

@@ -116,6 +116,8 @@ export async function getScopingFilter(resourceType: ResourceType) {
   switch (resourceType) {
     case 'finding':
       if (user.role.name === 'Auditee') {
+        // User.branch is nullable in the schema; if it's not set, deny access safely.
+        if (!user.branch) return { id: 'none' };
         return { branchOrDepartment: user.branch };
       }
       if (user.role.name === 'Auditor') {
@@ -165,7 +167,7 @@ function enforce(user: any, options: AuthOptions) {
   // 1. RBAC: Role check
   if (options.allowedRoles && options.allowedRoles.length > 0) {
     if (!options.allowedRoles.includes(user.role.name)) {
-      console.warn(`User ${user.id} with role ${user.role.name} denied access (Role mismatch)`);
+      console.warn('Access denied: role mismatch', { userId: user.id, role: user.role.name });
       throw new AuthorizationError();
     }
   }
@@ -175,7 +177,7 @@ function enforce(user: any, options: AuthOptions) {
     const userPermissions = user.role.permissions || [];
     const hasPermission = options.allowedPermissions.every(p => userPermissions.includes(p));
     if (!hasPermission) {
-      console.warn(`User ${user.id} denied access (Missing permissions: ${options.allowedPermissions.filter(p => !userPermissions.includes(p)).join(', ')})`);
+      console.warn('Access denied: missing permissions', { userId: user.id, missing: options.allowedPermissions.filter(p => !userPermissions.includes(p)) });
       throw new AuthorizationError();
     }
   }
@@ -196,7 +198,7 @@ async function handleOwnership(user: any, options: AuthOptions) {
 
   if (options.checkOwnership) {
     if (!options.checkOwnership(user, resource)) {
-      console.warn(`User ${user.id} denied access (Custom ownership check failed for ${options.resourceType}:${options.resourceId})`);
+      console.warn('Access denied: ownership check failed', { userId: user.id, resourceType: options.resourceType, resourceId: options.resourceId });
       throw new AuthorizationError();
     }
   } else {

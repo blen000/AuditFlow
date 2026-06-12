@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getCsrfToken } from '@/lib/csrf';
 import {
   Dialog,
   DialogContent,
@@ -58,7 +59,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
     // Call server API to persist the change
     (async () => {
       try {
-        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('__Secure-csrf_token='))?.split('=')[1] || '';
+        const csrfToken = await getCsrfToken();
         const res = await fetch('/api/auth/change-password', {
           method: 'POST',
           headers: { 

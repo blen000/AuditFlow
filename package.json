@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
-    "test": "jest"
+    "test": "jest",
+    "audit:deps": "npm audit --audit-level=moderate"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
@@ -62,6 +63,11 @@
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.24.2"
   },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.10"
+    }
+  },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/html2canvas": "^0.5.35",
@@ -71,7 +77,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "jest": "^30.3.0",
-    "postcss": "^8",
+    "postcss": "^8.5.10",
     "prisma": "^6.0.0",
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.4.9",

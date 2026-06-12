@@ -63,6 +63,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     resetInactivityTimer();
   };
 
+  const verifySessionWithServer = async (): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/me', {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  const clearLocalAuthState = () => {
+    setUser(null);
+    setPermissions([]);
+    setIsAuthenticated(false);
+    localStorage.setItem('isAuthenticated', 'false');
+    localStorage.removeItem('currentUser');
+  };
+
+  const setAuthenticatedState = (user: any) => {
+    setUser(user);
+    setPermissions(withAdminPermissions(user?.role, user?.permissions || []));
+    setIsAuthenticated(true);
+  };
+
   useEffect(() => {
     let mounted = true;
     const bootstrap = async () => {
@@ -74,35 +101,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // If localStorage claims we're authenticated, verify with server to avoid stale state
         if (authStatus && u) {
-          try {
-            const res = await fetch('/api/auth/me', {
-              method: 'GET',
-              cache: 'no-store',
-              credentials: 'same-origin',
-            });
-            if (res.ok) {
-              // Server confirms session; set user
-              if (!mounted) return;
-              setUser(u);
-              setPermissions(withAdminPermissions(u?.role, u?.permissions || []));
-              setIsAuthenticated(true);
-            } else {
-              // Server says no session - clear local state
-              if (!mounted) return;
-              setUser(null);
-              setPermissions([]);
-              setIsAuthenticated(false);
-              localStorage.setItem('isAuthenticated', 'false');
-              localStorage.removeItem('currentUser');
-            }
-          } catch (e) {
-            // On network error, be conservative: treat as not authenticated
-            if (!mounted) return;
-            setUser(null);
-            setPermissions([]);
-            setIsAuthenticated(false);
+          const sessionValid = await verifySessionWithServer();
+          if (!mounted) return;
+          
+          if (sessionValid) {
+            setAuthenticatedState(u);
+          } else {
+            clearLocalAuthState();
           }
         } else {
+          if (!mounted) return;
           // Not authenticated locally
           setUser(null);
           setPermissions([]);

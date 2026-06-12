@@ -83,17 +83,22 @@ export const individualSchema = z.object({
 });
 
 export const specialAuditSchema = z.object({
-  shortSummary: z.string().min(10, 'Summary must be at least 10 characters'),
-  placement: z.enum(['Branch', 'Department', 'District']),
-  placementValue: z.string().min(1),
-  categoryId: z.string().optional(),
-  amountInvolved: z.coerce.number().nonnegative(),
-  recovered: z.coerce.number().nonnegative(),
-  pending: z.coerce.number().nonnegative(),
-  actionDisciplinary: z.string().min(1),
-  gapWitnessed: z.string().min(1),
-  correctiveActionTaken: z.string().min(1),
-  individuals: z.array(individualSchema).min(1, 'At least one individual is required'),
+  shortSummary: z.string().min(10, 'Summary must be at least 10 characters.'),
+  placement: z.enum(['Branch', 'District', 'H.O'], {
+    required_error: 'Placement category is required.',
+  }),
+  placementValue: z.string().min(1, 'Placement detail is required.'),
+  categoryId: z.string().min(1, 'Category is required.'),
+  amountInvolved: z.coerce.number().nonnegative('Amount must be 0 or greater.'),
+  recovered: z.coerce.number().nonnegative('Recovered amount must be 0 or greater.'),
+  pending: z.coerce.number().nonnegative('Pending amount must be 0 or greater.'),
+  actionDisciplinary: z.string().min(1, 'Disciplinary action is required.'),
+  gapWitnessed: z.string().min(1, 'Gap description is required.'),
+  correctiveActionTaken: z.string().min(1, 'Corrective action is required.'),
+  auditCause: z.string().optional(),
+  auditEffect: z.string().optional(),
+  recommendation: z.string().optional(),
+  individuals: z.array(individualSchema).min(1, 'At least one individual is required.'),
 });
 
 // --- Settings Schemas ---

@@ -343,7 +343,10 @@ export async function createUser(data: any) {
     return { success: true };
   } catch (error: any) {
     console.error('Failed to create user:', error);
-    return { success: false, error: error.message || 'User registration failed' };
+    if (error.code === 'P2002') {
+      return { success: false, error: 'An account with this email address already exists.', field: 'email' };
+    }
+    return { success: false, error: 'Account provisioning failed. Please try again.' };
   }
 }
 
@@ -363,7 +366,7 @@ export async function updateUser(id: string, data: any) {
 
     // ❗ Prevent self-role escalation or role modification by non-admins
     if (validatedData.role && authUser.role?.name !== 'Admin') {
-      console.warn(`User ${authUser.email} attempted to modify role to ${validatedData.role} without Admin privileges`);
+      console.warn('Unauthorized role modification attempt', { email: authUser.email, targetRole: validatedData.role });
       return { success: false, error: 'Forbidden: Role escalation attempt detected' };
     }
 
@@ -373,10 +376,6 @@ export async function updateUser(id: string, data: any) {
     }
 
     const updateData: any = { ...validatedData };
-    
-    if (validatedData.password) {
-      updateData.password = await hashPassword(validatedData.password);
-    }
 
     if (data.role) {
       const role = await prisma.role.findFirst({
@@ -401,6 +400,11 @@ export async function updateUser(id: string, data: any) {
         resourceId: id,
         resourceType: 'User',
       });
+      await invalidateAllUserSessions(id);
+    }
+
+    // ❗ If the account is being deactivated, immediately expire all active sessions
+    if (validatedData.status === 'Inactive') {
       await invalidateAllUserSessions(id);
     }
 
@@ -492,26 +496,22 @@ export async function updateRole(id: string, data: any) {
     if (!validation.success) {
       return { success: false, error: 'Invalid role update data' };
     }
-    
-    // ❗ Invalidate all sessions for users assigned to this role when permissions/privileges change
-    // This ensures that token rotation and strict validation are enforced upon privilege change.
-    await prisma.user.updateMany({
-      where: { roleId: id },
-      data: { sessionVersion: { increment: 1 } }
-    });
-    
-    // Also remove the actual session records to force a fresh login/refresh
-    await prisma.session.deleteMany({
-      where: { user: { roleId: id } }
-    });
 
     await prisma.role.update({
       where: { id },
       data: validation.data,
     });
-    
+
+    // Session invalidation is intentionally omitted here.
+    // getUserFromRequest / getUserFromCookiesServer fetch user + role.permissions
+    // directly from the database on every request — there is no JWT-cached permission
+    // payload. Updated permissions therefore take effect on the very next request
+    // without requiring re-authentication, eliminating both the self-logout (VA-007)
+    // and any race condition between concurrent admin operations on the same role.
+
     await logSecurityEvent('PRIVILEGE_CHANGE', {
-      action: `Role permissions updated for role ID: ${id}`,
+      action: 'Role permissions updated',
+      resourceId: id,
       severity: 'HIGH',
     });
 

@@ -66,7 +66,8 @@ export async function logSecurityEvent(
 
     // Simple alerting for HIGH_RISK activities
     if (severity === 'HIGH_RISK') {
-      console.warn(`[SECURITY ALERT] High-risk activity detected: ${options.action}`, {
+      console.warn('[SECURITY ALERT] High-risk activity detected', {
+        action: options.action,
         eventType,
         userId: options.userId,
         resourceId: options.resourceId,

@@ -77,6 +77,88 @@ export async function markAllAsRead() {
   }
 }
 
+async function getFindingsWithUpcomingDeadlines(today: Date) {
+  const targetDateStart = new Date(today);
+  const targetDateEnd = new Date(today);
+  targetDateEnd.setDate(today.getDate() + 3);
+
+  return prisma.auditFinding.findMany({
+    where: {
+      rectificationDate: {
+        gte: targetDateStart,
+        lte: targetDateEnd,
+      },
+      status: {
+        notIn: ['Closed', 'Resolved'],
+      },
+    },
+    include: {
+      auditee: true,
+      auditor: true,
+    },
+  });
+}
+
+async function getRecipientIds(finding: any) {
+  const admins = await prisma.user.findMany({
+    where: { role: { name: 'Admin' }, status: 'Active' },
+    select: { id: true },
+  });
+
+  const recipientIds = new Set([
+    ...admins.map(a => a.id),
+    finding.auditorId,
+    finding.auditeeId,
+  ].filter(Boolean) as string[]);
+
+  if (!finding.auditorId || !finding.auditeeId) {
+    const fallbackUsers = await prisma.user.findMany({
+      where: {
+        OR: [
+          { role: { name: 'Auditor' }, branch: finding.branch || undefined },
+          { role: { name: 'Auditee' }, branch: finding.branch || undefined },
+        ],
+        status: 'Active'
+      },
+      select: { id: true }
+    });
+    fallbackUsers.forEach(u => recipientIds.add(u.id));
+  }
+
+  return recipientIds;
+}
+
+async function checkExistingNotification(userId: string, findingId: string, today: Date) {
+  return prisma.notification.findFirst({
+    where: {
+      userId,
+      findingId,
+      createdAt: {
+        gte: today,
+      },
+      message: {
+        contains: 'rectification deadline',
+      },
+    },
+  });
+}
+
+function createNotificationData(userId: string, finding: any, diffDays: number, dueDate: Date) {
+  const message = `Reminder: The rectification deadline for Finding #${finding.referenceNumber || finding.id.slice(0, 8)} is approaching. The due date is ${dueDate.toDateString()}.`;
+  
+  return {
+    userId,
+    findingId: finding.id,
+    title: 'Rectification Deadline Approaching',
+    message,
+    type: diffDays <= 1 ? 'alert' : 'warning',
+    metadata: {
+      remainingDays: diffDays,
+      dueDate: dueDate.toISOString(),
+    },
+  };
+}
+
 /**
  * Background job / Helper function to generate rectification deadline notifications.
  * This should be called by a cron job or at a specific trigger point.
@@ -87,31 +169,7 @@ export async function processRectificationDeadlines() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Target date: 3 days from now
-    const targetDateStart = new Date(today);
-    targetDateStart.setDate(today.getDate());
-    
-    const targetDateEnd = new Date(today);
-    targetDateEnd.setDate(today.getDate() + 3);
-
-    // Find findings with rectification dates within the next 3 days
-    // and that are not yet 'Closed' or 'Resolved'
-    const findings = await prisma.auditFinding.findMany({
-      where: {
-        rectificationDate: {
-          gte: targetDateStart,
-          lte: targetDateEnd,
-        },
-        status: {
-          notIn: ['Closed', 'Resolved'],
-        },
-      },
-      include: {
-        auditee: true,
-        auditor: true,
-      },
-    });
-
+    const findings = await getFindingsWithUpcomingDeadlines(today);
     const notificationsToCreate = [];
 
     for (const finding of findings) {
@@ -123,64 +181,12 @@ export async function processRectificationDeadlines() {
       const diffTime = dueDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-      // Recipient IDs: Admin role users, the specific Auditor, and the Auditee
-      const admins = await prisma.user.findMany({
-        where: { role: { name: 'Admin' }, status: 'Active' },
-        select: { id: true },
-      });
-
-      const recipientIds = new Set([
-        ...admins.map(a => a.id),
-        finding.auditorId,
-        finding.auditeeId,
-      ].filter(Boolean) as string[]);
-
-      // ❗ Fallback: If no specific auditor/auditee bound, notify all users with those roles
-      // in the same branch/department to ensure someone sees it.
-      if (!finding.auditorId || !finding.auditeeId) {
-        const fallbackUsers = await prisma.user.findMany({
-          where: {
-            OR: [
-              { role: { name: 'Auditor' }, branch: finding.branch || undefined },
-              { role: { name: 'Auditee' }, branch: finding.branch || undefined },
-            ],
-            status: 'Active'
-          },
-          select: { id: true }
-        });
-        fallbackUsers.forEach(u => recipientIds.add(u.id));
-      }
-
-      const message = `Reminder: The rectification deadline for Finding #${finding.referenceNumber || finding.id.slice(0, 8)} is approaching. The due date is ${dueDate.toDateString()}.`;
+      const recipientIds = await getRecipientIds(finding);
 
       for (const userId of recipientIds) {
-        // Check if a notification for this finding and this specific deadline was already sent today
-        // to avoid duplicate spamming if the job runs multiple times
-        const existing = await prisma.notification.findFirst({
-          where: {
-            userId,
-            findingId: finding.id,
-            createdAt: {
-              gte: today,
-            },
-            message: {
-              contains: 'rectification deadline',
-            },
-          },
-        });
-
+        const existing = await checkExistingNotification(userId, finding.id, today);
         if (!existing) {
-          notificationsToCreate.push({
-            userId,
-            findingId: finding.id,
-            title: 'Rectification Deadline Approaching',
-            message,
-            type: diffDays <= 1 ? 'alert' : 'warning',
-            metadata: {
-              remainingDays: diffDays,
-              dueDate: dueDate.toISOString(),
-            },
-          });
+          notificationsToCreate.push(createNotificationData(userId, finding, diffDays, dueDate));
         }
       }
     }

@@ -25,29 +25,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Session expired' }, { status: 401 });
     }
 
-    // Context validation
+    // Context validation - fingerprint removed to avoid false rejections
     const h = headers();
     const userAgent = h.get('user-agent') || 'unknown';
-    const ipAddress = h.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
-    const currentFingerprint = crypto.createHash('sha256').update(userAgent).digest('hex');
-
-    // NOTE: We previously invalidated sessions on fingerprint mismatch.
-    // During responsive/mobile emulation, browsers often change user-agent,
-    // which caused legitimate sessions to be dropped (auth flicker).
-    // We keep the fingerprint computation for logging, but we no longer
-    // hard-reject on mismatch.
-    if (session.fingerprint !== currentFingerprint) {
-      const isLocalhost = ipAddress === '::1' || ipAddress === '127.0.0.1' || ipAddress === 'localhost';
-      if (!isLocalhost) {
-        await logSecurityEvent('AUTHZ_FAILURE', {
-          userId: session.userId,
-          email: session.user.email,
-          action: 'Fingerprint mismatch during token refresh (best-effort)',
-          severity: 'MEDIUM_RISK',
-          details: `IP: ${ipAddress}, UA: ${userAgent}`
-        });
-      }
-    }
+    const rawIp = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
+    console.log('RAW IP:', h.get('x-forwarded-for'), h.get('x-real-ip'));
+    const ipAddress = rawIp.split(':')[0];
 
     // Rotate tokens
     const newRefreshToken = crypto.randomBytes(32).toString('hex');
@@ -60,7 +43,7 @@ export async function POST(req: Request) {
         refreshToken: newRefreshToken,
         expiresAt: newExpiresAt,
         lastActiveAt: new Date(),
-        version: { increment: 1 } // ❗ Individual session rotation
+        // version increment removed to avoid JWT/session mismatch
       }
     });
 
@@ -69,15 +52,12 @@ export async function POST(req: Request) {
     const accessToken = signToken({ 
       userId: session.userId, 
       sessionId: updatedSession.id, 
-      fingerprint: currentFingerprint,
       csrfToken: newCsrfToken,
-      sessionVersion: session.user.sessionVersion,
-      version: updatedSession.version,
       requirePasswordChange: needsPasswordChange
     });
 
     const res = NextResponse.json({ success: true });
-    setAuthCookies(res, accessToken, newRefreshToken, newCsrfToken);
+    setAuthCookies(res, accessToken, newRefreshToken);
     
     // Optional: Log token refresh for high-security environments
     /*

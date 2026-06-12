@@ -5,6 +5,50 @@ import { securePrisma } from '@/lib/securePrisma';
 import { authorizeAction } from '@/lib/authorization';
 import { ensureFollowUpStatuses } from '@/app/actions/settings';
 
+function formatDate(date: Date | null | undefined) {
+  return date ? date.toISOString() : null;
+}
+
+function ensureArray(value: any) {
+  return Array.isArray(value) ? value : [];
+}
+
+function formatFinding(finding: any) {
+  return {
+    ...finding,
+    assignedDate: formatDate(finding.assignedDate),
+    dateCommunicated: formatDate(finding.dateCommunicated),
+    finalizationDate: formatDate(finding.finalizationDate),
+    revalidationDate: formatDate(finding.revalidationDate),
+    mitigationDueDate: formatDate(finding.mitigationDueDate),
+    createdAt: finding.createdAt.toISOString(),
+    updatedAt: finding.updatedAt.toISOString(),
+    dynamicValues: (finding.dynamicValues as Record<string, any>) || {},
+    teamMembers: ensureArray(finding.teamMembers),
+    progressUpdates: ensureArray(finding.progressUpdates),
+    involvedAmounts: ensureArray(finding.involvedAmounts),
+    involvedCases: ensureArray(finding.involvedCases),
+    findingAttachments: ensureArray(finding.findingAttachments),
+    recommendationAttachments: ensureArray(finding.recommendationAttachments),
+    auditCauseAttachments: ensureArray(finding.auditCauseAttachments),
+    auditEffectAttachments: ensureArray(finding.auditEffectAttachments),
+    verbalComm: ensureArray(finding.verbalComm),
+    writtenComm: ensureArray(finding.writtenComm),
+    esc1: ensureArray(finding.esc1),
+    esc2: ensureArray(finding.esc2),
+    forwardingHistory: ensureArray(finding.forwardingHistory),
+    followUpRecommendations: finding.followUpRecommendations || '',
+    collaboratingWith: finding.collaboratingWith || '',
+  };
+}
+
+function formatHierarchyNode(node: any) {
+  return {
+    ...node,
+    customFields: ensureArray(node.customFields),
+  };
+}
+
 export async function getAuditeeViewData() {
   await authorizeAction({ allowedPermissions: ['auditee_view_access'] });
   try {
@@ -22,37 +66,12 @@ export async function getAuditeeViewData() {
       ensureFollowUpStatuses(),
     ]);
 
-    // Format findings to match frontend types and ensure JSON fields are arrays
-    const formattedFindings = findings.map(f => ({
-      ...f,
-      assignedDate: f.assignedDate ? f.assignedDate.toISOString() : null,
-      dateCommunicated: f.dateCommunicated ? f.dateCommunicated.toISOString() : null,
-      finalizationDate: f.finalizationDate ? f.finalizationDate.toISOString() : null,
-      revalidationDate: f.revalidationDate ? f.revalidationDate.toISOString() : null,
-      mitigationDueDate: f.mitigationDueDate ? f.mitigationDueDate.toISOString() : null,
-      createdAt: f.createdAt.toISOString(),
-      updatedAt: f.updatedAt.toISOString(),
-      dynamicValues: f.dynamicValues as Record<string, any> || {},
-      teamMembers: Array.isArray(f.teamMembers) ? f.teamMembers : [],
-      progressUpdates: Array.isArray(f.progressUpdates) ? f.progressUpdates : [],
-      involvedAmounts: Array.isArray(f.involvedAmounts) ? f.involvedAmounts : [],
-      involvedCases: Array.isArray(f.involvedCases) ? f.involvedCases : [],
-      findingAttachments: Array.isArray(f.findingAttachments) ? f.findingAttachments : [],
-      recommendationAttachments: Array.isArray(f.recommendationAttachments) ? f.recommendationAttachments : [],
-      auditCauseAttachments: Array.isArray(f.auditCauseAttachments) ? f.auditCauseAttachments : [],
-      auditEffectAttachments: Array.isArray(f.auditEffectAttachments) ? f.auditEffectAttachments : [],
-      verbalComm: Array.isArray(f.verbalComm) ? f.verbalComm : [],
-      writtenComm: Array.isArray(f.writtenComm) ? f.writtenComm : [],
-      esc1: Array.isArray(f.esc1) ? f.esc1 : [],
-      esc2: Array.isArray(f.esc2) ? f.esc2 : [],
-      forwardingHistory: Array.isArray(f.forwardingHistory) ? f.forwardingHistory : [],
-      followUpRecommendations: f.followUpRecommendations || '',
-      collaboratingWith: f.collaboratingWith || '',
-    }));
+    const formattedFindings = findings.map(formatFinding);
+    const formattedHierarchy = hierarchy.map(formatHierarchyNode);
 
     return {
       findings: formattedFindings,
-      hierarchy: hierarchy.map(h => ({ ...h, customFields: Array.isArray(h.customFields) ? h.customFields : [] })),
+      hierarchy: formattedHierarchy,
       branches,
       departments,
       riskLevels,

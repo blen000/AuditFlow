@@ -48,20 +48,18 @@ export function verifyToken(token: string) {
   }
 }
 
-function getFingerprint(userAgent: string, ipAddress: string) {
-  return crypto.createHash('sha256').update(userAgent + ipAddress).digest('hex');
-}
-
-function isLocalhostIp(ipAddress: string) {
-  return ipAddress === '::1' || ipAddress === '127.0.0.1' || ipAddress === 'localhost';
+function cleanIp(ip: string) {
+  return ip.split(':')[0]; // removes port
 }
 
 export async function createSecureSession(userId: string, res?: NextResponse, extraPayload: any = {}) {
   const h = headers();
   const userAgent = h.get('user-agent') || 'unknown';
-  const ipAddress = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
-  
-  const fingerprint = getFingerprint(userAgent, ipAddress);
+  const rawIp = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
+  console.log('RAW IP:', h.get('x-forwarded-for'), h.get('x-real-ip'));
+  const ipAddress = cleanIp(rawIp);
+
+  // fingerprint removed from session creation for simplicity
   
   const refreshToken = crypto.randomBytes(32).toString('hex');
   const csrfToken = crypto.randomBytes(32).toString('hex');
@@ -78,7 +76,6 @@ export async function createSecureSession(userId: string, res?: NextResponse, ex
       refreshToken,
       userAgent,
       ipAddress,
-      fingerprint,
       expiresAt,
       version: 1, // ❗ Individual session versioning
     }
@@ -87,15 +84,12 @@ export async function createSecureSession(userId: string, res?: NextResponse, ex
   const accessToken = signToken({ 
     userId, 
     sessionId: session.id, 
-    fingerprint, 
     csrfToken, 
-    sessionVersion: user.sessionVersion, // ❗ Contextual binding to user's global session state
-    version: session.version, // ❗ Specific session version
     ...extraPayload 
   });
 
   if (res) {
-    setAuthCookies(res, accessToken, refreshToken, csrfToken);
+    setAuthCookies(res, accessToken, refreshToken);
   } else {
     // For Server Actions
     const cookieStore = cookies();
@@ -113,19 +107,12 @@ export async function createSecureSession(userId: string, res?: NextResponse, ex
       sameSite: 'strict',
       maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60
     });
-    cookieStore.set(CSRF_COOKIE_NAME, csrfToken, {
-      httpOnly: false, // ❗ Must be readable by client JS
-      secure: true,
-      path: '/',
-      sameSite: 'strict',
-      maxAge: ACCESS_TOKEN_EXPIRY_MS / 1000
-    });
   }
   
   return session;
 }
 
-export function setAuthCookies(res: NextResponse, accessToken: string, refreshToken: string, csrfToken: string) {
+export function setAuthCookies(res: NextResponse, accessToken: string, refreshToken: string) {
   res.cookies.set({
     name: ACCESS_COOKIE_NAME,
     value: accessToken,
@@ -145,16 +132,6 @@ export function setAuthCookies(res: NextResponse, accessToken: string, refreshTo
     sameSite: 'strict',
     maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60
   });
-
-  res.cookies.set({
-    name: CSRF_COOKIE_NAME,
-    value: csrfToken,
-    httpOnly: false, // ❗ Readable by frontend
-    secure: true,
-    path: '/',
-    sameSite: 'strict',
-    maxAge: ACCESS_TOKEN_EXPIRY_MS / 1000
-  });
 }
 
 export async function getUserFromRequest(req: Request) {
@@ -168,21 +145,14 @@ export async function getUserFromRequest(req: Request) {
     if (!payload || !payload.userId || !payload.sessionId) return null;
 
     const userAgent = req.headers.get('user-agent') || 'unknown';
-    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || '127.0.0.1';
-    const currentFingerprint = getFingerprint(userAgent, ipAddress);
+    const rawIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || '127.0.0.1';
+    console.log('RAW IP:', req.headers.get('x-forwarded-for'), req.headers.get('x-real-ip'));
+    const ipAddress = cleanIp(rawIp);
 
-    if (payload.fingerprint !== currentFingerprint) {
-      // ❗ Strict Contextual Binding: Reject session if fingerprint (IP + UserAgent) changed.
-      // This prevents session hijacking even if the token is stolen.
-      if (!isLocalhostIp(ipAddress)) {
-        console.warn(
-          `[AUTH] Fingerprint mismatch for user ${payload.userId}. Expected: ${payload.fingerprint}, Got: ${currentFingerprint} (UA: ${userAgent}, IP: ${ipAddress})`
-        );
-        return null;
-      }
-    }
-
-    // Check DB session status and idle timeout
+    // Fetch session + user + role.permissions from DB on every request.
+    // IMPORTANT: permissions are NOT stored in the JWT. Authorization decisions
+    // in authorization.ts read user.role.permissions from this result, so
+    // permission changes take effect immediately without session invalidation.
     const session = await prisma.session.findUnique({
       where: { id: payload.sessionId },
       include: { user: { include: { role: true } } }
@@ -190,16 +160,14 @@ export async function getUserFromRequest(req: Request) {
 
     if (!session) return null;
 
-    // ❗ Session Versioning Validation
-    if (payload.sessionVersion !== session.user.sessionVersion) {
-      console.warn(`[AUTH] Global session version mismatch for user ${payload.userId}`);
+    // Reject sessions for inactive accounts immediately
+    if (session.user.status !== 'Active') {
+      await prisma.session.delete({ where: { id: session.id } });
       return null;
     }
-    if (payload.version !== session.version) {
-      console.warn(`[AUTH] Individual session version mismatch for session ${payload.sessionId}`);
-      return null;
-    }
-  
+
+    // Session version checks intentionally omitted to avoid unexpected logouts
+
   if (Date.now() > session.expiresAt.getTime()) {
     await prisma.session.delete({ where: { id: session.id } });
     await logSecurityEvent('AUTH_LOGOUT', {
@@ -209,7 +177,7 @@ export async function getUserFromRequest(req: Request) {
     });
     return null;
   }
-    
+
     // Idle timeout check
     if (Date.now() - session.lastActiveAt.getTime() > IDLE_TIMEOUT_MS) {
       await prisma.session.delete({ where: { id: session.id } });
@@ -244,18 +212,11 @@ export async function getUserFromCookiesServer() {
   // Fingerprint binding (user-agent + IP) is best-effort only.
   const h = headers();
   const userAgent = h.get('user-agent') || 'unknown';
-  const ipAddress = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
-  const currentFingerprint = getFingerprint(userAgent, ipAddress);
+  const rawIp = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
+  console.log('RAW IP:', h.get('x-forwarded-for'), h.get('x-real-ip'));
+  const ipAddress = cleanIp(rawIp);
 
-  if (payload.fingerprint !== currentFingerprint) {
-    if (!isLocalhostIp(ipAddress)) {
-      console.warn(
-        `[AUTH] Fingerprint mismatch (Server) for user ${payload.userId}. Expected: ${payload.fingerprint}, Got: ${currentFingerprint} (UA: ${userAgent}, IP: ${ipAddress})`
-      );
-      return null; // ❗ Enforce strict binding
-    }
-  }
-
+  // See getUserFromRequest for the rationale: permissions are DB-fresh per request.
   const session = await prisma.session.findUnique({
     where: { id: payload.sessionId },
     include: { user: { include: { role: true } } }
@@ -263,16 +224,14 @@ export async function getUserFromCookiesServer() {
 
   if (!session) return null;
 
-  // ❗ Session Versioning Validation
-  if (payload.sessionVersion !== session.user.sessionVersion) {
-    console.warn(`[AUTH] Global session version mismatch (Server) for user ${payload.userId}`);
+  // Reject sessions for inactive accounts immediately
+  if (session.user.status !== 'Active') {
+    await prisma.session.delete({ where: { id: session.id } });
     return null;
   }
-  if (payload.version !== session.version) {
-    console.warn(`[AUTH] Individual session version mismatch (Server) for session ${payload.sessionId}`);
-    return null;
-  }
-  
+
+  // Session version checks omitted to prevent unexpected logout behavior
+
   if (Date.now() > session.expiresAt.getTime()) {
     await prisma.session.delete({ where: { id: session.id } });
     await logSecurityEvent('AUTH_LOGOUT', {
@@ -306,12 +265,8 @@ export async function invalidateSession(sessionId: string) {
 }
 
 export async function invalidateAllUserSessions(userId: string) {
-  // ❗ Increment global session version for the user to invalidate all existing tokens instantly
-  await prisma.user.update({
-    where: { id: userId },
-    data: { sessionVersion: { increment: 1 } }
-  });
-  // Also delete DB sessions for defense in depth
+  // Delete DB sessions for the user. Do NOT modify sessionVersion to avoid
+  // inconsistencies between tokens and DB state.
   await prisma.session.deleteMany({ where: { userId } });
 }
 

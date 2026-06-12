@@ -92,11 +92,20 @@ export default function UserRegistrationPage() {
       if (result.success) {
         toast({ title: "Registration Successful", description: `${values.fullName} has been added to the database.` });
         router.push('/users');
-      } else {
-        throw new Error(result.error);
+        return;
       }
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Registration Failed", description: error.message || "An unexpected error occurred." });
+
+      if (result.field) {
+        form.setError(result.field as any, { type: 'server', message: result.error });
+      }
+
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: result.error ?? "An unexpected error occurred.",
+      });
+    } catch {
+      toast({ variant: "destructive", title: "Registration Failed", description: "An unexpected error occurred. Please try again." });
     } finally {
       setIsSubmitting(false);
     }

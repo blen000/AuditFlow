@@ -81,14 +81,24 @@ export default function SpecialOnboardingPage() {
       if (result.success) {
         toast({ title: "Special Registration Successful", description: `Executive account for ${values.fullName} created.` });
         router.push('/users');
-      } else {
-        throw new Error(result.error);
+        return;
       }
-    } catch (error: any) {
-      toast({ 
-        variant: "destructive", 
-        title: "Provisioning Error", 
-        description: error.message || "Failed to provision executive account." 
+
+      // Pin the error to the relevant field when the server tells us which one
+      if (result.field) {
+        form.setError(result.field as any, { type: 'server', message: result.error });
+      }
+
+      toast({
+        variant: "destructive",
+        title: "Provisioning Error",
+        description: result.error ?? "Failed to provision executive account.",
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Provisioning Error",
+        description: "An unexpected error occurred. Please try again.",
       });
     } finally {
       setIsSubmitting(false);

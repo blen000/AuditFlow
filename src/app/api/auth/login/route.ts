@@ -158,6 +158,8 @@ export async function POST(req: Request) {
     await resetAttempt(email);
 
     // ❗ Create a secure, bound session in DB and set cookies
+    // Invalidate any existing sessions for this user to avoid stale sessions
+    await prisma.session.deleteMany({ where: { userId: user.id } });
     await createSecureSession(user.id, res, { requirePasswordChange: needsPasswordChange });
 
     await logSecurityEvent('AUTH_LOGIN_SUCCESS', {

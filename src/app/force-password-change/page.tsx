@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getCsrfToken } from '@/lib/csrf';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +49,7 @@ export default function ForcePasswordChangePage() {
     }
 
     try {
-      const csrfToken = document.cookie.split('; ').find(row => row.startsWith('__Secure-csrf_token='))?.split('=')[1] || '';
+      const csrfToken = await getCsrfToken();
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: { 

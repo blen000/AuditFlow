@@ -44,17 +44,19 @@ const individualSchema = z.object({
 });
 
 const formSchema = z.object({
-  shortSummary: z.string().min(5, 'Summary must be at least 5 characters'),
-  placement: z.enum(['Branch', 'District', 'H.O']),
-  placementValue: z.string().min(2, 'Placement detail is required'),
-  categoryId: z.string().optional(),
-  amountInvolved: z.coerce.number().min(0),
-  recovered: z.coerce.number().min(0),
-  pending: z.coerce.number().min(0),
-  individuals: z.array(individualSchema).min(1, 'At least one individual must be listed'),
-  actionDisciplinary: z.string().min(2, 'Action is required'),
-  gapWitnessed: z.string().min(2, 'Gap description is required'),
-  correctiveActionTaken: z.string().min(2, 'Corrective action is required'),
+  shortSummary: z.string().min(5, 'Summary must be at least 5 characters.'),
+  placement: z.enum(['Branch', 'District', 'H.O'], {
+    required_error: 'Placement category is required.',
+  }),
+  placementValue: z.string().min(1, 'Placement detail is required.'),
+  categoryId: z.string().min(1, 'Category is required.'),
+  amountInvolved: z.coerce.number().min(0, 'Amount must be 0 or greater.'),
+  recovered: z.coerce.number().min(0, 'Recovered amount must be 0 or greater.'),
+  pending: z.coerce.number().min(0, 'Pending amount must be 0 or greater.'),
+  individuals: z.array(individualSchema).min(1, 'At least one individual must be listed.'),
+  actionDisciplinary: z.string().min(2, 'Disciplinary action is required.'),
+  gapWitnessed: z.string().min(2, 'Gap description is required.'),
+  correctiveActionTaken: z.string().min(2, 'Corrective action is required.'),
   auditCause: z.string().optional(),
   auditEffect: z.string().optional(),
   recommendation: z.string().optional(),
@@ -79,7 +81,7 @@ export default function NewSpecialAuditPage() {
       shortSummary: '',
       placement: 'Branch',
       placementValue: '',
-      categoryId: '',
+      categoryId: undefined,
       amountInvolved: 0,
       recovered: 0,
       pending: 0,
@@ -129,14 +131,26 @@ export default function NewSpecialAuditPage() {
           description: "Special audit finding has been recorded in the live database."
         });
         router.push('/special-audits');
-      } else {
-        throw new Error(result.error);
+        return;
       }
-    } catch (error) {
+
+      // Surface field-level server errors back into the form
+      if (result.fieldErrors) {
+        (Object.entries(result.fieldErrors) as [string, string[]][]).forEach(([field, messages]) => {
+          form.setError(field as any, { type: 'server', message: messages[0] });
+        });
+      }
+
       toast({
         variant: "destructive",
-        title: "Persistence Failed",
-        description: "An error occurred while saving the report."
+        title: "Submission Failed",
+        description: result.error ?? "Please correct the highlighted fields.",
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: "An unexpected error occurred. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
