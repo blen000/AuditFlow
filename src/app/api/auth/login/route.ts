@@ -125,8 +125,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Account is inactive. Contact Admin.' }, { status: 403 });
     }
 
-    // ❗ Enforce strict expiration on temporary credentials
-    if (user.requirePasswordChange && isPasswordExpired(user.passwordLastChanged, true)) {
+    // ❗ Enforce strict expiration on temporary credentials (except for Admins)
+    const isAdmin = user.role?.name === 'Admin';
+    if (user.requirePasswordChange && !isAdmin && isPasswordExpired(user.passwordLastChanged, true)) {
       await logSecurityEvent('AUTH_LOGIN_FAILURE', {
         userId: user.id,
         email,

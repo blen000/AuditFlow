@@ -117,10 +117,7 @@ async function main() {
 
   // 2. Users
   if (adminRole) {
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    if (!adminPassword) {
-      throw new Error("ADMIN_PASSWORD environment variable must be set to seed the admin user.");
-    }
+    const adminPassword = process.env.ADMIN_PASSWORD || 'Password@12345';
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@auditflow.com';
     const hashedPassword = await bcrypt.hash(adminPassword, SALT_ROUNDS);
     

@@ -7,10 +7,12 @@ CREATE TABLE "User" (
     "roleId" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'Active',
     "branch" TEXT,
+    "department" TEXT,
     "district" TEXT,
     "dateJoined" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "requirePasswordChange" BOOLEAN NOT NULL DEFAULT true,
     "passwordLastChanged" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "sessionVersion" INTEGER NOT NULL DEFAULT 1,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -25,6 +27,7 @@ CREATE TABLE "Session" (
     "userAgent" TEXT,
     "ipAddress" TEXT,
     "fingerprint" TEXT,
+    "version" INTEGER NOT NULL DEFAULT 1,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "lastActiveAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -88,6 +91,14 @@ CREATE TABLE "FindingStatus" (
 );
 
 -- CreateTable
+CREATE TABLE "FollowUpStatus" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+
+    CONSTRAINT "FollowUpStatus_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "SpecialFindingCategory" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -115,6 +126,9 @@ CREATE TABLE "AuditFinding" (
     "title" TEXT NOT NULL,
     "details" TEXT NOT NULL,
     "riskLevel" TEXT NOT NULL,
+    "branch" TEXT,
+    "department" TEXT,
+    "district" TEXT,
     "branchOrDepartment" TEXT NOT NULL,
     "recommendation" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'Open',
@@ -131,13 +145,23 @@ CREATE TABLE "AuditFinding" (
     "tatDays" INTEGER DEFAULT 15,
     "revalidationDate" TIMESTAMP(3),
     "mitigationDueDate" TIMESTAMP(3),
+    "rectificationDate" TIMESTAMP(3),
     "auditeeResponse" TEXT,
     "auditeeAttachmentFilename" TEXT,
     "progressUpdates" JSONB,
     "dynamicValues" JSONB,
+    "verbalComm" JSONB,
+    "writtenComm" JSONB,
+    "esc1" JSONB,
+    "esc2" JSONB,
+    "followUpRecommendations" TEXT,
+    "forwardingHistory" JSONB,
+    "collaboratingWith" TEXT,
     "hierarchyNodeId" TEXT NOT NULL,
     "isClosed" BOOLEAN NOT NULL DEFAULT false,
     "followUpStatus" TEXT DEFAULT 'Pending',
+    "auditorId" TEXT,
+    "auditeeId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -211,6 +235,35 @@ CREATE TABLE "SecurityAuditLog" (
     CONSTRAINT "SecurityAuditLog_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "LoginAttempt" (
+    "id" TEXT NOT NULL,
+    "identifier" TEXT NOT NULL,
+    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "lockedUntil" TIMESTAMP(3),
+    "lastAttemptAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LoginAttempt_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Notification" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "read" BOOLEAN NOT NULL DEFAULT false,
+    "findingId" TEXT,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -239,6 +292,9 @@ CREATE UNIQUE INDEX "RiskLevel_name_key" ON "RiskLevel"("name");
 CREATE UNIQUE INDEX "FindingStatus_name_key" ON "FindingStatus"("name");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "FollowUpStatus_name_key" ON "FollowUpStatus"("name");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "SpecialFindingCategory_name_key" ON "SpecialFindingCategory"("name");
 
 -- CreateIndex
@@ -252,6 +308,15 @@ CREATE INDEX "SecurityAuditLog_userId_idx" ON "SecurityAuditLog"("userId");
 
 -- CreateIndex
 CREATE INDEX "SecurityAuditLog_timestamp_idx" ON "SecurityAuditLog"("timestamp");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "LoginAttempt_identifier_key" ON "LoginAttempt"("identifier");
+
+-- CreateIndex
+CREATE INDEX "Notification_userId_idx" ON "Notification"("userId");
+
+-- CreateIndex
+CREATE INDEX "Notification_createdAt_idx" ON "Notification"("createdAt");
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -269,13 +334,25 @@ ALTER TABLE "AuditHierarchyNode" ADD CONSTRAINT "AuditHierarchyNode_parentId_fke
 ALTER TABLE "AuditFinding" ADD CONSTRAINT "AuditFinding_hierarchyNodeId_fkey" FOREIGN KEY ("hierarchyNodeId") REFERENCES "AuditHierarchyNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "FileAttachment" ADD CONSTRAINT "FileAttachment_uploaderId_fkey" FOREIGN KEY ("uploaderId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "AuditFinding" ADD CONSTRAINT "AuditFinding_auditorId_fkey" FOREIGN KEY ("auditorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AuditFinding" ADD CONSTRAINT "AuditFinding_auditeeId_fkey" FOREIGN KEY ("auditeeId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "FileAttachment" ADD CONSTRAINT "FileAttachment_findingId_fkey" FOREIGN KEY ("findingId") REFERENCES "AuditFinding"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FileAttachment" ADD CONSTRAINT "FileAttachment_uploaderId_fkey" FOREIGN KEY ("uploaderId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SpecialAudit" ADD CONSTRAINT "SpecialAudit_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "SpecialFindingCategory"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SpecialAuditIndividual" ADD CONSTRAINT "SpecialAuditIndividual_specialAuditId_fkey" FOREIGN KEY ("specialAuditId") REFERENCES "SpecialAudit"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_findingId_fkey" FOREIGN KEY ("findingId") REFERENCES "AuditFinding"("id") ON DELETE SET NULL ON UPDATE CASCADE;
