@@ -85,6 +85,30 @@ function AuditorStats({ stats }: { stats: { ledCount: number; memberCount: numbe
   );
 }
 
+function DeviationCell({ deviation }: { deviation: number | null }) {
+  if (deviation === null) {
+    return (
+      <div className="flex items-center gap-1 text-[10px] text-orange-500 italic">
+        <Clock className="h-3 w-3" />
+        Active Cycle
+      </div>
+    );
+  }
+  if (deviation > 0) {
+    return (
+      <div className="flex items-center gap-1 text-[10px] text-destructive font-bold italic">
+        <AlertCircle className="h-3 w-3" />
+        +{deviation} Days Over
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1 text-[10px] text-green-600 font-bold">
+      {deviation < 0 ? `${Math.abs(deviation)} Days Early` : 'On Time'}
+    </div>
+  );
+}
+
 function FindingRow({
   finding,
   index,
@@ -139,23 +163,7 @@ function FindingRow({
         {standardTAT > 0 ? `${standardTAT} Days` : '--'}
       </TableCell>
       <TableCell>
-        {deviation !== null ? (
-          deviation > 0 ? (
-            <div className="flex items-center gap-1 text-[10px] text-destructive font-bold italic">
-              <AlertCircle className="h-3 w-3" />
-              +{deviation} Days Over
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 text-[10px] text-green-600 font-bold">
-              {deviation < 0 ? `${Math.abs(deviation)} Days Early` : 'On Time'}
-            </div>
-          )
-        ) : (
-          <div className="flex items-center gap-1 text-[10px] text-orange-500 italic">
-            <Clock className="h-3 w-3" />
-            Active Cycle
-          </div>
-        )}
+        <DeviationCell deviation={deviation} />
       </TableCell>
     </TableRow>
   );

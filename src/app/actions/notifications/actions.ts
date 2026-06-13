@@ -128,21 +128,6 @@ async function getRecipientIds(finding: any) {
   return recipientIds;
 }
 
-async function checkExistingNotification(userId: string, findingId: string, today: Date) {
-  return prisma.notification.findFirst({
-    where: {
-      userId,
-      findingId,
-      createdAt: {
-        gte: today,
-      },
-      message: {
-        contains: 'rectification deadline',
-      },
-    },
-  });
-}
-
 function createNotificationData(userId: string, finding: any, diffDays: number, dueDate: Date) {
   const message = `Reminder: The rectification deadline for Finding #${finding.referenceNumber || finding.id.slice(0, 8)} is approaching. The due date is ${dueDate.toDateString()}.`;
   
@@ -159,6 +144,31 @@ function createNotificationData(userId: string, finding: any, diffDays: number, 
   };
 }
 
+async function collectNotificationsForFinding(finding: any, today: Date) {
+  if (!finding.rectificationDate) return [];
+
+  const dueDate = new Date(finding.rectificationDate);
+  dueDate.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  const recipientIds = await getRecipientIds(finding);
+
+  // Batch query: fetch all already-notified users for this finding today in one round trip
+  const alreadyNotified = await prisma.notification.findMany({
+    where: {
+      findingId: finding.id,
+      createdAt: { gte: today },
+      message: { contains: 'rectification deadline' },
+    },
+    select: { userId: true },
+  });
+  const notifiedSet = new Set(alreadyNotified.map(n => n.userId));
+
+  return [...recipientIds]
+    .filter(userId => !notifiedSet.has(userId))
+    .map(userId => createNotificationData(userId, finding, diffDays, dueDate));
+}
+
 /**
  * Background job / Helper function to generate rectification deadline notifications.
  * This should be called by a cron job or at a specific trigger point.
@@ -170,31 +180,13 @@ export async function processRectificationDeadlines() {
     today.setHours(0, 0, 0, 0);
 
     const findings = await getFindingsWithUpcomingDeadlines(today);
-    const notificationsToCreate = [];
-
-    for (const finding of findings) {
-      if (!finding.rectificationDate) continue;
-
-      const dueDate = new Date(finding.rectificationDate);
-      dueDate.setHours(0, 0, 0, 0);
-      
-      const diffTime = dueDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      const recipientIds = await getRecipientIds(finding);
-
-      for (const userId of recipientIds) {
-        const existing = await checkExistingNotification(userId, finding.id, today);
-        if (!existing) {
-          notificationsToCreate.push(createNotificationData(userId, finding, diffDays, dueDate));
-        }
-      }
-    }
+    const notificationArrays = await Promise.all(
+      findings.map(finding => collectNotificationsForFinding(finding, today))
+    );
+    const notificationsToCreate = notificationArrays.flat();
 
     if (notificationsToCreate.length > 0) {
-      await prisma.notification.createMany({
-        data: notificationsToCreate,
-      });
+      await prisma.notification.createMany({ data: notificationsToCreate });
       console.log(`[NOTIFICATIONS] Created ${notificationsToCreate.length} deadline reminders.`);
     }
 
