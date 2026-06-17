@@ -4,7 +4,10 @@ import { prisma } from './prisma';
 import { cookies, headers } from 'next/headers';
 import { logSecurityEvent } from './securityLogger';
 
-const SECRET = process.env.AUTH_SECRET || 'dev-secret-change-me';
+if (!process.env.AUTH_SECRET) {
+  throw new Error('AUTH_SECRET environment variable is not set. Application cannot start without a cryptographic secret.');
+}
+const SECRET = process.env.AUTH_SECRET;
 const ACCESS_COOKIE_NAME = '__Secure-auth_access';
 const REFRESH_COOKIE_NAME = '__Secure-auth_refresh';
 const CSRF_COOKIE_NAME = '__Secure-csrf_token';
