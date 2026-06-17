@@ -20,6 +20,7 @@ model User {
   dateJoined            DateTime         @default(now())
   requirePasswordChange Boolean          @default(true)
   passwordLastChanged   DateTime         @default(now())
+  passwordHistory       String[]         @default([])
   sessionVersion        Int              @default(1)
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
