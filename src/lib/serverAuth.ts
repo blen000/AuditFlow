@@ -4,10 +4,13 @@ import { prisma } from './prisma';
 import { cookies, headers } from 'next/headers';
 import { logSecurityEvent } from './securityLogger';
 
-if (!process.env.AUTH_SECRET) {
-  throw new Error('AUTH_SECRET environment variable is not set. Application cannot start without a cryptographic secret.');
+function getSecret(): string {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error('AUTH_SECRET environment variable is not set. Application cannot start without a cryptographic secret.');
+  }
+  return secret;
 }
-const SECRET = process.env.AUTH_SECRET;
 const ACCESS_COOKIE_NAME = '__Secure-auth_access';
 const REFRESH_COOKIE_NAME = '__Secure-auth_refresh';
 const CSRF_COOKIE_NAME = '__Secure-csrf_token';
@@ -27,7 +30,7 @@ export function signToken(payload: Record<string, any>, expiryMs: number = ACCES
   
   const header = base64url(Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
   const body = base64url(Buffer.from(JSON.stringify({ ...payload, iat, exp })));
-  const sig = crypto.createHmac('sha256', SECRET).update(`${header}.${body}`).digest();
+  const sig = crypto.createHmac('sha256', getSecret()).update(`${header}.${body}`).digest();
   return `${header}.${body}.${base64url(sig)}`;
 }
 
@@ -35,7 +38,7 @@ export function verifyToken(token: string) {
   try {
     const [header, body, sig] = token.split('.');
     if (!header || !body || !sig) return null;
-    const expected = base64url(crypto.createHmac('sha256', SECRET).update(`${header}.${body}`).digest());
+    const expected = base64url(crypto.createHmac('sha256', getSecret()).update(`${header}.${body}`).digest());
     if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) return null;
     
     const payload = JSON.parse(Buffer.from(body, 'base64').toString());

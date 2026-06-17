@@ -222,6 +222,11 @@ export function middleware(req: NextRequest) {
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-nonce', nonce);
 
+  // Block CVE-2026-27980: reject PPR resume requests (Next-Resume header) regardless of PPR config
+  if (req.headers.has('next-resume')) {
+    return new NextResponse(null, { status: 400 });
+  }
+
   // Step 1: Validate origin/referer for state-changing requests
   const originError = validateOriginReferer(req);
   if (originError) {
