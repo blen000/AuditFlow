@@ -29,7 +29,6 @@ export async function POST(req: Request) {
     const h = headers();
     const userAgent = h.get('user-agent') || 'unknown';
     const rawIp = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
-    console.log('RAW IP:', h.get('x-forwarded-for'), h.get('x-real-ip'));
     const ipAddress = rawIp.split(':')[0];
 
     // Rotate tokens

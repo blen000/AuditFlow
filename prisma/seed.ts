@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -117,7 +118,20 @@ async function main() {
 
   // 2. Users
   if (adminRole) {
-    const adminPassword = process.env.ADMIN_PASSWORD || 'Password@12345';
+    let adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(
+          '[SEED] ADMIN_PASSWORD environment variable must be set in production. Aborting seed.'
+        );
+      }
+      adminPassword = crypto.randomBytes(16).toString('base64url');
+      console.log('');
+      console.log('[SEED] ADMIN_PASSWORD not set. Generated a one-time development password:');
+      console.log(`[SEED]   ${adminPassword}`);
+      console.log('[SEED] Set ADMIN_PASSWORD in your .env to use a fixed password on re-seed.');
+      console.log('');
+    }
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@auditflow.com';
     const hashedPassword = await bcrypt.hash(adminPassword, SALT_ROUNDS);
     

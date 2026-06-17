@@ -56,7 +56,6 @@ export async function createSecureSession(userId: string, res?: NextResponse, ex
   const h = headers();
   const userAgent = h.get('user-agent') || 'unknown';
   const rawIp = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
-  console.log('RAW IP:', h.get('x-forwarded-for'), h.get('x-real-ip'));
   const ipAddress = cleanIp(rawIp);
 
   // fingerprint removed from session creation for simplicity
@@ -146,7 +145,6 @@ export async function getUserFromRequest(req: Request) {
 
     const userAgent = req.headers.get('user-agent') || 'unknown';
     const rawIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || '127.0.0.1';
-    console.log('RAW IP:', req.headers.get('x-forwarded-for'), req.headers.get('x-real-ip'));
     const ipAddress = cleanIp(rawIp);
 
     // Fetch session + user + role.permissions from DB on every request.
@@ -213,7 +211,6 @@ export async function getUserFromCookiesServer() {
   const h = headers();
   const userAgent = h.get('user-agent') || 'unknown';
   const rawIp = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
-  console.log('RAW IP:', h.get('x-forwarded-for'), h.get('x-real-ip'));
   const ipAddress = cleanIp(rawIp);
 
   // See getUserFromRequest for the rationale: permissions are DB-fresh per request.

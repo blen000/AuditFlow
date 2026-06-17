@@ -157,10 +157,23 @@ export async function POST(req: Request) {
     await resetAttempt(ip);
     await resetAttempt(email);
 
-    // ❗ Create a secure, bound session in DB and set cookies
-    // Invalidate any existing sessions for this user to avoid stale sessions
+    // ❗ Create a secure, bound session in DB and set cookies.
+    // Invalidate any existing sessions first (single active session policy).
+    const displacedCount = await prisma.session.count({ where: { userId: user.id } });
     await prisma.session.deleteMany({ where: { userId: user.id } });
     await createSecureSession(user.id, res, { requirePasswordChange: needsPasswordChange });
+
+    // Notify the user when a new sign-in terminates an existing active session
+    if (displacedCount > 0) {
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: 'Previous Session Terminated',
+          message: `A new sign-in from IP ${ip} was detected, which terminated your previous active session. If this was not you, contact your administrator immediately.`,
+          type: 'alert',
+        },
+      });
+    }
 
     await logSecurityEvent('AUTH_LOGIN_SUCCESS', {
       userId: user.id,

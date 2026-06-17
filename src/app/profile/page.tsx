@@ -6,22 +6,70 @@ import PageHeader from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Building2, 
-  MapPin, 
-  Lock, 
+import {
+  Building2,
+  MapPin,
+  Lock,
   LogOut,
   UserCircle,
   ShieldCheck,
-  Mail
+  Mail,
+  Monitor,
+  Globe,
+  Loader2,
 } from 'lucide-react';
 import { ChangePasswordDialog } from '@/components/audit/ChangePasswordDialog';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
+import { getCsrfToken } from '@/lib/csrf';
+import { formatDistanceToNow } from 'date-fns';
+
+type SessionEntry = {
+  id: string;
+  userAgent: string;
+  ipAddress: string;
+  createdAt: string;
+  lastActiveAt: string;
+  isCurrent: boolean;
+};
+
+function parseBrowserName(userAgent: string): string {
+  if (userAgent.includes('Edg/')) return 'Microsoft Edge';
+  if (userAgent.includes('Chrome/')) return 'Google Chrome';
+  if (userAgent.includes('Firefox/')) return 'Mozilla Firefox';
+  if (userAgent.includes('Safari/')) return 'Apple Safari';
+  return 'Unknown Browser';
+}
 
 export default function ProfilePage() {
   const { user: currentUser, logout } = useAuth();
   const [isPassDialogOpen, setPassDialogOpen] = useState(false);
+  const [sessions, setSessions] = useState<SessionEntry[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [isLoggingOutAll, setIsLoggingOutAll] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/auth/sessions', { credentials: 'same-origin' })
+      .then(r => r.json())
+      .then(data => { if (data.success) setSessions(data.sessions); })
+      .catch(() => {})
+      .finally(() => setIsLoadingSessions(false));
+  }, []);
+
+  const handleLogoutAllDevices = async () => {
+    setIsLoggingOutAll(true);
+    try {
+      const csrfToken = await getCsrfToken();
+      await fetch('/api/auth/sessions', {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: { 'X-CSRF-Token': csrfToken },
+      });
+      logout();
+    } catch {
+      setIsLoggingOutAll(false);
+    }
+  };
 
   if (!currentUser) return null;
 
@@ -126,6 +174,58 @@ export default function ProfilePage() {
                 </CardContent>
                 <CardFooter className="bg-muted/10 border-t justify-end p-4">
                   <p className="text-[10px] text-muted-foreground italic">Authenticated access granted based on functional role assignment.</p>
+                </CardFooter>
+              </Card>
+
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    <Monitor className="h-5 w-5 text-primary" />
+                    Active Sessions
+                  </CardTitle>
+                  <CardDescription>Devices and browsers currently signed into your account.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {isLoadingSessions ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading sessions...
+                    </div>
+                  ) : sessions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No active sessions found.</p>
+                  ) : (
+                    sessions.map(session => (
+                      <div key={session.id} className="flex items-start gap-3 p-3 rounded-lg border bg-muted/20">
+                        <Globe className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold">{parseBrowserName(session.userAgent)}</span>
+                            {session.isCurrent && (
+                              <Badge variant="default" className="text-[9px] h-4 px-1.5">Current</Badge>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">IP: {session.ipAddress}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Last active: {formatDistanceToNow(new Date(session.lastActiveAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+                <CardFooter className="border-t pt-4">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full"
+                    onClick={handleLogoutAllDevices}
+                    disabled={isLoggingOutAll || isLoadingSessions}
+                  >
+                    {isLoggingOutAll
+                      ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      : <LogOut className="h-4 w-4 mr-2" />
+                    }
+                    Logout from All Devices
+                  </Button>
                 </CardFooter>
               </Card>
             </div>

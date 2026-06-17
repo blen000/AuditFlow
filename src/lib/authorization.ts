@@ -224,53 +224,34 @@ async function fetchResource(type: ResourceType, id: string) {
 }
 
 export function enforceDefaultOwnership(user: any, type: ResourceType, resource: any) {
-  // Admins bypass ownership checks for most resources
   if (user.role.name === 'Admin') return;
 
   switch (type) {
     case 'user':
-      // Users can only access their own profile
-      if (resource.id !== user.id) {
-        throw new AuthorizationError();
-      }
+      if (resource.id !== user.id) throw new AuthorizationError();
       break;
 
-    case 'finding':
-      const isAuditor = user.role.name === 'Auditor';
-      const isAuditee = user.role.name === 'Auditee';
-      const isChief = user.role.name === 'Chief';
-      const isCEO = user.role.name === 'CEO';
-
-      if (isAuditor) {
-        // Auditors can only access findings where they are team leader or member
+    case 'finding': {
+      const roleName = user.role.name;
+      if (roleName === 'Chief' || roleName === 'CEO') return;
+      if (roleName === 'Auditor') {
         const teamMembers = (resource.teamMembers as string[]) || [];
-        if (resource.teamLeader !== user.fullName && !teamMembers.includes(user.fullName)) {
+        if (resource.teamLeader !== user.fullName && !teamMembers.includes(user.fullName))
           throw new AuthorizationError();
-        }
-      } else if (isAuditee) {
-        // Auditees can only access findings in their branch/department
-        if (resource.branchOrDepartment !== user.branch) {
-          throw new AuthorizationError();
-        }
-      } else if (isChief || isCEO) {
-        // Chiefs and CEOs might have broader access, but for now let's say they can see everything if they have the role
-        // This can be refined further based on business logic
-        return;
-      } else {
-        throw new AuthorizationError();
+        break;
       }
-      break;
+      if (roleName === 'Auditee') {
+        if (resource.branchOrDepartment !== user.branch) throw new AuthorizationError();
+        break;
+      }
+      throw new AuthorizationError();
+    }
 
     case 'specialAudit':
-      // For now, only Admin and Auditors might have access to special audits
-      // Auditor access might need further refinement
-      if (user.role.name !== 'Auditor' && user.role.name !== 'Admin') {
-        throw new AuthorizationError();
-      }
+      if (user.role.name !== 'Auditor') throw new AuthorizationError();
       break;
 
     default:
-      // Deny by default for other resource types if no custom ownership check provided
       throw new AuthorizationError();
   }
 }
@@ -283,12 +264,6 @@ export async function enforceBusinessRules(action: 'update' | 'close' | 'approve
   if (user.role.name === 'Admin') return; // Admin can override for emergency fixes
 
   if (action === 'update' || action === 'close') {
-    // 1. Maker-Checker for Findings
-    // The user who created or last updated a finding cannot be the one to close it
-    // if role separation is required.
-    const isAuditor = user.role.name === 'Auditor';
-    
-    // Check if the current user was the team leader who logged this finding
     if (resource.teamLeader === user.fullName) {
       // In a strict maker-checker, the team leader who logs a finding 
       // should not be the one to mark it as 'Closed' or 'Mitigated'.

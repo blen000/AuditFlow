@@ -60,19 +60,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     resetInactivityTimer();
   };
 
-  const verifySessionWithServer = async (): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/auth/me', {
-        method: 'GET',
-        cache: 'no-store',
-        credentials: 'same-origin',
-      });
-      return res.ok;
-    } catch {
-      return false;
-    }
-  };
-
   const clearLocalAuthState = () => {
     setUser(null);
     setPermissions([]);
@@ -91,38 +78,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let mounted = true;
     const bootstrap = async () => {
       setIsLoading(true);
-      // Purge any sensitive keys that may have been written by older versions of this app
       ['currentUser', 'user_role', 'userData', 'authUser'].forEach(k => {
         try { localStorage.removeItem(k); } catch (_) {}
       });
       try {
-        // Always verify session with server — never trust localStorage for user identity
         const res = await fetch('/api/auth/me', {
           method: 'GET',
           cache: 'no-store',
           credentials: 'include',
         });
         if (res.ok) {
-          const data = await res.json();
+          const { user: u } = await res.json();
           if (!mounted) return;
-          const u: User = data.user;
-          setUser(u);
-          setPermissions(withAdminPermissions(u?.role, u?.permissions || []));
-          setIsAuthenticated(true);
+          setAuthenticatedState(u);
         } else {
           if (!mounted) return;
-          setUser(null);
-          setPermissions([]);
-          setIsAuthenticated(false);
-          // Clear the cross-tab flag so other tabs also recognise the session is gone
-          localStorage.setItem('isAuthenticated', 'false');
+          clearLocalAuthState();
         }
-      } catch (e) {
-        // On network error, treat as unauthenticated
+      } catch {
         if (!mounted) return;
-        setUser(null);
-        setPermissions([]);
-        setIsAuthenticated(false);
+        clearLocalAuthState();
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -171,10 +146,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [isAuthenticated]);
 
   const login = (u: User) => {
-    setUser(u);
-    setPermissions(withAdminPermissions(u?.role, u.permissions || []));
-    setIsAuthenticated(true);
-    // Store only the non-sensitive boolean flag for cross-tab sync — no user data in localStorage
+    setAuthenticatedState(u);
     localStorage.setItem('isAuthenticated', 'true');
     try {
       localStorage.setItem('lastActivity', Date.now().toString());
@@ -191,11 +163,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) {
       console.warn('Server logout failed:', e);
     }
-
-    setUser(null);
-    setPermissions([]);
-    setIsAuthenticated(false);
-    localStorage.setItem('isAuthenticated', 'false');
+    clearLocalAuthState();
     try {
       router.push('/login');
     } catch (e) {}
@@ -203,12 +171,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleSetUser = (u: User | null) => {
     setUser(u);
-    if (u) {
-      setPermissions(withAdminPermissions(u?.role, u.permissions || []));
-    } else {
-      setPermissions([]);
-    }
-    // No localStorage writes for user data
+    setPermissions(u ? withAdminPermissions(u.role, u.permissions || []) : []);
   };
 
   return (
