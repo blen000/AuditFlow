@@ -6,7 +6,7 @@ import { enforceDefaultOwnership } from '@/lib/authorization';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getUserFromRequest(req);
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const attachment = await prisma.fileAttachment.findUnique({
       where: { id },
       include: { finding: true }

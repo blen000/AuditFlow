@@ -31,7 +31,7 @@ import type { User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { EditUserDialog } from '@/components/audit/EditUserDialog';
-import { getUsers, deleteUser, updateUser, resendInvitationEmail } from '@/app/actions/users';
+import { getUsers, deleteUser, updateUser, resendInvitationEmail, getRoles } from '@/app/actions/users';
 
 export default function UserManagementPage() {
   const { toast } = useToast();
@@ -41,19 +41,21 @@ export default function UserManagementPage() {
   
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [roles, setRoles] = useState<{ id: string; name: string; isSpecial: boolean }[]>([]);
 
   useEffect(() => {
-    async function loadUsers() {
+    async function loadData() {
       try {
-        const data = await getUsers();
-        setUsers(data as any);
+        const [userData, roleData] = await Promise.all([getUsers(), getRoles()]);
+        setUsers(userData as any);
+        setRoles(roleData.map(r => ({ id: r.id, name: r.name, isSpecial: r.isSpecial })));
       } catch (error) {
         console.error('Error loading users:', error);
       } finally {
         setIsLoading(false);
       }
     }
-    loadUsers();
+    loadData();
   }, []);
 
   const filteredUsers = useMemo(() => {
@@ -263,11 +265,12 @@ export default function UserManagementPage() {
         </div>
       </main>
 
-      <EditUserDialog 
+      <EditUserDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         user={editingUser}
         onSubmit={handleUpdateUser}
+        roles={roles}
       />
     </div>
   );

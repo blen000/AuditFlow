@@ -5,7 +5,7 @@ import { verifyToken } from '@/lib/serverAuth';
 const ACCESS_COOKIE_NAME = '__Secure-auth_access';
 
 export async function GET() {
-  const ck = cookies();
+  const ck = await cookies();
   const accessToken = ck.get(ACCESS_COOKIE_NAME)?.value;
   if (!accessToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

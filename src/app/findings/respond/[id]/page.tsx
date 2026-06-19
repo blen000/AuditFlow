@@ -13,10 +13,8 @@ import { getUserFromCookiesServer } from '@/lib/serverAuth';
 import type { AuditFinding } from '@/types';
 import { notFound, redirect } from 'next/navigation';
 
-type Params = { id: string };
-
-export default async function RespondToFindingPage({ params }: { params: Params }) {
-  const id = params.id;
+export default async function RespondToFindingPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   
   // enforce server-side auth
   const currentUser = await getUserFromCookiesServer();

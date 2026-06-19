@@ -5,7 +5,7 @@ import { logSecurityEvent } from '@/lib/securityLogger';
 
 export async function POST(req: Request) {
   try {
-    const ck = cookies();
+    const ck = await cookies();
     const accessToken = ck.get('__Secure-auth_access')?.value;
     
     if (accessToken) {

@@ -32,7 +32,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { User } from '@/types';
 import { UserCheck, Mail, ShieldCheck } from 'lucide-react';
-import { initialRoles } from '@/lib/mock-data';
+
+type Role = { id: string; name: string; isSpecial: boolean };
 
 const formSchema = z.object({
   fullName: z.string().min(2, 'Full name is required.'),
@@ -45,6 +46,7 @@ type EditUserDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: Partial<User>) => void;
   user: User | null;
+  roles: Role[];
 };
 
 export function EditUserDialog({
@@ -52,6 +54,7 @@ export function EditUserDialog({
   onOpenChange,
   onSubmit,
   user,
+  roles,
 }: EditUserDialogProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -141,7 +144,7 @@ export function EditUserDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {initialRoles.map((role) => (
+                      {roles.map((role) => (
                         <SelectItem key={role.id} value={role.name}>
                           {role.name} {role.isSpecial ? '(Executive)' : ''}
                         </SelectItem>

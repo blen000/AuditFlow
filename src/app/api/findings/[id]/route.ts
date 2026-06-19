@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { authorizeRoute } from '@/lib/authorization';
 import { revalidatePath } from 'next/cache';
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
   // Enforce authorization and ownership for this route
   const auth = await authorizeRoute(req, { resourceId: id, resourceType: 'finding' });

@@ -59,7 +59,7 @@ function cleanIp(ip: string) {
 }
 
 export async function createSecureSession(userId: string, res?: NextResponse, extraPayload: any = {}) {
-  const h = headers();
+  const h = await headers();
   const userAgent = h.get('user-agent') || 'unknown';
   const rawIp = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
   const ipAddress = cleanIp(rawIp);
@@ -97,7 +97,7 @@ export async function createSecureSession(userId: string, res?: NextResponse, ex
     setAuthCookies(res, accessToken, refreshToken);
   } else {
     // For Server Actions
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     cookieStore.set(ACCESS_COOKIE_NAME, accessToken, {
       httpOnly: true,
       secure: true, // MANDATORY: Enforced for all environments per security policy
@@ -206,7 +206,7 @@ export async function getUserFromRequest(req: Request) {
 }
 
 export async function getUserFromCookiesServer() {
-  const ck = cookies();
+  const ck = await cookies();
   const accessToken = ck.get(ACCESS_COOKIE_NAME)?.value;
   if (!accessToken) return null;
 
@@ -214,7 +214,7 @@ export async function getUserFromCookiesServer() {
   if (!payload || !payload.userId || !payload.sessionId) return null;
 
   // Fingerprint binding (user-agent + IP) is best-effort only.
-  const h = headers();
+  const h = await headers();
   const userAgent = h.get('user-agent') || 'unknown';
   const rawIp = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
   const ipAddress = cleanIp(rawIp);

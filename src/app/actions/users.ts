@@ -57,7 +57,7 @@ async function resetAttempt(identifier: string) {
  */
 export async function loginUser(data: any) {
   try {
-    const h = headers();
+    const h = await headers();
     const contentLength = h.get('content-length');
     if (contentLength && parseInt(contentLength) > 2048) {
       return { success: false, error: 'Payload too large' };
@@ -199,7 +199,7 @@ export async function loginUser(data: any) {
 }
 
 export async function logoutUser() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const accessToken = cookieStore.get('__Secure-auth_access')?.value;
   
   if (accessToken) {
