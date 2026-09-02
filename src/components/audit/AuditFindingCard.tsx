@@ -56,10 +56,16 @@ import { Badge } from '../ui/badge';
 import type { StatusData } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 
+type AuditFindingUpdateIntent = 'edit' | 'status' | 'progress' | 'follow_up';
+
 type AuditFindingCardProps = {
   finding: AuditFinding;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, updates: Partial<AuditFinding>) => void;
+  onUpdate: (
+    id: string,
+    updates: Partial<AuditFinding>,
+    intent?: AuditFindingUpdateIntent
+  ) => void;
   statuses: StatusData[];
   followUpStatuses: StatusData[];
 };
@@ -78,6 +84,18 @@ export function AuditFindingCard({
 
   const hasPermission = (key: string) => permissions.includes(key);
 
+  // Whether the current user can take ANY action on a finding card. When false
+  // (e.g. "Auditee View — View Only"), the actions menu is not rendered at all;
+  // the card still shows actions that were already taken (status, follow-up,
+  // progress history, responses).
+  const canActOnFinding =
+    hasPermission('auditee_view_edit_finding') ||
+    hasPermission('auditee_view_follow_up') ||
+    hasPermission('auditee_view_auditee_response') ||
+    hasPermission('auditee_view_add_progress') ||
+    hasPermission('auditee_view_change_status') ||
+    hasPermission('auditee_view_delete_finding');
+
   const safeDate = (d: any): Date | null => {
     if (!d) return null;
     const date = new Date(d);
@@ -85,11 +103,11 @@ export function AuditFindingCard({
   };
 
   const handleStatusChange = (status: FindingStatus) => {
-    onUpdate(finding.id, { status });
+    onUpdate(finding.id, { status }, 'status');
   };
 
   const handleDateSelect = (date: Date | undefined) => {
-    onUpdate(finding.id, { revalidationDate: date });
+    onUpdate(finding.id, { revalidationDate: date }, 'edit');
   };
 
   const handleAddProgress = (update: {
@@ -106,7 +124,7 @@ export function AuditFindingCard({
       ...(finding.progressUpdates || []),
       newProgressUpdate,
     ];
-    onUpdate(finding.id, { progressUpdates: updatedProgress });
+    onUpdate(finding.id, { progressUpdates: updatedProgress }, 'progress');
   };
 
   const allAttachments = [
@@ -140,6 +158,7 @@ export function AuditFindingCard({
             <div className="flex flex-col gap-2">
               <RiskBadge riskLevel={finding.riskLevel} />
             </div>
+            {canActOnFinding && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -200,6 +219,7 @@ export function AuditFindingCard({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+            )}
           </div>
           <CardTitle className="pt-2 text-lg max-w-full break-words break-all" style={{ wordBreak: 'break-word' }}>
             {finding.title}
@@ -357,33 +377,35 @@ export function AuditFindingCard({
               </span>
             )}
           </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  'h-8 justify-start text-left font-normal',
-                  !revalDate && 'text-muted-foreground'
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {revalDate ? (
-                  format(revalDate, 'MMM d, yyyy')
-                ) : (
-                  <span>Set Date</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={revalDate || undefined}
-                onSelect={handleDateSelect}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          {hasPermission('auditee_view_edit_finding') && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'h-8 justify-start text-left font-normal',
+                    !revalDate && 'text-muted-foreground'
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {revalDate ? (
+                    format(revalDate, 'MMM d, yyyy')
+                  ) : (
+                    <span>Set Date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={revalDate || undefined}
+                  onSelect={handleDateSelect}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          )}
         </CardFooter>
       </Card>
       <AddProgressUpdateDialog

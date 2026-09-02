@@ -14,8 +14,15 @@ export const PERMISSION_DEFINITIONS = [
   {
     key: 'auditee_view_access',
     label: 'Auditee View',
-    description: 'Specialized view for auditees to respond to findings.',
-    group: 'Core Actions',
+    description: 'Parent access to the Auditee View module. Selecting this grants every action below.',
+    group: 'Core Actions → Auditee View',
+    isParent: true,
+  },
+  {
+    key: 'auditee_view_readonly',
+    label: 'Auditee View — View Only',
+    description: 'Open Auditee View and read finding cards (including actions already taken). No edit, response, progress, status-change, or delete. Does not inherit any other Auditee View permission.',
+    group: 'Core Actions → Auditee View',
   },
   {
     key: 'auditee_view_edit_finding',
@@ -193,6 +200,25 @@ export function isAdminRole(role?: string | null): boolean {
   return typeof role === 'string' && role.toLowerCase() === 'admin';
 }
 
+// Child action permissions under the "Core Actions → Auditee View" group.
+// The parent `auditee_view_access` toggle implies all of these.
+export const AUDITEE_VIEW_CHILD_PERMISSIONS: PermissionKey[] = [
+  'auditee_view_edit_finding',
+  'auditee_view_follow_up',
+  'auditee_view_auditee_response',
+  'auditee_view_add_progress',
+  'auditee_view_change_status',
+  'auditee_view_delete_finding',
+];
+
+// Any of these keys is sufficient to OPEN the /auditee-view page and see the
+// finding list. Individual child keys then unlock their specific action.
+export const AUDITEE_VIEW_PAGE_PERMISSIONS: PermissionKey[] = [
+  'auditee_view_access',
+  'auditee_view_readonly',
+  ...AUDITEE_VIEW_CHILD_PERMISSIONS,
+];
+
 // Backwards compatibility for legacy roles stored with:
 // - audit_read, audit_write, reports_read, settings_manage
 const LEGACY_PERMISSION_MAP: Record<string, PermissionKey[]> = {
@@ -233,6 +259,15 @@ export function normalizePermissions(permissions: string[] = []): PermissionKey[
     const legacy = LEGACY_PERMISSION_MAP[p];
     if (legacy) legacy.forEach((k) => out.add(k));
   }
+
+  // Parent implies children: holding the Auditee View parent toggle grants every
+  // child action. This runs on both the client (AuthContext) and the server
+  // (withAdminPermissions) so UI and API stay in sync, and roles saved with only
+  // the parent key keep working.
+  if (out.has('auditee_view_access')) {
+    AUDITEE_VIEW_CHILD_PERMISSIONS.forEach((k) => out.add(k));
+  }
+  // NOTE: `auditee_view_readonly` deliberately implies nothing else.
 
   return Array.from(out);
 }

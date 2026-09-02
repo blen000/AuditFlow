@@ -143,7 +143,7 @@ export default function RoleManagementPage() {
               roles.map((role) => (
                 <Card key={role.id} className="shadow-sm hover:shadow-md transition-shadow relative overflow-hidden border-l-4 border-l-primary/20">
                   {role.isSpecial && (
-                    <div className="absolute top-0 right-0 h-16 w-16">
+                    <div className="pointer-events-none absolute top-0 right-0 h-16 w-16 overflow-hidden">
                       <div className="absolute transform rotate-45 bg-amber-500 text-amber-950 text-[8px] font-bold py-1 px-10 right-[-35px] top-[15px] shadow-sm text-center uppercase tracking-tighter">
                         Special
                       </div>
@@ -164,7 +164,7 @@ export default function RoleManagementPage() {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="relative z-10 h-8 w-8">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>

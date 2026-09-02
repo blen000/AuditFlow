@@ -18,6 +18,20 @@ export const changePasswordSchema = z.object({
     .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Must include a special character'),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'Reset token is required'),
+  newPassword: z.string()
+    .min(12, 'Password must be at least 12 characters')
+    .regex(/[A-Z]/, 'Must include uppercase')
+    .regex(/[a-z]/, 'Must include lowercase')
+    .regex(/[0-9]/, 'Must include a number')
+    .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Must include a special character'),
+});
+
 // --- User & Role Schemas ---
 
 export const createUserSchema = z.object({

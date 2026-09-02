@@ -10,6 +10,7 @@ import {
 import { InvolvedCasesManager } from '@/components/audit/InvolvedCasesManager';
 import { securePrisma } from '@/lib/securePrisma';
 import { getUserFromCookiesServer } from '@/lib/serverAuth';
+import { withAdminPermissions } from '@/lib/permissions';
 import type { AuditFinding } from '@/types';
 import { notFound, redirect } from 'next/navigation';
 
@@ -22,6 +23,18 @@ export default async function RespondToFindingPage({ params }: { params: Params 
   const currentUser = await getUserFromCookiesServer();
   if (!currentUser) {
     redirect('/login?callbackUrl=' + encodeURIComponent(`/findings/respond/${id}`));
+  }
+
+  // Require the Auditee View "Auditee Response" permission (Admins bypass).
+  const effectivePermissions = withAdminPermissions(
+    currentUser.role?.name,
+    currentUser.role?.permissions ?? []
+  );
+  if (
+    currentUser.role?.name !== 'Admin' &&
+    !effectivePermissions.includes('auditee_view_auditee_response')
+  ) {
+    notFound();
   }
 
   // ❗ Use securePrisma to enforce object-level authorization (IDOR protection)

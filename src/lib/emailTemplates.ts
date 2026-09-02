@@ -133,3 +133,51 @@ export async function sendPasswordChangeNotification(email: string, fullName: st
 
   await sendEmail({ to: email, subject: 'Your NibAudit password has been changed', html });
 }
+
+export async function sendPasswordResetEmail(
+  email: string,
+  fullName: string,
+  resetUrl: string,
+  expiresInMinutes: number
+): Promise<void> {
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Reset your NibAudit password</title>
+      <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; line-height: 1.6; }
+        .container { max-width: 600px; margin: 20px auto; background: #fff; border: 1px solid #ddd; border-radius: 5px; }
+        .header { background-color: #fecf12; color: #000; padding: 12px 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .header h2 { margin: 0; font-size: 1.15em; }
+        .content { padding: 24px; }
+        .button { display: inline-block; background-color: #4a6e3a; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 18px 0; }
+        .link-fallback { word-break: break-all; font-size: 0.85em; color: #555; background: #f9f9f9; border: 1px solid #eee; padding: 10px; border-radius: 4px; }
+        .note { font-size: 0.9em; color: #777; margin-top: 18px; }
+        .footer { padding: 16px 20px; text-align: center; font-size: 0.85em; color: #777; border-top: 1px solid #eee; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header"><h2>Reset Your Password</h2></div>
+        <div class="content">
+          <p>Hello <strong>${fullName}</strong>,</p>
+          <p>We received a request to reset the password for your NIB Audit Platform account. Click the button below to choose a new password.</p>
+          <p><a href="${resetUrl}" class="button" style="color: #fff;">Reset Password</a></p>
+          <p>If the button does not work, copy and paste this link into your browser:</p>
+          <p class="link-fallback">${resetUrl}</p>
+          <p class="note">
+            This link expires in ${expiresInMinutes} minutes and can be used only once.
+            If you did not request a password reset, you can safely ignore this email &mdash; your password will not change.
+          </p>
+        </div>
+        <div class="footer">This is an automated message. Please do not reply to this email.</div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await sendEmail({ to: email, subject: 'Reset your NibAudit password', html });
+}

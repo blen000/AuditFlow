@@ -29,7 +29,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Role } from '@/types';
 import { ShieldAlert, Star } from 'lucide-react';
-import { PERMISSION_DEFINITIONS } from '@/lib/permissions';
+import { PERMISSION_DEFINITIONS, AUDITEE_VIEW_CHILD_PERMISSIONS } from '@/lib/permissions';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Role name is required.'),
@@ -64,10 +64,16 @@ export function AddEditRoleDialog({
   useEffect(() => {
     if (open) {
       if (role) {
+        // If the role holds the Auditee View parent toggle, surface every child
+        // as checked too (the parent implies them at runtime).
+        const stored = new Set(role.permissions);
+        if (stored.has('auditee_view_access')) {
+          AUDITEE_VIEW_CHILD_PERMISSIONS.forEach((c) => stored.add(c));
+        }
         form.reset({
           name: role.name,
           description: role.description,
-          permissions: role.permissions,
+          permissions: Array.from(stored),
           isSpecial: role.isSpecial || false,
         });
       } else {
@@ -160,9 +166,25 @@ export function AddEditRoleDialog({
                     Granular Permissions
                   </FormLabel>
                   <div className="space-y-4">
-                    {Array.from(new Set(PERMISSION_DEFINITIONS.map((p) => p.group))).map((group) => (
-                      <div key={group}>
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                    {Array.from(new Set(PERMISSION_DEFINITIONS.map((p) => p.group))).map((group) => {
+                      const isAuditeeViewGroup = group === 'Core Actions → Auditee View';
+                      return (
+                      <div
+                        key={group}
+                        className={
+                          isAuditeeViewGroup
+                            ? 'rounded-xl border-2 border-primary/50 bg-primary/[0.04] p-4 shadow-sm ring-1 ring-primary/10'
+                            : undefined
+                        }
+                      >
+                        <div
+                          className={
+                            isAuditeeViewGroup
+                              ? 'mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-primary'
+                              : 'text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2'
+                          }
+                        >
+                          {isAuditeeViewGroup && <ShieldAlert className="h-4 w-4" />}
                           {group}
                         </div>
                         <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
@@ -173,22 +195,51 @@ export function AddEditRoleDialog({
                               name="permissions"
                               render={({ field }) => {
                                 const current = field.value || [];
-                                const isChecked = current.includes(p.key);
+                                const isParent = 'isParent' in p && p.isParent;
+                                // The Auditee View parent toggle reads as checked when
+                                // every child action is granted, and ticking it grants
+                                // them all; unticking removes the parent + all children.
+                                const isChecked = isParent
+                                  ? current.includes(p.key) &&
+                                    AUDITEE_VIEW_CHILD_PERMISSIONS.every((c) => current.includes(c))
+                                  : current.includes(p.key);
+
+                                const handleChange = (checked: boolean | 'indeterminate') => {
+                                  if (isParent) {
+                                    if (checked) {
+                                      field.onChange(
+                                        Array.from(new Set([...current, p.key, ...AUDITEE_VIEW_CHILD_PERMISSIONS]))
+                                      );
+                                    } else {
+                                      const strip = new Set<string>([p.key, ...AUDITEE_VIEW_CHILD_PERMISSIONS]);
+                                      field.onChange(current.filter((v) => !strip.has(v)));
+                                    }
+                                    return;
+                                  }
+                                  checked
+                                    ? field.onChange(Array.from(new Set([...current, p.key])))
+                                    : field.onChange(current.filter((value) => value !== p.key));
+                                };
 
                                 return (
-                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3 hover:bg-muted/30 transition-colors cursor-pointer">
+                                  <FormItem
+                                    className={
+                                      'flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3 transition-colors cursor-pointer' +
+                                      (isParent
+                                        ? ' border-primary bg-primary/10 hover:bg-primary/15 sm:col-span-2 md:col-span-3 shadow-sm'
+                                        : ' hover:bg-muted/30')
+                                    }
+                                  >
                                     <FormControl>
-                                      <Checkbox
-                                        checked={isChecked}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange(Array.from(new Set([...current, p.key])))
-                                            : field.onChange(current.filter((value) => value !== p.key));
-                                        }}
-                                      />
+                                      <Checkbox checked={isChecked} onCheckedChange={handleChange} />
                                     </FormControl>
                                     <div className="space-y-1 leading-none">
-                                      <FormLabel className="text-sm font-bold cursor-pointer">
+                                      <FormLabel
+                                        className={
+                                          'cursor-pointer ' +
+                                          (isParent ? 'text-sm font-black text-primary' : 'text-sm font-bold')
+                                        }
+                                      >
                                         {p.label}
                                       </FormLabel>
                                       <p className="text-xs text-muted-foreground">{p.description}</p>
@@ -200,7 +251,8 @@ export function AddEditRoleDialog({
                           ))}
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>

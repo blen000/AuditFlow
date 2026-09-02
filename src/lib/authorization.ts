@@ -3,6 +3,17 @@ import { prisma } from './prisma';
 import { NextResponse } from 'next/server';
 import { redirect } from 'next/navigation';
 import { logSecurityEvent } from './securityLogger';
+import { normalizePermissions } from './permissions';
+
+/**
+ * Effective permission keys for a user: the raw stored keys expanded by the
+ * normalization rules (legacy aliases + parent→child implications, e.g. the
+ * Auditee View parent toggle implying every child action). Use this everywhere
+ * an authorization decision is made server-side.
+ */
+export function effectivePermissionsFor(user: any): string[] {
+  return normalizePermissions(user?.role?.permissions || []);
+}
 
 export class AuthenticationError extends Error {
   constructor(message: string = 'Unauthorized') {
@@ -29,7 +40,10 @@ export class BusinessRuleError extends Error {
 
 export interface AuthOptions {
   allowedRoles?: string[];
+  /** ALL of these permission keys are required (AND). */
   allowedPermissions?: string[];
+  /** AT LEAST ONE of these permission keys is required (OR). */
+  anyPermissions?: string[];
   resourceId?: string;
   resourceType?: ResourceType;
   /**
@@ -172,12 +186,23 @@ async function enforce(user: any, options: AuthOptions) {
     }
   }
 
-  // 2. RBAC: Permission check
+  // Normalized (effective) permissions: legacy aliases + parent→child implications.
+  const userPermissions = effectivePermissionsFor(user);
+
+  // 2. RBAC: Permission check (ALL required)
   if (options.allowedPermissions && options.allowedPermissions.length > 0) {
-    const userPermissions = user.role.permissions || [];
     const hasPermission = options.allowedPermissions.every(p => userPermissions.includes(p));
     if (!hasPermission) {
       console.warn('Access denied: missing permissions', { userId: user.id, missing: options.allowedPermissions.filter(p => !userPermissions.includes(p)) });
+      throw new AuthorizationError();
+    }
+  }
+
+  // 2b. RBAC: Permission check (ANY of the set is sufficient)
+  if (options.anyPermissions && options.anyPermissions.length > 0) {
+    const hasAny = options.anyPermissions.some(p => userPermissions.includes(p));
+    if (!hasAny) {
+      console.warn('Access denied: none of the required permissions present', { userId: user.id, required: options.anyPermissions });
       throw new AuthorizationError();
     }
   }

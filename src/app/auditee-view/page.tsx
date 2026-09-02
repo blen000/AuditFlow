@@ -1,6 +1,5 @@
 'use client';
 import { useState, useMemo, useEffect, Suspense } from 'react';
-import Link from 'next/link';
 import { getCsrfToken } from '@/lib/csrf';
 import { useSearchParams } from 'next/navigation';
 import PageHeader from '@/components/layout/PageHeader';
@@ -14,7 +13,7 @@ import {
 import { AuditFindingCard } from '@/components/audit/AuditFindingCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Filter, PlusCircle, Search, ShieldCheck, ChevronRight, ChevronDown, Building2, Briefcase, FilterX, Loader2, ListTree } from 'lucide-react';
+import { Filter, Search, ShieldCheck, ChevronRight, ChevronDown, Building2, Briefcase, FilterX, Loader2, ListTree } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -120,9 +119,13 @@ function AuditeeViewContent() {
     }
   };
 
-  const handleUpdate = async (id: string, updates: Partial<AuditFinding>) => {
+  const handleUpdate = async (
+    id: string,
+    updates: Partial<AuditFinding>,
+    intent: 'edit' | 'status' | 'progress' | 'follow_up' = 'edit'
+  ) => {
     try {
-      const result = await updateFinding(id, updates);
+      const result = await updateFinding(id, updates, intent);
       if (result.success) {
         setFindings(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
       } else {
@@ -321,12 +324,6 @@ function AuditeeViewContent() {
                     Hierarchical findings grouped by Level 1 Missions defined in System Settings.
                   </p>
                 </div>
-                <Button asChild>
-                  <Link href="/findings/new">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Log Hierarchical Audit
-                  </Link>
-                </Button>
               </div>
 
               <div className="flex w-full flex-col gap-3 rounded-lg border bg-muted/30 p-4 lg:flex-row lg:items-center">

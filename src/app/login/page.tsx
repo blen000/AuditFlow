@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ import HangingBadge from '@/components/HangingBadge';
 import {
   withAdminPermissions,
   AUDIT_REPORTS_HUB_PERMISSIONS,
+  AUDITEE_VIEW_PAGE_PERMISSIONS,
   SYSTEM_SETTINGS_PERMISSIONS,
 } from '@/lib/permissions';
 
@@ -131,7 +133,7 @@ export default function LoginPage() {
 
       const getFirstAllowed = () => {
         if (effectivePermissions.includes('dashboard_access')) return '/dashboard';
-        if (effectivePermissions.includes('auditee_view_access')) return '/auditee-view';
+        if (AUDITEE_VIEW_PAGE_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/auditee-view';
         if (AUDIT_REPORTS_HUB_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/reports';
         if (effectivePermissions.includes('findings_new_access')) return '/findings/new';
         if (effectivePermissions.includes('special_audits_new_access')) return '/special-audits/new';
@@ -225,7 +227,15 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-[#8b4513] ml-1">Password</FormLabel>
+                      <div className="flex items-center justify-between ml-1">
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-[#8b4513]">Password</FormLabel>
+                        <Link
+                          href="/forgot-password"
+                          className="text-[10px] font-bold uppercase tracking-widest text-[#8b4513] hover:underline"
+                        >
+                          Forgot password?
+                        </Link>
+                      </div>
                       <FormControl>
                         <div className="relative">
                           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />

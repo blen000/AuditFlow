@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import {
   AUDIT_REPORTS_HUB_PERMISSIONS,
+  AUDITEE_VIEW_PAGE_PERMISSIONS,
   SYSTEM_SETTINGS_PERMISSIONS,
   isAdminRole,
   type PermissionKey,
@@ -22,10 +23,18 @@ import {
 } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 
+// Pages that render outside the authenticated app shell and must never trigger
+// the "redirect to /login" guard (they are their own entry points).
+const PUBLIC_PAGES = ['/login', '/forgot-password', '/reset-password'];
+
+function isPublicPage(pathname: string): boolean {
+  return PUBLIC_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
 function getFirstAllowedPathForUser(role: string | undefined, rawPermissions: string[] | undefined) {
   const effectivePermissions = withAdminPermissions(role, rawPermissions || []);
   if (effectivePermissions.includes('dashboard_access')) return '/dashboard';
-  if (effectivePermissions.includes('auditee_view_access')) return '/auditee-view';
+  if (AUDITEE_VIEW_PAGE_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/auditee-view';
   if (AUDIT_REPORTS_HUB_PERMISSIONS.some((p) => effectivePermissions.includes(p))) return '/reports';
   if (effectivePermissions.includes('findings_new_access')) return '/findings/new';
   if (effectivePermissions.includes('special_audits_new_access')) return '/special-audits/new';
@@ -39,7 +48,9 @@ function getFirstAllowedPathForUser(role: string | undefined, rawPermissions: st
 
 function getRequiredPermissionsForPath(pathname: string): PermissionKey[] {
   if (pathname === '/dashboard') return ['dashboard_access'];
-  if (pathname.startsWith('/auditee-view')) return ['auditee_view_access'];
+  if (pathname.startsWith('/auditee-view')) return [...AUDITEE_VIEW_PAGE_PERMISSIONS];
+  if (pathname.startsWith('/findings/edit')) return ['auditee_view_edit_finding', 'findings_new_access'];
+  if (pathname.startsWith('/findings/respond')) return ['auditee_view_auditee_response'];
   if (pathname.startsWith('/findings/new')) return ['findings_new_access'];
   if (pathname.startsWith('/special-audits/new')) return ['special_audits_new_access'];
 
@@ -92,7 +103,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    if (!isAuthenticated && pathname !== '/login') {
+    if (!isAuthenticated && !isPublicPage(pathname)) {
       router.replace('/login');
       return;
     }
@@ -116,10 +127,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, router, isLoading, isAuthenticated, userRole, userPermissions]);
 
-  const isLoginPage = pathname === '/login';
-  const showShell = !isLoginPage;
+  const isAuthPage = isPublicPage(pathname);
+  const showShell = !isAuthPage;
 
-  if (isLoading && pathname !== '/login') {
+  if (isLoading && !isAuthPage) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

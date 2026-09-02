@@ -43,7 +43,11 @@ type FollowUpDialogProps = {
   onOpenChange: (open: boolean) => void;
   finding: AuditFinding;
   followUpStatuses: StatusData[];
-  onUpdate: (id: string, updates: Partial<AuditFinding>) => Promise<void> | void;
+  onUpdate: (
+    id: string,
+    updates: Partial<AuditFinding>,
+    intent?: 'edit' | 'status' | 'progress' | 'follow_up'
+  ) => Promise<void> | void;
 };
 
 export function FollowUpDialog({ open, onOpenChange, finding, followUpStatuses, onUpdate }: FollowUpDialogProps) {
@@ -86,7 +90,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, followUpStatuses, 
         isClosed: isClosed,
         forwardingHistory: forwardingHistory,
         collaboratingWith: collaboratingWith,
-      });
+      }, 'follow_up');
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to save follow-up update:', error);

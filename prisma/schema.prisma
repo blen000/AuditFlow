@@ -26,6 +26,7 @@ model User {
   updatedAt             DateTime         @updatedAt
   uploads               FileAttachment[]
   sessions              Session[]
+  passwordResetTokens   PasswordResetToken[]
   notifications         Notification[]
   auditorFindings       AuditFinding[]   @relation("AuditorFindings")
   auditeeFindings       AuditFinding[]   @relation("AuditeeFindings")
@@ -47,6 +48,19 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Role {

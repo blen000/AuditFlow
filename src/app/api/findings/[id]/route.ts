@@ -6,8 +6,12 @@ import { revalidatePath } from 'next/cache';
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const { id } = params;
 
-  // Enforce authorization and ownership for this route
-  const auth = await authorizeRoute(req, { resourceId: id, resourceType: 'finding' });
+  // Enforce authorization (Auditee View "Delete" permission) + ownership.
+  const auth = await authorizeRoute(req, {
+    allowedPermissions: ['auditee_view_delete_finding'],
+    resourceId: id,
+    resourceType: 'finding',
+  });
   if (auth instanceof NextResponse) return auth;
 
   try {

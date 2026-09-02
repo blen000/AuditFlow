@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 
 import { isSafeRedirect } from '@/lib/redirect';
 
-const PUBLIC_PATHS = ['/api/auth/login', '/login', '/register', '/favicon.ico', '/_next', '/public'];
+const PUBLIC_PATHS = ['/api/auth/login', '/api/auth/forgot-password', '/api/auth/reset-password', '/login', '/register', '/forgot-password', '/reset-password', '/favicon.ico', '/_next', '/public'];
 const ACCESS_COOKIE_NAME = '__Secure-auth_access';
 const REFRESH_COOKIE_NAME = '__Secure-auth_refresh';
 const PERMISSIONS_POLICY = 'accelerometer=(), autoplay=(), camera=(), cross-origin-isolated=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), interest-cohort=()';
@@ -126,13 +126,15 @@ function validateCallbackUrl(req: NextRequest, cspHeader: string): NextResponse 
 }
 
 // ❗ Helper: Validate password change requirement
-function checkPasswordChangeRequired(payload: Record<string, any>, pathname: string): NextResponse | null {
+function checkPasswordChangeRequired(req: NextRequest, payload: Record<string, any>, pathname: string): NextResponse | null {
   if (!payload.requirePasswordChange || PASSWORD_CHANGE_EXEMPT_PATHS.includes(pathname)) {
     return null;
   }
 
-  const url = new URL(pathname, 'http://localhost');
+  // Clone the incoming URL so protocol/host/port are preserved (e.g. localhost:4000).
+  const url = req.nextUrl.clone();
   url.pathname = '/force-password-change';
+  url.search = '';
   return NextResponse.redirect(url);
 }
 
@@ -230,7 +232,7 @@ export function middleware(req: NextRequest) {
       }
     } else {
       // Token is valid, check password change requirement
-      const pwChangeError = checkPasswordChangeRequired(payload, pathname);
+      const pwChangeError = checkPasswordChangeRequired(req, payload, pathname);
       if (pwChangeError) {
         setSecurityHeaders(pwChangeError, cspHeader);
         return pwChangeError;

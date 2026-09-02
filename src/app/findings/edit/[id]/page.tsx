@@ -1,6 +1,8 @@
 import { getFindingById } from '@/app/actions/findings';
 import { EditFindingForm } from '@/components/audit/EditFindingForm';
-import { notFound } from 'next/navigation';
+import { getUserFromCookiesServer } from '@/lib/serverAuth';
+import { withAdminPermissions } from '@/lib/permissions';
+import { notFound, redirect } from 'next/navigation';
 
 export default async function EditFindingPage({
   params,
@@ -8,6 +10,23 @@ export default async function EditFindingPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const currentUser = await getUserFromCookiesServer();
+  if (!currentUser) {
+    redirect('/login?callbackUrl=' + encodeURIComponent(`/findings/edit/${id}`));
+  }
+  const effectivePermissions = withAdminPermissions(
+    currentUser.role?.name,
+    currentUser.role?.permissions ?? []
+  );
+  if (
+    currentUser.role?.name !== 'Admin' &&
+    !effectivePermissions.includes('auditee_view_edit_finding') &&
+    !effectivePermissions.includes('findings_new_access')
+  ) {
+    notFound();
+  }
+
   const finding = await getFindingById(id);
 
   if (!finding) {

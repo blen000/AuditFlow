@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { authorizeAction, enforceBusinessRules } from '@/lib/authorization';
+import { authorizeAction, enforceBusinessRules, effectivePermissionsFor } from '@/lib/authorization';
 import { submitFindingsSchema } from '@/lib/schemas';
 
 /**
@@ -66,10 +66,19 @@ export async function getFindingFormData() {
 }
 
 /**
- * Fetches a single finding by its ID.
+ * Fetches a single finding by its ID (used by the edit screen).
+ * Requires the Auditee View "Edit Finding" permission, or legacy findings access.
  */
 export async function getFindingById(id: string) {
-  await authorizeAction();
+  const user = await authorizeAction();
+  const perms = effectivePermissionsFor(user);
+  if (
+    user?.role?.name !== 'Admin' &&
+    !perms.includes('auditee_view_edit_finding') &&
+    !perms.includes('findings_new_access')
+  ) {
+    throw new Error('Forbidden');
+  }
   try {
     const finding = await prisma.auditFinding.findUnique({
       where: { id },
@@ -94,12 +103,45 @@ export async function getFindingById(id: string) {
   }
 }
 
+type UpdateFindingIntent = 'edit' | 'status' | 'progress' | 'follow_up';
+
+const UPDATE_FINDING_INTENT_PERMISSION: Record<UpdateFindingIntent, string> = {
+  edit: 'auditee_view_edit_finding',
+  status: 'auditee_view_change_status',
+  progress: 'auditee_view_add_progress',
+  follow_up: 'auditee_view_follow_up',
+};
+
 /**
  * Updates an audit finding.
+ *
+ * `intent` selects which Auditee View permission is required:
+ *   - 'edit'      → auditee_view_edit_finding   (full-record edit from the edit form)
+ *   - 'status'    → auditee_view_change_status  (workflow status change from a card)
+ *   - 'progress'  → auditee_view_add_progress   (progress note from a card)
+ *   - 'follow_up' → auditee_view_follow_up      (follow-up status/recommendations)
+ * Admins bypass via authorizeAction. Users with `findings_new_access` (Auditors
+ * logging findings) also retain access for backwards compatibility.
  */
-export async function updateFinding(id: string, data: any) {
-  const user = await authorizeAction({ allowedPermissions: ['findings_new_access'] });
-  
+export async function updateFinding(
+  id: string,
+  data: any,
+  intent: UpdateFindingIntent = 'edit'
+) {
+  const INTENT_PERMISSION = UPDATE_FINDING_INTENT_PERMISSION;
+
+  // Authenticate first (no specific permission), then authorize against either
+  // the intent-specific Auditee View permission or the legacy findings_new_access.
+  const user = await authorizeAction();
+  const perms = effectivePermissionsFor(user);
+  const allowed =
+    user?.role?.name === 'Admin' ||
+    perms.includes(INTENT_PERMISSION[intent]) ||
+    perms.includes('findings_new_access');
+  if (!allowed) {
+    return { success: false, error: 'You do not have permission to perform this action.' };
+  }
+
   try {
     const existing = await prisma.auditFinding.findUnique({ where: { id } });
     if (!existing) return { success: false, error: 'Finding not found' };
@@ -256,9 +298,10 @@ export async function respondToFinding(findingId: string, data: {
   response: string;
   attachmentId?: string;
 }) {
-  const user = await authorizeAction({ 
-    resourceId: findingId, 
-    resourceType: 'finding' 
+  const user = await authorizeAction({
+    allowedPermissions: ['auditee_view_auditee_response'],
+    resourceId: findingId,
+    resourceType: 'finding',
   });
 
   try {

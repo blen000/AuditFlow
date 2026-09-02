@@ -23,6 +23,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   AUDIT_REPORTS_HUB_PERMISSIONS,
+  AUDITEE_VIEW_PAGE_PERMISSIONS,
   SYSTEM_SETTINGS_PERMISSIONS,
   isAdminRole,
 } from '@/lib/permissions';
@@ -59,7 +60,7 @@ export function SidebarNav({ permissions = [], role = '' }: SidebarNavProps) {
               )}
             </SidebarMenuItem>
 
-            {hasPermission('auditee_view_access') && (
+            {hasAnyPermission([...AUDITEE_VIEW_PAGE_PERMISSIONS]) && (
               <SidebarMenuItem>
                 <Link href="/auditee-view">
                   <SidebarMenuButton
