@@ -44,7 +44,7 @@ export async function logSecurityEvent(
   let ipAddress = '127.0.0.1';
 
   try {
-    const h = headers();
+    const h = await headers();
     userAgent = sanitizeLogField(h.get('user-agent') || 'unknown');
     ipAddress = sanitizeLogField(h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1');
   } catch (headerError) {

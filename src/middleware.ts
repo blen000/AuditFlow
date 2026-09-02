@@ -125,6 +125,59 @@ function validateCallbackUrl(req: NextRequest, cspHeader: string): NextResponse 
   return redirectResponse;
 }
 
+// ❗ Helper: Respond to unauthenticated requests
+function handleUnauthenticated(pathname: string, cspHeader: string, req: NextRequest): NextResponse {
+  if (pathname.startsWith('/api')) {
+    const r = new NextResponse(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    });
+    setSecurityHeaders(r, cspHeader);
+    return r;
+  }
+  const url = req.nextUrl.clone();
+  url.pathname = '/login';
+  url.searchParams.set('callbackUrl', pathname);
+  const r = NextResponse.redirect(url);
+  setSecurityHeaders(r, cspHeader);
+  return r;
+}
+
+// ❗ Helper: Validate access token and enforce token-level guards
+function validateAccessToken(
+  accessToken: string,
+  refreshToken: string | undefined,
+  pathname: string,
+  cspHeader: string,
+  req: NextRequest
+): NextResponse | null {
+  const payload = parseToken(accessToken);
+  const isInvalidOrExpired = !payload?.userId || isTokenExpired(payload);
+
+  if (isInvalidOrExpired) {
+    if (refreshToken) return null; // Refresh flow will re-authenticate
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    const r = NextResponse.redirect(url);
+    setSecurityHeaders(r, cspHeader);
+    return r;
+  }
+
+  const pwError = checkPasswordChangeRequired(payload!, pathname);
+  if (pwError) {
+    setSecurityHeaders(pwError, cspHeader);
+    return pwError;
+  }
+
+  const csrfError = validateCsrfToken(req, payload!);
+  if (csrfError) {
+    setSecurityHeaders(csrfError, cspHeader);
+    return csrfError;
+  }
+
+  return null;
+}
+
 // ❗ Helper: Validate password change requirement
 function checkPasswordChangeRequired(req: NextRequest, payload: Record<string, any>, pathname: string): NextResponse | null {
   if (!payload.requirePasswordChange || PASSWORD_CHANGE_EXEMPT_PATHS.includes(pathname)) {
@@ -171,6 +224,11 @@ export function middleware(req: NextRequest) {
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-nonce', nonce);
 
+  // Block CVE-2026-27980: reject PPR resume requests (Next-Resume header) regardless of PPR config
+  if (req.headers.has('next-resume')) {
+    return new NextResponse(null, { status: 400 });
+  }
+
   // Step 1: Validate origin/referer for state-changing requests
   const originError = validateOriginReferer(req);
   if (originError) {
@@ -194,20 +252,7 @@ export function middleware(req: NextRequest) {
   const refreshToken = req.cookies.get(REFRESH_COOKIE_NAME)?.value;
 
   if (!accessToken && !refreshToken) {
-    if (pathname.startsWith('/api')) {
-      const response = new NextResponse(JSON.stringify({ success: false, error: 'Unauthorized' }), { 
-        status: 401, 
-        headers: { 'content-type': 'application/json' } 
-      });
-      setSecurityHeaders(response, cspHeader);
-      return response;
-    }
-    const url = req.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('callbackUrl', pathname);
-    const loginRedirect = NextResponse.redirect(url);
-    setSecurityHeaders(loginRedirect, cspHeader);
-    return loginRedirect;
+    return handleUnauthenticated(pathname, cspHeader, req);
   }
 
   // Step 5: Validate access token

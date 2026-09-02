@@ -4,10 +4,13 @@ import { prisma } from './prisma';
 import { cookies, headers } from 'next/headers';
 import { logSecurityEvent } from './securityLogger';
 
-if (!process.env.AUTH_SECRET) {
-  throw new Error('AUTH_SECRET environment variable is not set. Application cannot start without a cryptographic secret.');
+function getSecret(): string {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error('AUTH_SECRET environment variable is not set. Application cannot start without a cryptographic secret.');
+  }
+  return secret;
 }
-const SECRET = process.env.AUTH_SECRET;
 const ACCESS_COOKIE_NAME = '__Secure-auth_access';
 const REFRESH_COOKIE_NAME = '__Secure-auth_refresh';
 const CSRF_COOKIE_NAME = '__Secure-csrf_token';
@@ -27,7 +30,7 @@ export function signToken(payload: Record<string, any>, expiryMs: number = ACCES
   
   const header = base64url(Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
   const body = base64url(Buffer.from(JSON.stringify({ ...payload, iat, exp })));
-  const sig = crypto.createHmac('sha256', SECRET).update(`${header}.${body}`).digest();
+  const sig = crypto.createHmac('sha256', getSecret()).update(`${header}.${body}`).digest();
   return `${header}.${body}.${base64url(sig)}`;
 }
 
@@ -35,7 +38,7 @@ export function verifyToken(token: string) {
   try {
     const [header, body, sig] = token.split('.');
     if (!header || !body || !sig) return null;
-    const expected = base64url(crypto.createHmac('sha256', SECRET).update(`${header}.${body}`).digest());
+    const expected = base64url(crypto.createHmac('sha256', getSecret()).update(`${header}.${body}`).digest());
     if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) return null;
     
     const payload = JSON.parse(Buffer.from(body, 'base64').toString());
@@ -56,10 +59,9 @@ function cleanIp(ip: string) {
 }
 
 export async function createSecureSession(userId: string, res?: NextResponse, extraPayload: any = {}) {
-  const h = headers();
+  const h = await headers();
   const userAgent = h.get('user-agent') || 'unknown';
   const rawIp = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
-  console.log('RAW IP:', h.get('x-forwarded-for'), h.get('x-real-ip'));
   const ipAddress = cleanIp(rawIp);
 
   // fingerprint removed from session creation for simplicity
@@ -95,7 +97,7 @@ export async function createSecureSession(userId: string, res?: NextResponse, ex
     setAuthCookies(res, accessToken, refreshToken);
   } else {
     // For Server Actions
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     cookieStore.set(ACCESS_COOKIE_NAME, accessToken, {
       httpOnly: true,
       secure: true, // MANDATORY: Enforced for all environments per security policy
@@ -149,7 +151,6 @@ export async function getUserFromRequest(req: Request) {
 
     const userAgent = req.headers.get('user-agent') || 'unknown';
     const rawIp = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || '127.0.0.1';
-    console.log('RAW IP:', req.headers.get('x-forwarded-for'), req.headers.get('x-real-ip'));
     const ipAddress = cleanIp(rawIp);
 
     // Fetch session + user + role.permissions from DB on every request.
@@ -205,7 +206,7 @@ export async function getUserFromRequest(req: Request) {
 }
 
 export async function getUserFromCookiesServer() {
-  const ck = cookies();
+  const ck = await cookies();
   const accessToken = ck.get(ACCESS_COOKIE_NAME)?.value;
   if (!accessToken) return null;
 
@@ -213,10 +214,9 @@ export async function getUserFromCookiesServer() {
   if (!payload || !payload.userId || !payload.sessionId) return null;
 
   // Fingerprint binding (user-agent + IP) is best-effort only.
-  const h = headers();
+  const h = await headers();
   const userAgent = h.get('user-agent') || 'unknown';
   const rawIp = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
-  console.log('RAW IP:', h.get('x-forwarded-for'), h.get('x-real-ip'));
   const ipAddress = cleanIp(rawIp);
 
   // See getUserFromRequest for the rationale: permissions are DB-fresh per request.

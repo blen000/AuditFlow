@@ -8,7 +8,7 @@ import { isPasswordExpired } from '@/lib/passwordUtils';
 
 export async function POST(req: Request) {
   try {
-    const ck = cookies();
+    const ck = await cookies();
     const refreshToken = ck.get('__Secure-auth_refresh')?.value;
     
     if (!refreshToken) {
@@ -26,10 +26,9 @@ export async function POST(req: Request) {
     }
 
     // Context validation - fingerprint removed to avoid false rejections
-    const h = headers();
+    const h = await headers();
     const userAgent = h.get('user-agent') || 'unknown';
     const rawIp = h.get('x-forwarded-for')?.split(',')[0] || h.get('x-real-ip') || '127.0.0.1';
-    console.log('RAW IP:', h.get('x-forwarded-for'), h.get('x-real-ip'));
     const ipAddress = rawIp.split(':')[0];
 
     // Rotate tokens
