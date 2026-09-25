@@ -22,6 +22,7 @@ async function main() {
       permissions: [
         'dashboard_access',
         'auditee_view_access',
+        'auditee_view_all_findings',
         'findings_new_access',
         'special_audits_new_access',
         'users_manage_access',
@@ -70,6 +71,7 @@ async function main() {
       permissions: [
         'dashboard_access',
         'auditee_view_access',
+        'auditee_view_all_findings',
         'reports_consolidated_access',
         'reports_frequency_access',
         'reports_assignments_access',
@@ -84,6 +86,7 @@ async function main() {
       permissions: [
         'dashboard_access',
         'auditee_view_access',
+        'auditee_view_all_findings',
         'findings_new_access',
         'special_audits_new_access',
         'users_manage_access',
@@ -195,26 +198,6 @@ async function main() {
     }
   });
 
-  // 6. Special Audits
-  console.log('Seeding special audits...');
-  await prisma.specialAudit.create({
-    data: {
-      shortSummary: 'Financial Discrepancy in Cash Handling',
-      placement: 'Branch',
-      placementValue: 'Main Street Branch',
-      amountInvolved: 50000,
-      recovered: 30000,
-      pending: 20000,
-      actionDisciplinary: 'Suspension pending further investigation',
-      gapWitnessed: 'Lack of daily vault reconciliation',
-      correctiveActionTaken: 'Mandatory daily reconciliation policy implemented',
-      individuals: {
-        create: [
-          { name: 'John Doe', position: 'Cashier', tenure: '2 years', age: 28, sex: 'Male' }
-        ]
-      }
-    }
-  });
 
   console.log('Seed completed successfully.');
 }

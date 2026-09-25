@@ -95,15 +95,21 @@ export async function authorizeAction(options: AuthOptions = {}) {
  * Redirects to login if unauthorized (401).
  * Throws an error if forbidden (403).
  */
-export async function authorizePage(allowedPermissions: string[] = []) {
+export async function authorizePage(
+  permissions: string[] = [],
+  mode: 'all' | 'any' = 'all'
+) {
   const user = await getUserFromCookiesServer();
-  
+
   if (!user) {
     redirect('/login?error=session_expired');
   }
 
   try {
-    return await enforce(user, { allowedPermissions });
+    return await enforce(
+      user,
+      mode === 'any' ? { anyPermissions: permissions } : { allowedPermissions: permissions }
+    );
   } catch (error) {
     if (error instanceof AuthorizationError) {
       await logSecurityEvent('AUTHZ_FAILURE', {
@@ -117,39 +123,103 @@ export async function authorizePage(allowedPermissions: string[] = []) {
   }
 }
 
+// Executive roles created before `auditee_view_all_findings` existed keep their
+// organization-wide oversight without needing their stored permissions migrated.
+const LEGACY_ORG_WIDE_ROLES = ['Chief Auditor', 'CEO'];
+
 /**
- * Returns a Prisma 'where' clause for scoping queries based on user role and ownership.
+ * True when the user may see findings from every organizational unit:
+ * Admins, executive (special) roles, or any role granted `auditee_view_all_findings`.
+ */
+export function hasOrgWideFindingAccess(user: any): boolean {
+  const role = user?.role;
+  if (!role) return false;
+  if (role.name === 'Admin') return true;
+  if (role.isSpecial || LEGACY_ORG_WIDE_ROLES.includes(role.name)) return true;
+  return effectivePermissionsFor(user).includes('auditee_view_all_findings');
+}
+
+/**
+ * The organizational units a user belongs to, most specific first. Branch and
+ * department are both specific; district only applies when neither is set, so a
+ * branch user does not inherit visibility over their whole district.
+ */
+function orgUnitsFor(user: any): { field: 'branch' | 'department' | 'district'; value: string }[] {
+  const units: { field: 'branch' | 'department' | 'district'; value: string }[] = [];
+  if (user.branch) units.push({ field: 'branch', value: user.branch });
+  if (user.department) units.push({ field: 'department', value: user.department });
+  if (units.length === 0 && user.district) units.push({ field: 'district', value: user.district });
+  return units;
+}
+
+/**
+ * Prisma `where` clause for the findings a user may see. Permissions decide
+ * WHICH actions a user can take; this decides WHICH findings they apply to.
+ *
+ * Non org-wide users see findings they logged, lead, are a team member of, or are
+ * the bound auditee for, plus findings raised against their own branch/department.
+ * `isFindingInScope` below must stay in sync with this.
+ */
+export function findingScopeFor(user: any): Record<string, any> {
+  if (hasOrgWideFindingAccess(user)) return {};
+
+  const or: Record<string, any>[] = [{ auditorId: user.id }, { auditeeId: user.id }];
+  if (user.fullName) {
+    or.push({ teamLeader: user.fullName }, { teamMembers: { array_contains: [user.fullName] } });
+  }
+  for (const unit of orgUnitsFor(user)) {
+    or.push({ [unit.field]: unit.value });
+    // Legacy findings may only carry the combined label.
+    or.push({ branchOrDepartment: unit.value });
+  }
+  return { OR: or };
+}
+
+/** Human-readable summary of a user's finding visibility, for empty-state messaging. */
+export function describeFindingScope(user: any): { orgWide: boolean; units: string[] } {
+  if (hasOrgWideFindingAccess(user)) return { orgWide: true, units: [] };
+  return { orgWide: false, units: orgUnitsFor(user).map((u) => u.value) };
+}
+
+/** In-memory equivalent of `findingScopeFor` for a single loaded finding. */
+export function isFindingInScope(user: any, finding: any): boolean {
+  if (hasOrgWideFindingAccess(user)) return true;
+  if (finding.auditorId && finding.auditorId === user.id) return true;
+  if (finding.auditeeId && finding.auditeeId === user.id) return true;
+  if (user.fullName) {
+    const teamMembers = Array.isArray(finding.teamMembers) ? finding.teamMembers : [];
+    if (finding.teamLeader === user.fullName || teamMembers.includes(user.fullName)) return true;
+  }
+  return orgUnitsFor(user).some(
+    (unit) => finding[unit.field] === unit.value || finding.branchOrDepartment === unit.value
+  );
+}
+
+/**
+ * Returns a Prisma 'where' clause for scoping queries based on the user's
+ * permissions and organizational assignment.
  * Use this to ensure every query is automatically restricted.
  */
 export async function getScopingFilter(resourceType: ResourceType) {
   const user = await getUserFromCookiesServer();
   if (!user) throw new Error('Unauthorized');
-  
+
   if (user.role.name === 'Admin') return {}; // Admins see everything
 
   switch (resourceType) {
     case 'finding':
-      if (user.role.name === 'Auditee') {
-        // User.branch is nullable in the schema; if it's not set, deny access safely.
-        if (!user.branch) return { id: 'none' };
-        return { branchOrDepartment: user.branch };
-      }
-      if (user.role.name === 'Auditor') {
-        return {
-          OR: [
-            { teamLeader: user.fullName },
-            { teamMembers: { path: [], array_contains: user.fullName } }
-          ]
-        };
-      }
-      return { id: 'none' }; // Deny by default
+      return findingScopeFor(user);
 
     case 'user':
       return { id: user.id };
 
-    case 'specialAudit':
-      if (user.role.name === 'Auditor') return {}; // Auditors can see all special audits
+    case 'specialAudit': {
+      // Special audits are not tied to an owner; access to the register or its
+      // report grants visibility of the whole list.
+      const perms = effectivePermissionsFor(user);
+      if (perms.includes('reports_special_audits_access') || perms.includes('special_audits_new_access')) return {};
       return { id: 'none' };
+    }
 
     default:
       return { id: 'none' };
@@ -256,25 +326,16 @@ export function enforceDefaultOwnership(user: any, type: ResourceType, resource:
       if (resource.id !== user.id) throw new AuthorizationError();
       break;
 
-    case 'finding': {
-      const roleName = user.role.name;
-      if (roleName === 'Chief' || roleName === 'CEO') return;
-      if (roleName === 'Auditor') {
-        const teamMembers = (resource.teamMembers as string[]) || [];
-        if (resource.teamLeader !== user.fullName && !teamMembers.includes(user.fullName))
-          throw new AuthorizationError();
-        break;
-      }
-      if (roleName === 'Auditee') {
-        if (resource.branchOrDepartment !== user.branch) throw new AuthorizationError();
-        break;
-      }
-      throw new AuthorizationError();
-    }
-
-    case 'specialAudit':
-      if (user.role.name !== 'Auditor') throw new AuthorizationError();
+    case 'finding':
+      if (!isFindingInScope(user, resource)) throw new AuthorizationError();
       break;
+
+    case 'specialAudit': {
+      const perms = effectivePermissionsFor(user);
+      if (!perms.includes('reports_special_audits_access') && !perms.includes('special_audits_new_access'))
+        throw new AuthorizationError();
+      break;
+    }
 
     default:
       throw new AuthorizationError();

@@ -587,7 +587,7 @@ function LeafDetailFields({
                         <Input 
                           type={cf.type === 'number' ? 'number' : 'text'} 
                           className="h-9" 
-                          placeholder={`Enter ${cf.name.toLowerCase()}...`}
+                          placeholder={cf.type === 'string' ? `Enter ${cf.name.toLowerCase()} (letters and numbers)...` : `Enter ${cf.name.toLowerCase()}...`}
                           {...field} 
                         />
                       </FormControl>

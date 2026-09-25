@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { authorizeAction, enforceBusinessRules, effectivePermissionsFor } from '@/lib/authorization';
+import { authorizeAction, enforceBusinessRules, effectivePermissionsFor, findingScopeFor } from '@/lib/authorization';
 import { submitFindingsSchema } from '@/lib/schemas';
 
 /**
@@ -80,8 +80,9 @@ export async function getFindingById(id: string) {
     throw new Error('Forbidden');
   }
   try {
-    const finding = await prisma.auditFinding.findUnique({
-      where: { id },
+    // Scoped lookup: a finding outside the user's visibility reads as not found.
+    const finding = await prisma.auditFinding.findFirst({
+      where: { AND: [{ id }, findingScopeFor(user)] },
       include: {
         hierarchyNode: true,
       }
@@ -120,8 +121,9 @@ const UPDATE_FINDING_INTENT_PERMISSION: Record<UpdateFindingIntent, string> = {
  *   - 'status'    → auditee_view_change_status  (workflow status change from a card)
  *   - 'progress'  → auditee_view_add_progress   (progress note from a card)
  *   - 'follow_up' → auditee_view_follow_up      (follow-up status/recommendations)
- * Admins bypass via authorizeAction. Users with `findings_new_access` (Auditors
- * logging findings) also retain access for backwards compatibility.
+ * Admins bypass via authorizeAction. For the 'edit' intent only, users with
+ * `findings_new_access` (Auditors correcting findings they logged) also qualify.
+ * In every case the finding must be within the user's visibility scope.
  */
 export async function updateFinding(
   id: string,
@@ -137,13 +139,15 @@ export async function updateFinding(
   const allowed =
     user?.role?.name === 'Admin' ||
     perms.includes(INTENT_PERMISSION[intent]) ||
-    perms.includes('findings_new_access');
+    (intent === 'edit' && perms.includes('findings_new_access'));
   if (!allowed) {
     return { success: false, error: 'You do not have permission to perform this action.' };
   }
 
   try {
-    const existing = await prisma.auditFinding.findUnique({ where: { id } });
+    const existing = await prisma.auditFinding.findFirst({
+      where: { AND: [{ id }, findingScopeFor(user)] },
+    });
     if (!existing) return { success: false, error: 'Finding not found' };
 
     // ❗ Enforce Maker-Checker if trying to close a finding
@@ -183,7 +187,7 @@ export async function updateFinding(
  * Submits new audit findings to the database.
  */
 export async function submitFindings(data: any) {
-  const user = await authorizeAction({ allowedRoles: ['Auditor', 'Admin'] });
+  const user = await authorizeAction({ allowedPermissions: ['findings_new_access'] });
   try {
     const validation = submitFindingsSchema.safeParse(data);
     if (!validation.success) {

@@ -46,8 +46,8 @@ export function SidebarNav({ permissions = [], role = '' }: SidebarNavProps) {
         <SidebarGroup>
           <SidebarGroupLabel>Core Actions</SidebarGroupLabel>
           <SidebarMenu>
-            <SidebarMenuItem>
-              {hasPermission('dashboard_access') && (
+            {hasPermission('dashboard_access') && (
+              <SidebarMenuItem>
                 <Link href="/dashboard">
                   <SidebarMenuButton
                     isActive={pathname === '/dashboard'}
@@ -57,8 +57,8 @@ export function SidebarNav({ permissions = [], role = '' }: SidebarNavProps) {
                     <span>Dashboard</span>
                   </SidebarMenuButton>
                 </Link>
-              )}
-            </SidebarMenuItem>
+              </SidebarMenuItem>
+            )}
 
             {hasAnyPermission([...AUDITEE_VIEW_PAGE_PERMISSIONS]) && (
               <SidebarMenuItem>

@@ -40,6 +40,8 @@ function AuditeeViewContent() {
   const [allRiskLevels, setAllRiskLevels] = useState<RiskLevelData[]>([]);
   const [allStatuses, setAllStatuses] = useState<StatusData[]>([]);
   const [followUpStatuses, setFollowUpStatuses] = useState<StatusData[]>([]);
+  const [scope, setScope] = useState<{ orgWide: boolean; units: string[] } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
@@ -69,9 +71,11 @@ function AuditeeViewContent() {
         setAllRiskLevels(data.riskLevels as any);
         setAllStatuses(data.statuses as any);
         setFollowUpStatuses(data.followUpStatuses as any);
+        setScope(data.scope);
       } catch (error: any) {
         if (error.message === 'NEXT_REDIRECT') return;
         console.error('Error loading auditee view data:', error);
+        setLoadError('Findings could not be loaded. You may not have access to this view, or the server is unavailable.');
       } finally {
         setIsLoading(false);
       }
@@ -158,8 +162,10 @@ function AuditeeViewContent() {
   };
 
   const filteredFindings = findings.filter((finding) => {
-    const branchMatch = selectedBranch === 'all' || finding.branchOrDepartment === selectedBranch;
-    const deptMatch = selectedDepartment === 'all' || finding.branchOrDepartment === selectedDepartment;
+    // branchOrDepartment is a combined "Branch - Department - District" label, so
+    // match the dedicated columns and fall back to the label for legacy rows.
+    const branchMatch = selectedBranch === 'all' || finding.branch === selectedBranch || finding.branchOrDepartment === selectedBranch;
+    const deptMatch = selectedDepartment === 'all' || finding.department === selectedDepartment || finding.branchOrDepartment === selectedDepartment;
     const riskMatch = riskFilter.length === 0 || riskFilter.includes(finding.riskLevel);
     const statusMatch = statusFilter.length === 0 || statusFilter.includes(finding.status);
     const searchMatch = searchQuery === '' ||
@@ -463,8 +469,18 @@ function AuditeeViewContent() {
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
                     <ListTree className="h-8 w-8 text-muted-foreground" />
                   </div>
-                  <h3 className="text-xl font-bold">No missions found</h3>
-                  <p className="text-muted-foreground">Logged findings will automatically appear here grouped by their institutional hierarchy titles.</p>
+                  <h3 className="text-xl font-bold">{loadError ? 'Unable to load findings' : 'No missions found'}</h3>
+                  <p className="text-muted-foreground">
+                    {loadError ?? 'Logged findings will automatically appear here grouped by their institutional hierarchy titles.'}
+                  </p>
+                  {!loadError && scope && !scope.orgWide && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {scope.units.length > 0
+                        ? `You are seeing findings for ${scope.units.join(', ')} and findings you are assigned to.`
+                        : 'You are seeing only findings you logged or are assigned to. Your account has no branch or department assigned.'}
+                      {' '}Ask an administrator for the "View All Findings" permission if you need organization-wide access.
+                    </p>
+                  )}
                 </div>
               )}
             </div>

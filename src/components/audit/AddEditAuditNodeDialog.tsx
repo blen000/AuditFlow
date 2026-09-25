@@ -31,14 +31,13 @@ import {
 } from '@/components/ui/select';
 import type { AuditHierarchyNode } from '@/types';
 import { Badge } from '../ui/badge';
-import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
 import { Plus, Trash2, Settings2 } from 'lucide-react';
 
 const customFieldSchema = z.object({
   id: z.string(),
   name: z.string().min(1, 'Field name is required.'),
-  type: z.enum(['text', 'number']),
+  type: z.enum(['text', 'number', 'string']),
 });
 
 const formSchema = z.object({
@@ -110,7 +109,8 @@ export function AddEditAuditNodeDialog({ open, onOpenChange, onSubmit, node, par
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="flex-1 flex flex-col min-h-0">
-            <ScrollArea className="flex-1">
+            {/* Native overflow: a Radix ScrollArea inside this flex column never gets a bounded height. */}
+            <div className="flex-1 min-h-0 overflow-y-auto">
               <div className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
@@ -192,6 +192,7 @@ export function AddEditAuditNodeDialog({ open, onOpenChange, onSubmit, node, par
                                   <SelectContent>
                                     <SelectItem value="text">Text / Narrative</SelectItem>
                                     <SelectItem value="number">Numeric Value</SelectItem>
+                                    <SelectItem value="string">String (Text &amp; Numbers)</SelectItem>
                                   </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -218,7 +219,7 @@ export function AddEditAuditNodeDialog({ open, onOpenChange, onSubmit, node, par
                   </div>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
             <DialogFooter className="p-6 border-t shrink-0">
               <Button variant="outline" onClick={() => onOpenChange(false)} type="button">Cancel</Button>
               <Button type="submit">{node ? 'Save Changes' : 'Register Level'}</Button>

@@ -20,7 +20,7 @@ import { logSecurityEvent } from '@/lib/securityLogger';
  * Audit Hierarchy Actions
  */
 export async function getHierarchy() {
-  await authorizeAction();
+  await authorizeAction({ anyPermissions: ['settings_audit_structure_access'] });
 
   return await prisma.auditHierarchyNode.findMany({
     orderBy: [{ level: 'asc' }, { number: 'asc' }],
@@ -28,7 +28,7 @@ export async function getHierarchy() {
 }
 
 export async function createHierarchyNode(data: any) {
-  const user = await authorizeAction({ allowedRoles: ['Admin'] });
+  const user = await authorizeAction({ anyPermissions: ['settings_audit_structure_access'] });
   try {
     const validation = hierarchyNodeSchema.safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -49,7 +49,7 @@ export async function createHierarchyNode(data: any) {
 }
 
 export async function updateHierarchyNode(id: string, data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_audit_structure_access'] });
   try {
     const validation = hierarchyNodeSchema.partial().safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -71,7 +71,7 @@ export async function getSpecialFindingCategories() {
 }
 
 export async function createSpecialFindingCategory(data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_special_finding_categories_access'] });
   try {
     const validation = specialFindingCategorySchema.safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -85,7 +85,7 @@ export async function createSpecialFindingCategory(data: any) {
 }
 
 export async function updateSpecialFindingCategory(id: string, data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_special_finding_categories_access'] });
   try {
     const validation = specialFindingCategorySchema.partial().safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -99,7 +99,7 @@ export async function updateSpecialFindingCategory(id: string, data: any) {
 }
 
 export async function deleteSpecialFindingCategory(id: string) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_special_finding_categories_access'] });
   try {
     await prisma.specialFindingCategory.delete({ where: { id } });
     revalidatePath('/settings/special-finding-categories');
@@ -110,7 +110,7 @@ export async function deleteSpecialFindingCategory(id: string) {
 }
 
 export async function deleteHierarchyNode(id: string) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_audit_structure_access'] });
   try {
     await prisma.auditHierarchyNode.delete({ where: { id } });
     revalidatePath('/settings/audit-structure');
@@ -124,12 +124,14 @@ export async function deleteHierarchyNode(id: string) {
  * Branch & District Actions
  */
 export async function getDistricts() {
-  await authorizeAction();
+  // Also readable by users managing Branches, since branch registration
+  // needs the district list to populate its district picker.
+  await authorizeAction({ anyPermissions: ['settings_districts_access', 'settings_branches_access'] });
   return await prisma.district.findMany({ orderBy: { name: 'asc' } });
 }
 
 export async function createDistrict(data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_districts_access'] });
   try {
     const validation = districtSchema.safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -143,7 +145,7 @@ export async function createDistrict(data: any) {
 }
 
 export async function updateDistrict(id: string, data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_districts_access'] });
   try {
     const validation = districtSchema.partial().safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -157,7 +159,7 @@ export async function updateDistrict(id: string, data: any) {
 }
 
 export async function deleteDistrict(id: string) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_districts_access'] });
   try {
     await prisma.district.delete({ where: { id } });
     revalidatePath('/districts');
@@ -168,7 +170,7 @@ export async function deleteDistrict(id: string) {
 }
 
 export async function getBranches() {
-  await authorizeAction();
+  await authorizeAction({ anyPermissions: ['settings_branches_access'] });
   return await prisma.branch.findMany({ 
     include: { district: true },
     orderBy: { name: 'asc' } 
@@ -176,7 +178,7 @@ export async function getBranches() {
 }
 
 export async function createBranch(data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_branches_access'] });
   try {
     const validation = branchSchema.safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -198,7 +200,7 @@ export async function createBranch(data: any) {
 }
 
 export async function updateBranch(id: string, data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_branches_access'] });
   try {
     const validation = branchSchema.partial().safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -221,7 +223,7 @@ export async function updateBranch(id: string, data: any) {
 }
 
 export async function deleteBranch(id: string) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_branches_access'] });
   try {
     await prisma.branch.delete({ where: { id } });
     revalidatePath('/branches');
@@ -235,12 +237,12 @@ export async function deleteBranch(id: string) {
  * Department Actions
  */
 export async function getDepartments() {
-  await authorizeAction();
+  await authorizeAction({ anyPermissions: ['settings_departments_access'] });
   return await prisma.department.findMany({ orderBy: { name: 'asc' } });
 }
 
 export async function createDepartment(data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_departments_access'] });
   try {
     const validation = departmentSchema.safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -254,7 +256,7 @@ export async function createDepartment(data: any) {
 }
 
 export async function updateDepartment(id: string, data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_departments_access'] });
   try {
     const validation = departmentSchema.partial().safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -268,7 +270,7 @@ export async function updateDepartment(id: string, data: any) {
 }
 
 export async function deleteDepartment(id: string) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_departments_access'] });
   try {
     await prisma.department.delete({ where: { id } });
     revalidatePath('/departments');
@@ -282,12 +284,12 @@ export async function deleteDepartment(id: string) {
  * Risk Level Actions
  */
 export async function getRiskLevels() {
-  await authorizeAction();
+  await authorizeAction({ anyPermissions: ['settings_risk_levels_access'] });
   return await prisma.riskLevel.findMany({ orderBy: { name: 'asc' } });
 }
 
 export async function createRiskLevel(data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_risk_levels_access'] });
   try {
     const validation = riskLevelSchema.safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -301,7 +303,7 @@ export async function createRiskLevel(data: any) {
 }
 
 export async function updateRiskLevel(id: string, data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_risk_levels_access'] });
   try {
     const validation = riskLevelSchema.partial().safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -315,7 +317,7 @@ export async function updateRiskLevel(id: string, data: any) {
 }
 
 export async function deleteRiskLevel(id: string) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_risk_levels_access'] });
   try {
     await prisma.riskLevel.delete({ where: { id } });
     revalidatePath('/risk-levels');
@@ -337,7 +339,7 @@ const DEFAULT_FOLLOW_UP_STATUSES = [
 ];
 
 export async function getFindingStatuses() {
-  await authorizeAction();
+  await authorizeAction({ anyPermissions: ['settings_statuses_access'] });
   return await prisma.findingStatus.findMany({ orderBy: { name: 'asc' } });
 }
 
@@ -353,7 +355,7 @@ export async function ensureFollowUpStatuses() {
 }
 
 export async function createFindingStatus(data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_statuses_access'] });
   try {
     const validation = findingStatusSchema.safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -367,7 +369,7 @@ export async function createFindingStatus(data: any) {
 }
 
 export async function updateFindingStatus(id: string, data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_statuses_access'] });
   try {
     const validation = findingStatusSchema.partial().safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -381,7 +383,7 @@ export async function updateFindingStatus(id: string, data: any) {
 }
 
 export async function deleteFindingStatus(id: string) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_statuses_access'] });
   try {
     await prisma.findingStatus.delete({ where: { id } });
     revalidatePath('/statuses');
@@ -397,7 +399,7 @@ export async function getFollowUpStatuses() {
 }
 
 export async function createFollowUpStatus(data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_follow_up_statuses_access'] });
   try {
     const validation = followUpStatusSchema.safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -411,7 +413,7 @@ export async function createFollowUpStatus(data: any) {
 }
 
 export async function updateFollowUpStatus(id: string, data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_follow_up_statuses_access'] });
   try {
     const validation = followUpStatusSchema.partial().safeParse(data);
     if (!validation.success) return { success: false, error: 'Invalid data' };
@@ -425,7 +427,7 @@ export async function updateFollowUpStatus(id: string, data: any) {
 }
 
 export async function deleteFollowUpStatus(id: string) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_follow_up_statuses_access'] });
   try {
     await prisma.followUpStatus.delete({ where: { id } });
     revalidatePath('/settings/follow-up-statuses');
@@ -439,7 +441,7 @@ export async function deleteFollowUpStatus(id: string) {
  * Bulk Import Actions
  */
 export async function bulkImportDistricts(districts: { name: string }[]) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_districts_access'] });
   try {
     const results = await prisma.$transaction(
       districts.map(d => prisma.district.upsert({
@@ -457,7 +459,7 @@ export async function bulkImportDistricts(districts: { name: string }[]) {
 }
 
 export async function bulkImportBranches(branches: { name: string, districtName: string }[]) {
-  const user = await authorizeAction({ allowedRoles: ['Admin'] });
+  const user = await authorizeAction({ anyPermissions: ['settings_branches_access'] });
   try {
     // 1. Get all unique district names from the input
     const districtNames = Array.from(new Set(branches.map(b => b.districtName)));
@@ -501,7 +503,7 @@ export async function bulkImportBranches(branches: { name: string, districtName:
 }
 
 export async function bulkImportDepartments(departments: { name: string }[]) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['settings_departments_access'] });
   try {
     const results = await prisma.$transaction(
       departments.map(d => prisma.department.upsert({

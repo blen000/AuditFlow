@@ -52,7 +52,8 @@ export type InvolvedCase = {
   status: 'Open' | 'Resolved';
 };
 
-export type CustomFieldType = 'text' | 'number';
+// 'string' accepts mixed alphanumeric values (e.g. account or reference numbers).
+export type CustomFieldType = 'text' | 'number' | 'string';
 
 export type CustomFieldDefinition = {
   id: string;
@@ -71,6 +72,9 @@ export type AuditFinding = {
   details: string;
   riskLevel: RiskLevel;
   branchOrDepartment: string;
+  branch?: string | null;
+  department?: string | null;
+  district?: string | null;
   auditType: AuditTypeCategory;
   recommendation: string;
   status: FindingStatus;

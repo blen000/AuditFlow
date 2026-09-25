@@ -54,6 +54,7 @@ import { getMonth, getQuarter, getYear, format } from 'date-fns';
 import { getSpecialAudits, deleteSpecialAudit, submitSpecialAudit } from '@/app/actions/special-audits';
 import { getSpecialFindingCategories } from '@/app/actions/settings';
 import { useAuth } from '@/context/AuthContext';
+import { isAdminRole } from '@/lib/permissions';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -64,7 +65,9 @@ type SortConfig = {
 
 export default function SpecialAuditsPage() {
   const { toast } = useToast();
-  const { permissions } = useAuth();
+  const { user, permissions } = useAuth();
+  // deleteSpecialAudit is Admin-only on the server.
+  const canDelete = isAdminRole(user?.role);
   const reportRef = useRef<HTMLDivElement>(null);
   const [audits, setAudits] = useState<SpecialAudit[]>([]);
   const [officialCategories, setOfficialCategories] = useState<{id: string, name: string}[]>([]);
@@ -624,9 +627,11 @@ export default function SpecialAuditsPage() {
                             <DropdownMenuItem onClick={() => handleView(audit)}>
                               <Eye className="mr-2 h-4 w-4" /> View Report
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(audit.id)}>
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete Report
-                            </DropdownMenuItem>
+                            {canDelete && (
+                              <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(audit.id)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete Report
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

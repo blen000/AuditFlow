@@ -246,7 +246,7 @@ export async function getCurrentUser() {
 }
 
 export async function getUsers() {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ allowedPermissions: ['users_manage_access'] });
   try {
     const users = await prisma.user.findMany({
       select: {
@@ -278,7 +278,14 @@ export async function getUsers() {
 }
 
 export async function getRoles() {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({
+    anyPermissions: [
+      'users_manage_access',
+      'roles_manage_access',
+      'register_user_access',
+      'special_onboarding_access',
+    ],
+  });
   try {
     const roles = await prisma.role.findMany({
       orderBy: { name: 'asc' },
@@ -296,7 +303,7 @@ export async function getRoles() {
 }
 
 export async function createUser(data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ anyPermissions: ['register_user_access', 'special_onboarding_access'] });
   try {
     const validation = createUserSchema.safeParse(data);
     if (!validation.success) {
@@ -351,10 +358,8 @@ export async function createUser(data: any) {
 }
 
 export async function updateUser(id: string, data: any) {
-  const authUser = await authorizeAction({ 
-    allowedRoles: ['Admin'],
-    resourceId: id,
-    resourceType: 'user'
+  const authUser = await authorizeAction({
+    allowedPermissions: ['users_manage_access'],
   });
 
   try {
@@ -417,7 +422,7 @@ export async function updateUser(id: string, data: any) {
 }
 
 export async function deleteUser(id: string) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ allowedPermissions: ['users_manage_access'] });
   try {
     // ❗ Prevent self-deletion
     const authUser = await getUserFromCookiesServer();
@@ -435,7 +440,7 @@ export async function deleteUser(id: string) {
 }
 
 export async function resendInvitationEmail(id: string) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ allowedPermissions: ['users_manage_access'] });
   try {
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) {
@@ -474,7 +479,7 @@ export async function resendInvitationEmail(id: string) {
 }
 
 export async function createRole(data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ allowedPermissions: ['roles_manage_access'] });
   try {
     const validation = roleSchema.safeParse(data);
     if (!validation.success) {
@@ -490,7 +495,7 @@ export async function createRole(data: any) {
 }
 
 export async function updateRole(id: string, data: any) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ allowedPermissions: ['roles_manage_access'] });
   try {
     const validation = roleSchema.partial().safeParse(data);
     if (!validation.success) {
@@ -524,7 +529,7 @@ export async function updateRole(id: string, data: any) {
 }
 
 export async function deleteRole(id: string) {
-  await authorizeAction({ allowedRoles: ['Admin'] });
+  await authorizeAction({ allowedPermissions: ['roles_manage_access'] });
   try {
     await prisma.role.delete({ where: { id } });
     revalidatePath('/roles');

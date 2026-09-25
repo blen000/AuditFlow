@@ -61,6 +61,12 @@ export const PERMISSION_DEFINITIONS = [
     group: 'Core Actions → Auditee View',
   },
   {
+    key: 'auditee_view_all_findings',
+    label: 'View All Findings (Organization-wide)',
+    description: 'See findings from every branch, department and district in Auditee View and the Dashboard. Without this, users only see findings for their own assigned unit and findings they logged, lead, or are assigned to.',
+    group: 'Core Actions → Finding Visibility',
+  },
+  {
     key: 'findings_new_access',
     label: 'Log New Finding',
     description: 'Create a new audit finding record.',

@@ -10,7 +10,7 @@ import { specialAuditSchema } from '@/lib/schemas';
  * Fetches all metadata needed for the special audit form.
  */
 export async function getSpecialAuditFormData() {
-  await authorizeAction();
+  await authorizeAction({ anyPermissions: ['special_audits_new_access', 'reports_special_audits_access'] });
   try {
     const [branches, districts, departments, categories] = await Promise.all([
       prisma.branch.findMany({ orderBy: { name: 'asc' } }),
@@ -30,7 +30,8 @@ export async function getSpecialAuditFormData() {
  * Retrieves the full list of special audit reports.
  */
 export async function getSpecialAudits() {
-  await authorizeAction({ allowedRoles: ['Admin', 'Auditor'] });
+  // The /special-audits register is the "Special Audit Reports" page; loggers can see it too.
+  await authorizeAction({ anyPermissions: ['reports_special_audits_access', 'special_audits_new_access'] });
   try {
     const audits = await securePrisma.specialAudit.findMany({
       include: { 
@@ -56,7 +57,7 @@ export async function getSpecialAudits() {
  * Persists a new special audit report to the database.
  */
 export async function submitSpecialAudit(data: any) {
-  await authorizeAction({ allowedRoles: ['Admin', 'Auditor'] });
+  await authorizeAction({ allowedPermissions: ['special_audits_new_access'] });
   try {
     const validation = specialAuditSchema.safeParse(data);
     if (!validation.success) {

@@ -58,7 +58,7 @@ function getRequiredPermissionsForPath(pathname: string): PermissionKey[] {
   if (pathname.startsWith('/reports/frequency')) return ['reports_frequency_access'];
   if (pathname.startsWith('/assignments')) return ['reports_assignments_access'];
   if (pathname.startsWith('/communications')) return ['reports_communications_access'];
-  if (pathname.startsWith('/special-audits')) return ['reports_special_audits_access'];
+  if (pathname.startsWith('/special-audits')) return ['reports_special_audits_access', 'special_audits_new_access'];
   if (pathname === '/reports') return AUDIT_REPORTS_HUB_PERMISSIONS;
 
   if (pathname.startsWith('/users')) return ['users_manage_access'];

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
+    "prebuild": "node -e \"const fs=require('fs'),p=require('path'),src=p.join('node_modules','prisma','build','public','assets'),dst='public/fonts',files=fs.readdirSync(src);fs.mkdirSync(dst,{recursive:true});['400','600'].forEach(w=>{const f=files.find(x=>x.startsWith('inter-all-'+w));if(!f)throw new Error('inter-all-'+w+' not found');fs.copyFileSync(p.join(src,f),p.join(dst,'inter-'+w+'.woff'));console.log('copied inter-'+w+'.woff');});\"",
     "build": "next build",
     "start": "next start --port 4000",
     "lint": "next lint",

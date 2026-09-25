@@ -11,6 +11,7 @@ import { Search, Users, ShieldCheck, AlertCircle, Clock, Loader2 } from 'lucide-
 import type { Auditor, AuditFinding } from '@/types';
 import { differenceInDays } from 'date-fns';
 import { getAssignmentReportData } from '@/app/actions/reports';
+import { AuditableAreaAccordion, teamOf, type AuditorFinding } from '@/components/audit/AuditableAreaAccordion';
 
 function FilterSection({
   auditors,
@@ -109,18 +110,44 @@ function DeviationCell({ deviation }: { deviation: number | null }) {
   );
 }
 
+// The finding's full team, so every auditor block shows who else worked on it.
+function TeamCell({ finding }: { finding: AuditFinding }) {
+  const team = teamOf(finding);
+  const leader = team.find((m) => m.isLeader);
+  const members = team.filter((m) => !m.isLeader);
+
+  return (
+    <div className="flex min-w-[160px] flex-col gap-1 text-[11px]">
+      {leader && (
+        <div className="flex items-center gap-1">
+          <span className="text-muted-foreground">Leader:</span>
+          <span className="font-bold">{leader.name}</span>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="text-muted-foreground">Members:</span>
+        {members.length > 0 ? (
+          members.map((m) => (
+            <Badge key={m.name} variant="outline" className="text-[10px] h-5 px-1.5">{m.name}</Badge>
+          ))
+        ) : (
+          <span className="italic text-muted-foreground">None besides leader</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function FindingRow({
-  finding,
+  item,
   index,
-  selectedAuditor,
   mounted
 }: {
-  finding: AuditFinding;
+  item: AuditorFinding;
   index: number;
-  selectedAuditor: string;
   mounted: boolean;
 }) {
-  const isLeader = finding.teamLeader === (selectedAuditor === 'all' ? finding.teamLeader : selectedAuditor);
+  const { finding, isLeader } = item;
   const assignedDate = finding.assignedDate ? new Date(finding.assignedDate as any) : null;
   const finalizedDate = finding.finalizationDate ? new Date(finding.finalizationDate as any) : null;
   const standardTAT = finding.tatDays || 0;
@@ -134,14 +161,11 @@ function FindingRow({
     : null;
 
   return (
-    <TableRow key={finding.id} className="hover:bg-muted/30 transition-colors">
+    <TableRow className="hover:bg-muted/30 transition-colors">
       <TableCell className="text-center font-mono text-xs">{index + 1}</TableCell>
-      <TableCell className="font-medium text-sm">
-        {selectedAuditor === 'all' ? finding.teamLeader : selectedAuditor}
-      </TableCell>
       <TableCell>
         <div className="flex flex-col">
-          <span className="font-bold text-sm">{finding.branchOrDepartment}</span>
+          <span className="font-bold text-sm">{finding.title}</span>
           <span className="text-[10px] text-muted-foreground uppercase tracking-tighter">Ref: {finding.id}</span>
         </div>
       </TableCell>
@@ -149,6 +173,9 @@ function FindingRow({
         <Badge variant={isLeader ? "default" : "secondary"} className="text-[10px] h-5">
           {isLeader ? 'Leader' : 'Member'}
         </Badge>
+      </TableCell>
+      <TableCell>
+        <TeamCell finding={finding} />
       </TableCell>
       <TableCell className="text-[10px] font-mono whitespace-nowrap">
         {mounted && assignedDate ? assignedDate.toLocaleDateString() : (mounted ? 'Not Assigned' : '...')}
@@ -169,6 +196,33 @@ function FindingRow({
   );
 }
 
+function AuditorFindingsTable({ items, mounted }: { items: AuditorFinding[]; mounted: boolean }) {
+  return (
+    <div className="rounded-lg border overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/50 hover:bg-muted/50">
+            <TableHead className="w-12 text-center font-bold text-xs uppercase">S.No</TableHead>
+            <TableHead className="font-bold text-xs uppercase">Finding</TableHead>
+            <TableHead className="font-bold text-xs uppercase">Role</TableHead>
+            <TableHead className="font-bold text-xs uppercase">Team</TableHead>
+            <TableHead className="font-bold text-xs uppercase">Date Assigned</TableHead>
+            <TableHead className="font-bold text-xs uppercase">Finalization Date</TableHead>
+            <TableHead className="font-bold text-xs uppercase text-center">Time Taken</TableHead>
+            <TableHead className="font-bold text-xs uppercase text-center">TAT</TableHead>
+            <TableHead className="font-bold text-xs uppercase">Deviation</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((item, index) => (
+            <FindingRow key={item.finding.id} item={item} index={index} mounted={mounted} />
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 function FindingsTable({
   filteredFindings,
   selectedAuditor,
@@ -179,44 +233,12 @@ function FindingsTable({
   mounted: boolean;
 }) {
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-12 text-center font-bold text-xs uppercase">S.No</TableHead>
-              <TableHead className="font-bold text-xs uppercase">Name of Auditor</TableHead>
-              <TableHead className="font-bold text-xs uppercase">Auditable Area</TableHead>
-              <TableHead className="font-bold text-xs uppercase">Role</TableHead>
-              <TableHead className="font-bold text-xs uppercase">Date Assigned</TableHead>
-              <TableHead className="font-bold text-xs uppercase">Finalization Date</TableHead>
-              <TableHead className="font-bold text-xs uppercase text-center">Time Taken</TableHead>
-              <TableHead className="font-bold text-xs uppercase text-center">TAT</TableHead>
-              <TableHead className="font-bold text-xs uppercase">Deviation</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredFindings.length > 0 ? (
-              filteredFindings.map((finding, index) => (
-                <FindingRow
-                  key={finding.id}
-                  finding={finding}
-                  index={index}
-                  selectedAuditor={selectedAuditor}
-                  mounted={mounted}
-                />
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                  No assignments found for the selected criteria.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <AuditableAreaAccordion
+      findings={filteredFindings}
+      onlyAuditor={selectedAuditor === 'all' ? undefined : selectedAuditor}
+      emptyMessage="No assignments found for the selected criteria."
+      renderAuditorFindings={(items) => <AuditorFindingsTable items={items} mounted={mounted} />}
+    />
   );
 }
 
@@ -249,7 +271,7 @@ function useAuditorStats(
     if (selectedAuditor === 'all') return null;
 
     const ledCount = findings.filter(f => f.teamLeader === selectedAuditor).length;
-    const memberCount = findings.filter(f => f.teamMembers.includes(selectedAuditor)).length;
+    const memberCount = findings.filter(f => f.teamLeader !== selectedAuditor && f.teamMembers.includes(selectedAuditor)).length;
 
     return { ledCount, memberCount };
   }, [findings, selectedAuditor]);

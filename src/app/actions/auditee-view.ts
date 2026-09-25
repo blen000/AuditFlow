@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { securePrisma } from '@/lib/securePrisma';
-import { authorizeAction } from '@/lib/authorization';
+import { authorizeAction, describeFindingScope } from '@/lib/authorization';
 import { ensureFollowUpStatuses } from '@/app/actions/settings';
 import { AUDITEE_VIEW_PAGE_PERMISSIONS } from '@/lib/permissions';
 
@@ -53,7 +53,8 @@ function formatHierarchyNode(node: any) {
 export async function getAuditeeViewData() {
   // Any Auditee View permission (parent, view-only, or an individual child action)
   // is sufficient to load the page and its finding list.
-  await authorizeAction({ anyPermissions: [...AUDITEE_VIEW_PAGE_PERMISSIONS] });
+  // Which findings are returned is decided by securePrisma's visibility scope.
+  const user = await authorizeAction({ anyPermissions: [...AUDITEE_VIEW_PAGE_PERMISSIONS] });
   try {
     const [findings, hierarchy, branches, departments, riskLevels, statuses, followUpStatuses] = await Promise.all([
       securePrisma.finding.findMany({
@@ -80,6 +81,7 @@ export async function getAuditeeViewData() {
       riskLevels,
       statuses,
       followUpStatuses,
+      scope: describeFindingScope(user),
     };
   } catch (error) {
     console.error('Failed to fetch auditee view data:', error);

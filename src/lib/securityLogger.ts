@@ -10,15 +10,20 @@ function sanitizeLogField(value: string | undefined): string {
     .trim();
 }
 
-export type SecurityEventType = 
-  | 'AUTH_LOGIN_SUCCESS' 
-  | 'AUTH_LOGIN_FAILURE' 
+export type SecurityEventType =
+  | 'AUTH_LOGIN_SUCCESS'
+  | 'AUTH_LOGIN_FAILURE'
   | 'AUTH_LOGOUT'
-  | 'AUTHZ_FAILURE' 
-  | 'ROLE_CHANGE' 
+  | 'AUTHZ_FAILURE'
+  | 'ROLE_CHANGE'
   | 'SENSITIVE_OP'
   | 'DATA_EXPORT'
-  | 'DATA_IMPORT';
+  | 'DATA_IMPORT'
+  | 'PASSWORD_CHANGED'
+  | 'PASSWORD_CHANGE_RATE_LIMITED'
+  | 'PASSWORD_RESET_REQUESTED'
+  | 'PASSWORD_RESET_SUCCESS'
+  | 'PASSWORD_RESET_FAILURE';
 
 export type SecuritySeverity = 'INFO' | 'WARN' | 'HIGH_RISK';
 

@@ -1,13 +1,17 @@
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
-import { Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import { ClientLayout } from '@/components/layout/ClientLayout';
 import { headers } from 'next/headers';
 
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const inter = localFont({
+  src: [
+    { path: '../../public/fonts/inter-400.woff', weight: '400', style: 'normal' },
+    { path: '../../public/fonts/inter-400.woff', weight: '500', style: 'normal' },
+    { path: '../../public/fonts/inter-600.woff', weight: '600', style: 'normal' },
+    { path: '../../public/fonts/inter-600.woff', weight: '700', style: 'normal' },
+  ],
   variable: '--font-inter',
 });
 

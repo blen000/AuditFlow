@@ -1,4 +1,4 @@
-import { authorizeAction, getScopingFilter, AuthenticationError, AuthorizationError } from '../lib/authorization';
+import { authorizeAction, getScopingFilter, isFindingInScope, AuthenticationError, AuthorizationError } from '../lib/authorization';
 import { getUserFromCookiesServer } from '../lib/serverAuth';
 
 jest.mock('../lib/serverAuth');
@@ -73,6 +73,19 @@ describe('Authorization Utility', () => {
 
       await expect(authorizeAction({ allowedPermissions: ['findings_new_access'] })).rejects.toThrow(AuthorizationError);
     });
+
+    it('should allow a non-Auditor/Admin role (e.g. Chief Auditor) to submit findings when granted the permission', async () => {
+      // Regression test: submitFindings() used to gate on allowedRoles: ['Auditor', 'Admin'],
+      // which blocked any other role even when explicitly granted findings_new_access.
+      mockGetUserFromCookiesServer.mockResolvedValue({
+        id: 'u5',
+        email: 'chief.auditor@test.com',
+        role: { name: 'Chief Auditor', permissions: ['findings_new_access'] },
+      });
+
+      const user = await authorizeAction({ allowedPermissions: ['findings_new_access'] });
+      expect(user).toBeDefined();
+    });
   });
 
   describe('Query Scoping & Multi-tenancy', () => {
@@ -87,45 +100,98 @@ describe('Authorization Utility', () => {
       expect(filter).toEqual({});
     });
 
-    it('should scope findings by branch for Auditee (Cross-tenant prevention)', async () => {
+    it('should give org-wide visibility to any role granted auditee_view_all_findings', async () => {
       mockGetUserFromCookiesServer.mockResolvedValue({
-        id: 'u2',
-        email: 'auditee@test.com',
-        role: { name: 'Auditee' },
-        branch: 'Branch A',
+        id: 'u9',
+        fullName: 'Risk Officer',
+        role: { name: 'Risk Officer', permissions: ['auditee_view_access', 'auditee_view_all_findings'] },
       });
 
-      const filter = await getScopingFilter('finding');
-      expect(filter).toEqual({ branchOrDepartment: 'Branch A' });
-      // If an auditee from Branch A tries to access Branch B, this filter ensures they only see A
+      expect(await getScopingFilter('finding')).toEqual({});
+    });
+
+    it('should keep org-wide visibility for executive (special) roles', async () => {
+      mockGetUserFromCookiesServer.mockResolvedValue({
+        id: 'u8',
+        role: { name: 'Board Member', isSpecial: true, permissions: ['auditee_view_readonly'] },
+      });
+
+      expect(await getScopingFilter('finding')).toEqual({});
+    });
+
+    it('should scope a custom role by its unit and assignments instead of denying it (regression)', async () => {
+      // Previously any role not literally named Auditee/Auditor/CEO/Chief Auditor got { id: 'none' },
+      // leaving Auditee View empty even when the role held every Auditee View permission.
+      mockGetUserFromCookiesServer.mockResolvedValue({
+        id: 'u7',
+        fullName: 'Jane Roe',
+        branch: 'Branch A',
+        role: { name: 'Branch Manager', permissions: ['auditee_view_access'] },
+      });
+
+      const filter: any = await getScopingFilter('finding');
+      expect(filter.OR).toEqual(
+        expect.arrayContaining([
+          { auditorId: 'u7' },
+          { auditeeId: 'u7' },
+          { teamLeader: 'Jane Roe' },
+          { branch: 'Branch A' },
+          { branchOrDepartment: 'Branch A' },
+        ])
+      );
+    });
+
+    it('should scope findings by branch for Auditee without leaking other branches', async () => {
+      const user = {
+        id: 'u2',
+        email: 'auditee@test.com',
+        role: { name: 'Auditee', permissions: ['auditee_view_access'] },
+        branch: 'Branch A',
+        district: 'North',
+      };
+      mockGetUserFromCookiesServer.mockResolvedValue(user);
+
+      const filter: any = await getScopingFilter('finding');
+      expect(filter.OR).toContainEqual({ branch: 'Branch A' });
+      // Branch users do not inherit their whole district.
+      expect(filter.OR).not.toContainEqual({ district: 'North' });
+
+      expect(isFindingInScope(user, { branch: 'Branch A', branchOrDepartment: 'Branch A - Ops' })).toBe(true);
+      expect(isFindingInScope(user, { branch: 'Branch B', district: 'North', branchOrDepartment: 'Branch B' })).toBe(false);
     });
 
     it('should scope findings by team for Auditor', async () => {
-      mockGetUserFromCookiesServer.mockResolvedValue({
+      const user = {
         id: 'u3',
         email: 'auditor@test.com',
         fullName: 'John Doe',
-        role: { name: 'Auditor' },
-      });
+        role: { name: 'Auditor', permissions: ['auditee_view_access'] },
+      };
+      mockGetUserFromCookiesServer.mockResolvedValue(user);
 
-      const filter = await getScopingFilter('finding');
-      expect(filter).toEqual({
-        OR: [
+      const filter: any = await getScopingFilter('finding');
+      expect(filter.OR).toEqual(
+        expect.arrayContaining([
           { teamLeader: 'John Doe' },
-          { teamMembers: { path: [], array_contains: 'John Doe' } }
-        ]
-      });
+          { teamMembers: { array_contains: ['John Doe'] } },
+        ])
+      );
+      expect(isFindingInScope(user, { teamMembers: ['John Doe'] })).toBe(true);
+      expect(isFindingInScope(user, { teamLeader: 'Someone Else', teamMembers: [] })).toBe(false);
     });
 
-    it('should return "none" filter for unknown resource types or denied access', async () => {
+    it('should scope special audits by permission, not role name', async () => {
       mockGetUserFromCookiesServer.mockResolvedValue({
-        id: 'u4',
-        email: 'guest@test.com',
-        role: { name: 'Guest' },
+        id: 'u6',
+        role: { name: 'CEO', permissions: ['reports_special_audits_access'] },
       });
+      expect(await getScopingFilter('specialAudit')).toEqual({});
 
-      const filter = await getScopingFilter('finding');
-      expect(filter).toEqual({ id: 'none' });
+      mockGetUserFromCookiesServer.mockResolvedValue({
+        id: 'u5',
+        role: { name: 'Auditor', permissions: ['dashboard_access'] },
+      });
+      expect(await getScopingFilter('specialAudit')).toEqual({ id: 'none' });
     });
   });
 

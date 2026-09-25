@@ -12,10 +12,8 @@ export const securePrisma = {
       const filter = await getScopingFilter('finding');
       return prisma.auditFinding.findMany({
         ...args,
-        where: {
-          ...args.where,
-          ...filter,
-        },
+        // AND (not spread) so a caller's own OR clause cannot override the scope.
+        where: args.where ? { AND: [args.where, filter] } : filter,
       });
     },
     findUnique: async (args: any) => {
@@ -25,10 +23,7 @@ export const securePrisma = {
       
       // Ownership check for single record
       const scopedResult = await prisma.auditFinding.findFirst({
-        where: {
-          id: result.id,
-          ...filter,
-        },
+        where: { AND: [{ id: result.id }, filter] },
       });
       return scopedResult;
     },
@@ -38,10 +33,8 @@ export const securePrisma = {
       const filter = await getScopingFilter('user');
       return prisma.user.findMany({
         ...args,
-        where: {
-          ...args.where,
-          ...filter,
-        },
+        // AND (not spread) so a caller's own OR clause cannot override the scope.
+        where: args.where ? { AND: [args.where, filter] } : filter,
       });
     },
     findUnique: async (args: any) => {
@@ -50,10 +43,7 @@ export const securePrisma = {
       if (!result) return null;
 
       const scopedResult = await prisma.user.findFirst({
-        where: {
-          id: result.id,
-          ...filter,
-        },
+        where: { AND: [{ id: result.id }, filter] },
       });
       return scopedResult;
     },
@@ -63,10 +53,8 @@ export const securePrisma = {
       const filter = await getScopingFilter('specialAudit');
       return prisma.specialAudit.findMany({
         ...args,
-        where: {
-          ...args.where,
-          ...filter,
-        },
+        // AND (not spread) so a caller's own OR clause cannot override the scope.
+        where: args.where ? { AND: [args.where, filter] } : filter,
       });
     },
   },

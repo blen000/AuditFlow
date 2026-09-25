@@ -7,14 +7,87 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MessageSquare, Calendar, Link as LinkIcon, History, FilterX, Info, Loader2 } from 'lucide-react';
+import { Search, MessageSquare, Calendar, Link as LinkIcon, FilterX, Info, Loader2 } from 'lucide-react';
 import type { AuditTypeCategory, AuditFinding } from '@/types';
 import { format } from 'date-fns';
 import { AgreementBadge } from '@/components/audit/AgreementBadge';
 import { Button } from '@/components/ui/button';
 import { getCommunicationReportData } from '@/app/actions/reports';
+import { AuditableAreaAccordion, type AuditorFinding } from '@/components/audit/AuditableAreaAccordion';
 
 const auditTypes: AuditTypeCategory[] = ['Branch', 'District', 'Division', 'Department', 'Chief', 'CEO', 'Board'];
+
+function CommunicationTable({ items, mounted }: { items: AuditorFinding[]; mounted: boolean }) {
+  return (
+    <div className="rounded-lg border overflow-x-auto">
+      <Table>
+        <TableHeader className="bg-muted/50">
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="w-16 text-center font-bold text-[10px] uppercase tracking-widest">S.No</TableHead>
+            <TableHead className="font-bold text-[10px] uppercase tracking-widest">Reference / Finding</TableHead>
+            <TableHead className="font-bold text-[10px] uppercase tracking-widest">Audit Types</TableHead>
+            <TableHead className="font-bold text-[10px] uppercase tracking-widest">Date of Report</TableHead>
+            <TableHead className="font-bold text-[10px] uppercase tracking-widest">Date Communicated</TableHead>
+            <TableHead className="font-bold text-[10px] uppercase tracking-widest">Rectification Timeline</TableHead>
+            <TableHead className="font-bold text-[10px] uppercase tracking-widest">Response Status & Justification</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map(({ finding, isLeader }, index) => (
+            <TableRow key={finding.id} className="hover:bg-muted/20 transition-colors align-top">
+              <TableCell className="text-center font-mono text-xs text-muted-foreground pt-4">{index + 1}</TableCell>
+              <TableCell className="pt-4">
+                <div className="flex flex-col gap-1">
+                  <span className="font-bold text-sm">{finding.title}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-tighter">Ref: {finding.id}</span>
+                  <Badge variant={isLeader ? 'default' : 'secondary'} className="w-fit text-[10px] h-5">
+                    {isLeader ? 'Leader' : 'Member'}
+                  </Badge>
+                </div>
+              </TableCell>
+              <TableCell className="pt-4">
+                {finding.auditType ? (
+                  <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[10px] font-bold">
+                    {finding.auditType}
+                  </Badge>
+                ) : (
+                  <span className="text-xs text-muted-foreground">--</span>
+                )}
+              </TableCell>
+              <TableCell className="text-xs font-medium pt-4">
+                {mounted && finding.assignedDate ? format(new Date(finding.assignedDate as any), 'MMM d, yyyy') : '--'}
+              </TableCell>
+              <TableCell className="text-xs font-medium text-muted-foreground pt-4">
+                {mounted && finding.dateCommunicated ? format(new Date(finding.dateCommunicated as any), 'MMM d, yyyy') : 'Pending Response'}
+              </TableCell>
+              <TableCell className="pt-4">
+                {mounted && finding.mitigationDueDate ? (
+                  <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                    <Calendar className="h-3 w-3 text-accent" />
+                    {format(new Date(finding.mitigationDueDate as any), 'MMM d, yyyy')}
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground italic">Not established</span>
+                )}
+              </TableCell>
+              <TableCell className="pt-4 pb-4">
+                <div className="space-y-2 max-w-[250px]">
+                  <AgreementBadge agreement={finding.auditeeAgreement} />
+                  {(finding.auditeeAgreement === 'Declined' || finding.auditeeAgreement === 'Partially Agreed') && finding.auditeeResponse && (
+                    <div className="p-2 rounded-md bg-muted/50 border border-muted text-[11px] leading-relaxed text-muted-foreground flex gap-2">
+                      <Info className="h-3 w-3 shrink-0 mt-0.5 opacity-50" />
+                      <span>{finding.auditeeResponse}</span>
+                    </div>
+                  )}
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
 
 export default function CommunicationsPage() {
   const [mounted, setMounted] = useState(false);
@@ -110,75 +183,12 @@ export default function CommunicationsPage() {
                 <MessageSquare className="h-8 w-8 text-primary opacity-20" />
               </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-muted/50">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-16 text-center font-bold text-[10px] uppercase tracking-widest">S.No</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase tracking-widest">Audit Types</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase tracking-widest">Reference Number</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase tracking-widest">Date of Report</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase tracking-widest">Date Communicated</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase tracking-widest">Rectification Timeline</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase tracking-widest">Response Status & Justification</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredFindings.length > 0 ? (
-                      filteredFindings.map((finding, index) => (
-                        <TableRow key={finding.id} className="hover:bg-muted/20 transition-colors align-top">
-                          <TableCell className="text-center font-mono text-xs text-muted-foreground pt-4">{index + 1}</TableCell>
-                          <TableCell className="pt-4">
-                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[10px] font-bold">
-                              {finding.auditType}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="pt-4">
-                            <span className="font-bold text-sm">{finding.branchOrDepartment}</span>
-                          </TableCell>
-                          <TableCell className="text-xs font-medium pt-4">
-                            {mounted && finding.assignedDate ? format(new Date(finding.assignedDate as any), 'MMM d, yyyy') : '--'}
-                          </TableCell>
-                          <TableCell className="text-xs font-medium text-muted-foreground pt-4">
-                            {mounted && finding.dateCommunicated ? format(new Date(finding.dateCommunicated as any), 'MMM d, yyyy') : 'Pending Response'}
-                          </TableCell>
-                          <TableCell className="pt-4">
-                            {mounted && finding.mitigationDueDate ? (
-                              <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-                                <Calendar className="h-3 w-3 text-accent" />
-                                {format(new Date(finding.mitigationDueDate as any), 'MMM d, yyyy')}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground italic">Not established</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="pt-4 pb-4">
-                            <div className="space-y-2 max-w-[250px]">
-                              <AgreementBadge agreement={finding.auditeeAgreement} />
-                              {(finding.auditeeAgreement === 'Declined' || finding.auditeeAgreement === 'Partially Agreed') && finding.auditeeResponse && (
-                                <div className="p-2 rounded-md bg-muted/50 border border-muted text-[11px] leading-relaxed text-muted-foreground flex gap-2">
-                                  <Info className="h-3 w-3 shrink-0 mt-0.5 opacity-50" />
-                                  <span>{finding.auditeeResponse}</span>
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <History className="h-8 w-8 opacity-20" />
-                            <p className="font-medium">No communication records found for the selected criteria.</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+            <CardContent className="p-6">
+              <AuditableAreaAccordion
+                findings={filteredFindings}
+                emptyMessage="No communication records found for the selected criteria."
+                renderAuditorFindings={(items) => <CommunicationTable items={items} mounted={mounted} />}
+              />
             </CardContent>
           </Card>
 
