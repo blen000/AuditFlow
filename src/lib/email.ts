@@ -21,6 +21,19 @@ if (port !== 587) {
   throw new Error("Only SMTP_PORT=587 is allowed (STARTTLS mode)");
 }
 
+// Some deployments relay through an internal SMTP server whose TLS certificate is
+// signed by a private/enterprise CA that Node does not trust out of the box
+// (fails with "self-signed certificate"). The correct fix is to trust that CA via
+// NODE_EXTRA_CA_CERTS; where that isn't possible, set SMTP_ALLOW_SELF_SIGNED=true
+// to skip certificate verification for the SMTP connection ONLY (this does not
+// affect any other HTTPS traffic, unlike NODE_TLS_REJECT_UNAUTHORIZED=0).
+const allowSelfSigned = process.env.SMTP_ALLOW_SELF_SIGNED === "true";
+if (allowSelfSigned) {
+  console.warn(
+    "⚠️  SMTP_ALLOW_SELF_SIGNED=true — SMTP TLS certificate verification is disabled."
+  );
+}
+
 // --------------------
 // TRANSPORTER
 // --------------------
@@ -33,7 +46,7 @@ const transporter = nodemailer.createTransport({
     pass: process.env.SMTP_PASS,
   },
   tls: {
-    rejectUnauthorized: true,
+    rejectUnauthorized: !allowSelfSigned,
     minVersion: "TLSv1.2",
   },
 });
