@@ -7,9 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Filter, Calendar, Building2, Layers, FilterX, Loader2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { isWithinInterval, subMonths } from 'date-fns';
 import { getDashboardData } from '@/app/actions/dashboard';
 import { processRectificationDeadlines } from '@/app/actions/notifications/actions';
+import { DateRangeFilter } from './DateRangeFilter';
+import { isInSelectedPeriod, type DateRange } from '@/lib/period';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -29,6 +30,7 @@ export default function AuditDashboard() {
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
+  const [customRange, setCustomRange] = useState<DateRange>({});
 
   useEffect(() => {
     async function loadData() {
@@ -56,24 +58,23 @@ export default function AuditDashboard() {
     loadData();
   }, []);
 
+  const inSelectedPeriod = (value: Date | string | null | undefined) =>
+    isInSelectedPeriod(value, selectedPeriod, customRange);
+
   const filteredFindings = useMemo(() => {
     return findings.filter(f => {
       const branchMatch = selectedBranch === 'all' || f.branchOrDepartment === selectedBranch;
       const typeMatch = selectedType === 'all' || f.auditType === selectedType;
-      
-      let periodMatch = true;
-      if (selectedPeriod !== 'all' && f.assignedDate) {
-        const date = new Date(f.assignedDate as any);
-        const today = new Date();
-        if (selectedPeriod === '1m') periodMatch = isWithinInterval(date, { start: subMonths(today, 1), end: today });
-        if (selectedPeriod === '3m') periodMatch = isWithinInterval(date, { start: subMonths(today, 3), end: today });
-        if (selectedPeriod === '6m') periodMatch = isWithinInterval(date, { start: subMonths(today, 6), end: today });
-        if (selectedPeriod === '1y') periodMatch = isWithinInterval(date, { start: subMonths(today, 12), end: today });
-      }
-
+      const periodMatch = inSelectedPeriod(f.findingDate || f.assignedDate || (f as any).createdAt);
       return branchMatch && typeMatch && periodMatch;
     });
-  }, [findings, selectedBranch, selectedType, selectedPeriod]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [findings, selectedBranch, selectedType, selectedPeriod, customRange]);
+
+  const filteredSpecialAudits = useMemo(() => {
+    return specialAudits.filter(a => inSelectedPeriod(a.dateCreated));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specialAudits, selectedPeriod, customRange]);
 
   const handleExportPDF = async () => {
     if (!dashboardRef.current) return;
@@ -119,6 +120,7 @@ export default function AuditDashboard() {
     setSelectedBranch('all');
     setSelectedType('all');
     setSelectedPeriod('all');
+    setCustomRange({});
   };
 
   if (isLoading) {
@@ -180,6 +182,7 @@ export default function AuditDashboard() {
                     <SelectItem value="3m">Last 3 Months</SelectItem>
                     <SelectItem value="6m">Last 6 Months</SelectItem>
                     <SelectItem value="1y">Last Year</SelectItem>
+                    <SelectItem value="custom">Custom Date Range</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -209,15 +212,18 @@ export default function AuditDashboard() {
               )}
             </div>
           </div>
+          {selectedPeriod === 'custom' && (
+            <DateRangeFilter value={customRange} onChange={setCustomRange} className="mt-4 border-t pt-4" />
+          )}
         </CardContent>
       </Card>
 
       <div ref={dashboardRef} className="space-y-8 p-1">
         {/* 1. Statistics Row */}
-        <DashboardStats findings={filteredFindings} specialAudits={specialAudits} />
+        <DashboardStats findings={filteredFindings} specialAudits={filteredSpecialAudits} />
 
         {/* 2. Charts Row */}
-        <DashboardCharts findings={filteredFindings} specialAudits={specialAudits} hierarchy={hierarchy} selectedPeriod={selectedPeriod} followUpStatuses={followUpStatuses} />
+        <DashboardCharts findings={filteredFindings} specialAudits={filteredSpecialAudits} hierarchy={hierarchy} selectedPeriod={selectedPeriod} followUpStatuses={followUpStatuses} />
       </div>
       
       <div className="rounded-lg border bg-muted/30 p-8 text-center border-dashed border-primary/20">

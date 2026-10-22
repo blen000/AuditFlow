@@ -34,6 +34,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { ReportDateField } from '@/components/audit/ReportDateField';
 
 const individualSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -60,6 +61,7 @@ const formSchema = z.object({
   auditCause: z.string().optional(),
   auditEffect: z.string().optional(),
   recommendation: z.string().optional(),
+  dateCreated: z.date().optional(),
 });
 
 export default function NewSpecialAuditPage() {
@@ -192,6 +194,7 @@ export default function NewSpecialAuditPage() {
                   <CardDescription>Primary identifiers for the special audit report.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  <ReportDateField control={form.control} name="dateCreated" />
                   <FormField
                     control={form.control}
                     name="shortSummary"

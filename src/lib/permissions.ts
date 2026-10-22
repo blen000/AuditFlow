@@ -14,14 +14,20 @@ export const PERMISSION_DEFINITIONS = [
   {
     key: 'auditee_view_access',
     label: 'Auditee View',
-    description: 'Parent access to the Auditee View module. Selecting this grants every action below.',
+    description: 'Parent access to the Auditee View module. Selecting this grants the Normal Auditee View and every action below. The Special Auditee View is granted separately.',
     group: 'Core Actions → Auditee View',
     isParent: true,
   },
   {
-    key: 'auditee_view_readonly',
-    label: 'Auditee View — View Only',
-    description: 'Open Auditee View and read finding cards (including actions already taken). No edit, response, progress, status-change, or delete. Does not inherit any other Auditee View permission.',
+    key: 'auditee_view_normal',
+    label: 'Normal Auditee View',
+    description: 'Open the Normal Auditee View and read findings from regular audits. Grants no actions on its own.',
+    group: 'Core Actions → Auditee View',
+  },
+  {
+    key: 'auditee_view_special',
+    label: 'Special Auditee View',
+    description: 'Open the Special Auditee View (a tab inside Auditee View) and read special audit cases. Grants no actions on its own and does not open the Normal Auditee View.',
     group: 'Core Actions → Auditee View',
   },
   {
@@ -207,7 +213,8 @@ export function isAdminRole(role?: string | null): boolean {
 }
 
 // Child action permissions under the "Core Actions → Auditee View" group.
-// The parent `auditee_view_access` toggle implies all of these.
+// The parent `auditee_view_access` toggle implies all of these. They apply to
+// whichever Auditee View (normal or special) the role can open.
 export const AUDITEE_VIEW_CHILD_PERMISSIONS: PermissionKey[] = [
   'auditee_view_edit_finding',
   'auditee_view_follow_up',
@@ -217,17 +224,28 @@ export const AUDITEE_VIEW_CHILD_PERMISSIONS: PermissionKey[] = [
   'auditee_view_delete_finding',
 ];
 
-// Any of these keys is sufficient to OPEN the /auditee-view page and see the
-// finding list. Individual child keys then unlock their specific action.
-export const AUDITEE_VIEW_PAGE_PERMISSIONS: PermissionKey[] = [
-  'auditee_view_access',
-  'auditee_view_readonly',
+export const NORMAL_AUDITEE_VIEW_PERMISSION: PermissionKey = 'auditee_view_normal';
+export const SPECIAL_AUDITEE_VIEW_PERMISSION: PermissionKey = 'auditee_view_special';
+
+// Everything the parent `auditee_view_access` toggle grants. Deliberately excludes
+// the Special Auditee View, which must be granted explicitly.
+export const AUDITEE_VIEW_PARENT_GRANTS: PermissionKey[] = [
+  NORMAL_AUDITEE_VIEW_PERMISSION,
   ...AUDITEE_VIEW_CHILD_PERMISSIONS,
+];
+
+// Any of these (effective) keys is sufficient to OPEN the /auditee-view page.
+// Which view the user lands in, and which data it may load, is decided per view.
+export const AUDITEE_VIEW_PAGE_PERMISSIONS: PermissionKey[] = [
+  NORMAL_AUDITEE_VIEW_PERMISSION,
+  SPECIAL_AUDITEE_VIEW_PERMISSION,
 ];
 
 // Backwards compatibility for legacy roles stored with:
 // - audit_read, audit_write, reports_read, settings_manage
+// - auditee_view_readonly (now `auditee_view_normal`)
 const LEGACY_PERMISSION_MAP: Record<string, PermissionKey[]> = {
+  auditee_view_readonly: ['auditee_view_normal'],
   audit_read: ['dashboard_access', 'auditee_view_access'],
   audit_write: ['findings_new_access', 'special_audits_new_access'],
   reports_read: [
@@ -266,14 +284,22 @@ export function normalizePermissions(permissions: string[] = []): PermissionKey[
     if (legacy) legacy.forEach((k) => out.add(k));
   }
 
-  // Parent implies children: holding the Auditee View parent toggle grants every
-  // child action. This runs on both the client (AuthContext) and the server
-  // (withAdminPermissions) so UI and API stay in sync, and roles saved with only
-  // the parent key keep working.
+  // Parent implies the Normal Auditee View and every child action. This runs on
+  // both the client (AuthContext) and the server (effectivePermissionsFor) so UI
+  // and API stay in sync, and roles saved with only the parent key keep working.
+  // The Special Auditee View is never implied by the parent.
   if (out.has('auditee_view_access')) {
-    AUDITEE_VIEW_CHILD_PERMISSIONS.forEach((k) => out.add(k));
+    AUDITEE_VIEW_PARENT_GRANTS.forEach((k) => out.add(k));
   }
-  // NOTE: `auditee_view_readonly` deliberately implies nothing else.
+
+  // Roles saved before the normal/special split hold child actions without either
+  // view key; they could only ever open the (normal) Auditee View. Once a role
+  // names a view explicitly that choice is respected as-is, so a role can be
+  // special-only.
+  const hasExplicitView = out.has(NORMAL_AUDITEE_VIEW_PERMISSION) || out.has(SPECIAL_AUDITEE_VIEW_PERMISSION);
+  if (!hasExplicitView && AUDITEE_VIEW_CHILD_PERMISSIONS.some((k) => out.has(k))) {
+    out.add(NORMAL_AUDITEE_VIEW_PERMISSION);
+  }
 
   return Array.from(out);
 }
@@ -308,3 +334,14 @@ export const SYSTEM_SETTINGS_PERMISSIONS: PermissionKey[] = [
   'settings_follow_up_statuses_access',
   'settings_special_finding_categories_access',
 ];
+
+/**
+ * Permissions to store for a role given what the admin ticked. The Auditee View
+ * parent key implies the Normal Auditee View and every action at runtime, so it is
+ * stored only when all of those are ticked; otherwise it would silently re-grant
+ * whatever the admin unticked.
+ */
+export function storedPermissionsFromSelection(selected: string[]): string[] {
+  const parentFullyGranted = AUDITEE_VIEW_PARENT_GRANTS.every((k) => selected.includes(k));
+  return parentFullyGranted ? selected : selected.filter((k) => k !== 'auditee_view_access');
+}

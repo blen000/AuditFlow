@@ -73,9 +73,10 @@ export const findingSchema = z.object({
   involvedAmounts: z.array(z.any()).optional(),
   teamLeader: z.string().optional(),
   teamMembers: z.array(z.string()).optional(),
-  assignedDate: z.string().optional().or(z.date()),
+  findingDate: z.string().optional().or(z.date()),
   rectificationDate: z.string().optional().or(z.date()),
   tatDays: z.coerce.number().optional(),
+  reportingPeriod: z.string().optional(),
   dynamicValues: z.record(z.any()).optional(),
   auditorId: z.string().optional(),
   auditeeId: z.string().optional(),
@@ -113,6 +114,8 @@ export const specialAuditSchema = z.object({
   auditEffect: z.string().optional(),
   recommendation: z.string().optional(),
   individuals: z.array(individualSchema).min(1, 'At least one individual is required.'),
+  // When the case took place; omitted means today. Lets earlier periods be recorded.
+  dateCreated: z.union([z.date(), z.string()]).optional().nullable(),
 });
 
 // --- Settings Schemas ---
@@ -121,6 +124,14 @@ export const hierarchyNodeSchema = z.object({
   title: z.string().min(1),
   number: z.string().min(1),
   level: z.coerce.number(),
+  parentId: z.string().optional().nullable(),
+  customFields: z.array(z.any()).optional(),
+});
+
+// Creating a node: Ref No. is optional and generated when left blank; level comes from the parent.
+export const hierarchyNodeCreateSchema = z.object({
+  title: z.string().trim().min(1),
+  number: z.string().trim().optional(),
   parentId: z.string().optional().nullable(),
   customFields: z.array(z.any()).optional(),
 });

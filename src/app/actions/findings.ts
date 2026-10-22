@@ -74,7 +74,7 @@ export async function getFindingById(id: string) {
   const perms = effectivePermissionsFor(user);
   if (
     user?.role?.name !== 'Admin' &&
-    !perms.includes('auditee_view_edit_finding') &&
+    !(perms.includes('auditee_view_normal') && perms.includes('auditee_view_edit_finding')) &&
     !perms.includes('findings_new_access')
   ) {
     throw new Error('Forbidden');
@@ -133,12 +133,13 @@ export async function updateFinding(
   const INTENT_PERMISSION = UPDATE_FINDING_INTENT_PERMISSION;
 
   // Authenticate first (no specific permission), then authorize against either
-  // the intent-specific Auditee View permission or the legacy findings_new_access.
+  // the intent-specific permission (which only applies together with the Normal
+  // Auditee View) or the legacy findings_new_access for edits.
   const user = await authorizeAction();
   const perms = effectivePermissionsFor(user);
   const allowed =
     user?.role?.name === 'Admin' ||
-    perms.includes(INTENT_PERMISSION[intent]) ||
+    (perms.includes('auditee_view_normal') && perms.includes(INTENT_PERMISSION[intent])) ||
     (intent === 'edit' && perms.includes('findings_new_access'));
   if (!allowed) {
     return { success: false, error: 'You do not have permission to perform this action.' };
@@ -223,9 +224,13 @@ export async function submitFindings(data: any) {
             involvedAmounts: f.involvedAmounts || [],
             teamLeader: f.teamLeader,
             teamMembers: f.teamMembers || [],
-            assignedDate: f.assignedDate ? new Date(f.assignedDate) : new Date(),
+            // Assignment date is always the real date the case was assigned; the
+            // (possibly backdated) date the finding occurred is stored separately.
+            assignedDate: new Date(),
+            findingDate: f.findingDate && new Date(f.findingDate) <= new Date() ? new Date(f.findingDate) : new Date(),
             rectificationDate: f.rectificationDate ? new Date(f.rectificationDate) : null,
             tatDays: f.tatDays || 15,
+            reportingPeriod: f.reportingPeriod || null,
             hierarchyNodeId: hierarchyNodeId,
             dynamicValues: f.dynamicValues || {},
             auditorId: user.id, // ❗ Bind current user as the Auditor
@@ -303,7 +308,7 @@ export async function respondToFinding(findingId: string, data: {
   attachmentId?: string;
 }) {
   const user = await authorizeAction({
-    allowedPermissions: ['auditee_view_auditee_response'],
+    allowedPermissions: ['auditee_view_normal', 'auditee_view_auditee_response'],
     resourceId: findingId,
     resourceType: 'finding',
   });

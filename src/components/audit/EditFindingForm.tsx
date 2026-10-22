@@ -55,7 +55,8 @@ const formSchema = z.object({
   auditCause: z.string().optional(),
   auditEffect: z.string().optional(),
   recommendation: z.string().optional(),
-  assignedDate: z.date().optional(),
+  findingDate: z.date().optional(),
+  reportingPeriod: z.string().optional(),
   tatDays: z.coerce.number().min(1).optional(),
   dynamicValues: z.record(z.any()).optional(),
 });
@@ -90,8 +91,9 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       auditCause: finding.auditCause || '',
       auditEffect: finding.auditEffect || '',
       recommendation: finding.recommendation || '',
-      assignedDate: finding.assignedDate ? new Date(finding.assignedDate as any) : undefined,
+      findingDate: (finding.findingDate || finding.assignedDate) ? new Date((finding.findingDate || finding.assignedDate) as any) : undefined,
       tatDays: finding.tatDays || 15,
+      reportingPeriod: finding.reportingPeriod || '',
       dynamicValues: finding.dynamicValues || {},
     },
   });
@@ -119,8 +121,9 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
           auditCause: finding.auditCause || '',
           auditEffect: finding.auditEffect || '',
           recommendation: finding.recommendation || '',
-          assignedDate: finding.assignedDate ? new Date(finding.assignedDate as any) : undefined,
+          findingDate: (finding.findingDate || finding.assignedDate) ? new Date((finding.findingDate || finding.assignedDate) as any) : undefined,
           tatDays: finding.tatDays || 15,
+      reportingPeriod: finding.reportingPeriod || '',
           dynamicValues: finding.dynamicValues || {},
         });
       } catch (error) {
@@ -159,8 +162,6 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
       setIsSubmitting(false);
     }
   }
-
-  const isAssignedDateLocked = !!finding.assignedDate;
 
   if (isLoading) {
     return (
@@ -266,10 +267,10 @@ export function EditFindingForm({ finding }: EditFindingFormProps) {
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <FormField
                         control={form.control}
-                        name="assignedDate"
+                        name="findingDate"
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
-                            <FormLabel>Assignment Date</FormLabel>
+                            <FormLabel>Finding Date</FormLabel>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>

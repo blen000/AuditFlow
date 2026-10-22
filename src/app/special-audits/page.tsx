@@ -44,7 +44,7 @@ import {
   FileDown,
   FileText,
   Printer,
-  ChevronDown
+  ChevronDown,
 } from 'lucide-react';
 import type { SpecialAudit } from '@/types';
 import { AddEditSpecialAuditDialog } from '@/components/audit/AddEditSpecialAuditDialog';
@@ -623,10 +623,11 @@ export default function SpecialAuditsPage() {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem onClick={() => handleView(audit)}>
                               <Eye className="mr-2 h-4 w-4" /> View Report
                             </DropdownMenuItem>
+                            {canDelete && <DropdownMenuSeparator />}
                             {canDelete && (
                               <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(audit.id)}>
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete Report

@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AddEditAuditNodeDialog } from '@/components/audit/AddEditAuditNodeDialog';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { getHierarchy, createHierarchyNode, updateHierarchyNode, deleteHierarchyNode } from '@/app/actions/settings';
+import { getHierarchy, createHierarchyNode, createHierarchyNodes, updateHierarchyNode, deleteHierarchyNode } from '@/app/actions/settings';
 
 export default function AuditStructurePage() {
   const { toast } = useToast();
@@ -67,32 +67,38 @@ export default function AuditStructurePage() {
     }
   };
 
-  const handleSubmit = async (data: Omit<AuditHierarchyNode, 'id'>) => {
+  const refresh = async () => setHierarchy((await getHierarchy()) as any);
+
+  // Keeps the dialog open on failure so nothing the user typed is lost.
+  const handleSubmit = async (data: Omit<AuditHierarchyNode, 'id' | 'number'> & { number?: string }) => {
     try {
       if (editingNode) {
         const result = await updateHierarchyNode(editingNode.id, data);
-        if (result.success) {
-          setHierarchy(prev => prev.map(n => n.id === editingNode.id ? { ...n, ...data } : n));
-          toast({ title: 'Hierarchy Updated' });
-        }
+        if (!result.success) throw new Error(result.error);
+        setHierarchy(prev => prev.map(n => n.id === editingNode.id ? { ...n, ...data, number: data.number ?? n.number } : n));
+        toast({ title: 'Hierarchy Updated' });
       } else {
         const result = await createHierarchyNode(data);
-        if (result.success) {
-          const freshData = await getHierarchy();
-          setHierarchy(freshData as any);
-          toast({ title: 'New Level Registered' });
-        } else {
-          throw new Error(result.error);
-        }
+        if (!result.success) throw new Error(result.error);
+        await refresh();
+        toast({ title: 'New Level Registered' });
       }
+      setIsDialogOpen(false);
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Configuration Error",
-        description: error.message || "Operation failed.",
-      });
+      toast({ variant: 'destructive', title: 'Could not save', description: error.message || 'Operation failed.' });
     }
-    setIsDialogOpen(false);
+  };
+
+  const handleSubmitMany = async (parentId: string | null, titles: string[]) => {
+    try {
+      const result = await createHierarchyNodes(parentId, titles);
+      if (!result.success) throw new Error(result.error);
+      await refresh();
+      toast({ title: `${result.created} levels registered` });
+      setIsDialogOpen(false);
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Could not save', description: error.message || 'Operation failed.' });
+    }
   };
 
   const sortedHierarchy = useMemo(() => {
@@ -206,8 +212,10 @@ export default function AuditStructurePage() {
         open={isDialogOpen} 
         onOpenChange={setIsDialogOpen}
         onSubmit={handleSubmit}
+        onSubmitMany={handleSubmitMany}
         node={editingNode}
         parent={targetParent}
+        hierarchy={hierarchy}
       />
     </div>
   );

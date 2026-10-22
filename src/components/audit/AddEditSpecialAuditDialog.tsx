@@ -37,6 +37,7 @@ import type { SpecialAudit } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { Settings } from 'lucide-react';
+import { ReportDateField } from '@/components/audit/ReportDateField';
 
 import { getSpecialAuditFormData } from '@/app/actions/special-audits';
 
@@ -63,12 +64,13 @@ const formSchema = z.object({
   auditCause: z.string().optional(),
   auditEffect: z.string().optional(),
   recommendation: z.string().optional(),
+  dateCreated: z.date().optional(),
 });
 
 type AddEditSpecialAuditDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: Omit<SpecialAudit, 'id' | 'dateCreated'>) => void;
+  onSubmit: (data: Omit<SpecialAudit, "id" | "dateCreated"> & { dateCreated?: Date }) => void;
   audit: SpecialAudit | null;
 };
 
@@ -133,6 +135,7 @@ export function AddEditSpecialAuditDialog({
           auditCause: audit.auditCause || '',
           auditEffect: audit.auditEffect || '',
           recommendation: audit.recommendation || '',
+          dateCreated: audit.dateCreated ? new Date(audit.dateCreated) : undefined,
         });
       } else {
         form.reset({
@@ -177,6 +180,7 @@ export function AddEditSpecialAuditDialog({
                   <div className="flex items-center gap-2 text-primary font-bold uppercase text-[10px] tracking-widest">
                     <FileText className="h-4 w-4" /> Report Overview
                   </div>
+                  <ReportDateField control={form.control} name="dateCreated" />
                   <FormField
                     control={form.control}
                     name="shortSummary"

@@ -25,12 +25,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import { DateRangeFilter } from '@/components/audit/DateRangeFilter';
+import { describeRange, isInDateRange, type DateRange } from '@/lib/period';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 export default function ConsolidatedReportPage() {
   const reportRef = useRef<HTMLDivElement>(null);
-  const [findings, setFindings] = useState<AuditFinding[]>([]);
+  const [allFindings, setFindings] = useState<AuditFinding[]>([]);
+  const [range, setRange] = useState<DateRange>({});
   const [hierarchy, setHierarchy] = useState<AuditHierarchyNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
@@ -151,6 +154,11 @@ export default function ConsolidatedReportPage() {
     }
   };
 
+  const findings = useMemo(
+    () => allFindings.filter(f => isInDateRange((f.findingDate || f.assignedDate || (f as any).createdAt) as any, range)),
+    [allFindings, range]
+  );
+
   // Group findings by hierarchy node ID
   const findingsByNode = useMemo(() => {
     const map: Record<string, AuditFinding[]> = {};
@@ -161,6 +169,8 @@ export default function ConsolidatedReportPage() {
         map[nodeId].push(f);
       }
     });
+    const when = (f: AuditFinding) => new Date((f.findingDate || f.assignedDate || (f as any).createdAt) as any).getTime() || 0;
+    Object.values(map).forEach(list => list.sort((a, b) => when(a) - when(b)));
     return map;
   }, [findings]);
 
@@ -242,6 +252,11 @@ export default function ConsolidatedReportPage() {
                       <TableCell className="text-center font-bold text-black align-top pt-4 text-xs">{idx + 1}.</TableCell>
                       <TableCell className="text-black font-bold align-top pt-4 text-xs uppercase leading-tight">
                         {finding.branchOrDepartment}
+                        {(finding.findingDate || finding.assignedDate) && (
+                          <p className="mt-1 text-[9px] font-medium normal-case text-muted-foreground">
+                            Finding date: {new Date((finding.findingDate || finding.assignedDate) as any).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        )}
                       </TableCell>
                       
                       {/* Dynamic Custom Data Cells */}
@@ -294,8 +309,11 @@ export default function ConsolidatedReportPage() {
 
                       <TableCell className="text-center align-top pt-4">
                         <span className="text-[10px] font-black uppercase text-black">
-                          {finding.status}
+                          {finding.followUpStatus || 'Pending'}
                         </span>
+                        {finding.status && (
+                          <p className="mt-1 text-[9px] font-medium normal-case text-muted-foreground">Workflow: {finding.status}</p>
+                        )}
                       </TableCell>
 
                       <TableCell className="text-center align-top pt-4">
@@ -382,6 +400,11 @@ export default function ConsolidatedReportPage() {
       </PageHeader>
       
       <main className="flex-1 p-4 sm:p-6 md:p-12 print:p-0">
+        <div className="mx-auto mb-6 max-w-full rounded-lg border bg-card p-4 print:hidden">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-primary">Report Period</p>
+          <DateRangeFilter value={range} onChange={setRange} />
+          <p className="mt-3 text-xs text-muted-foreground">{findings.length} of {allFindings.length} findings in range. Leave blank for the whole reporting history.</p>
+        </div>
         <div 
           ref={reportRef}
           className="export-report mx-auto max-w-full space-y-10 bg-white p-8 md:p-16 shadow-2xl print:shadow-none print:p-0"
@@ -394,7 +417,9 @@ export default function ConsolidatedReportPage() {
             </div>
             <h1 className="text-2xl font-black uppercase tracking-widest text-primary">Internal Audit Department</h1>
             <h2 className="text-lg font-bold uppercase tracking-tight text-foreground">
-              Activity Report for the 2nd quarter ended {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              {range.from || range.to
+                ? `Activity Report for the period ${describeRange(range)}`
+                : `Activity Report - all periods up to ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`}
             </h2>
           </div>
 

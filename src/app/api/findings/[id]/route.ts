@@ -8,7 +8,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   // Enforce authorization (Auditee View "Delete" permission) + ownership.
   const auth = await authorizeRoute(req, {
-    allowedPermissions: ['auditee_view_delete_finding'],
+    allowedPermissions: ['auditee_view_normal', 'auditee_view_delete_finding'],
     resourceId: id,
     resourceType: 'finding',
   });

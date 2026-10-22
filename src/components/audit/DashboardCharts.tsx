@@ -57,7 +57,7 @@ const STATUS_COLORS: Record<string, string> = {
   'Pending': '#94a3b8',
   'Rectified': '#16a34a',
   'Partially Rectified': '#f59e0b',
-  'Refereed': '#2563eb',
+  'Referred': '#2563eb',
   'Action Plan': '#7c3aed',
 };
 
@@ -95,7 +95,7 @@ export function DashboardCharts({ findings, specialAudits, hierarchy, selectedPe
 
   const followUpStatusNames = followUpStatuses.length > 0
     ? followUpStatuses.map((item) => item.name)
-    : ['Pending', 'Rectified', 'Partially Rectified', 'Refereed', 'Action Plan'];
+    : ['Pending', 'Rectified', 'Partially Rectified', 'Referred', 'Action Plan'];
 
   const fallbackColors = ['#94a3b8', '#16a34a', '#f59e0b', '#2563eb', '#7c3aed', '#0f766e', '#b45309'];
 
@@ -140,7 +140,7 @@ export function DashboardCharts({ findings, specialAudits, hierarchy, selectedPe
       let key = '';
       let sortKey = '';
       
-      if (selectedPeriod === '1m' || selectedPeriod === 'all') {
+      if (selectedPeriod === '1m' || selectedPeriod === 'all' || selectedPeriod === 'custom') {
         // Group by Month
         key = format(startOfMonth(date), 'MMM yyyy');
         sortKey = format(startOfMonth(date), 'yyyy-MM');

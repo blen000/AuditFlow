@@ -35,6 +35,7 @@ export async function getDashboardData() {
     const formattedFindings = findings.map((f: any) => ({
       ...f,
       assignedDate: f.assignedDate || null,
+      findingDate: f.findingDate || null,
       dateCommunicated: f.dateCommunicated || null,
       finalizationDate: f.finalizationDate || null,
       revalidationDate: f.revalidationDate || null,

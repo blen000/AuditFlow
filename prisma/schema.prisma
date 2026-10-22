@@ -146,6 +146,8 @@ model AuditFinding {
   teamLeader                String?
   teamMembers               Json?
   assignedDate              DateTime?
+  findingDate               DateTime?
+  reportingPeriod           String?
   dateCommunicated          DateTime?
   finalizationDate          DateTime?
   tatDays                   Int?               @default(15)
@@ -207,6 +209,21 @@ model SpecialAudit {
   auditEffect           String?
   recommendation        String?
   dateCreated           DateTime                 @default(now())
+  status                String                   @default("Open")
+  followUpStatus        String                   @default("Pending")
+  progressUpdates       Json?
+  auditeeResponse       String?
+  auditeeResponseDate   DateTime?
+  auditeeAgreement      String                   @default("Pending")
+  mitigationDueDate     DateTime?
+  verbalComm            Json?
+  writtenComm           Json?
+  esc1                  Json?
+  esc2                  Json?
+  followUpRecommendations String?
+  isClosed              Boolean                  @default(false)
+  forwardingHistory     Json?
+  collaboratingWith     String?
   category              SpecialFindingCategory?  @relation(fields: [categoryId], references: [id])
   individuals           SpecialAuditIndividual[]
 }

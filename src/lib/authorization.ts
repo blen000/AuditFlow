@@ -3,7 +3,7 @@ import { prisma } from './prisma';
 import { NextResponse } from 'next/server';
 import { redirect } from 'next/navigation';
 import { logSecurityEvent } from './securityLogger';
-import { normalizePermissions } from './permissions';
+import { normalizePermissions, SPECIAL_AUDITEE_VIEW_PERMISSION } from './permissions';
 
 /**
  * Effective permission keys for a user: the raw stored keys expanded by the
@@ -195,6 +195,16 @@ export function isFindingInScope(user: any, finding: any): boolean {
   );
 }
 
+/** True when the user may read special audit records via any of their entry points. */
+function hasSpecialAuditAccess(user: any): boolean {
+  const perms = effectivePermissionsFor(user);
+  return (
+    perms.includes('reports_special_audits_access') ||
+    perms.includes('special_audits_new_access') ||
+    perms.includes(SPECIAL_AUDITEE_VIEW_PERMISSION)
+  );
+}
+
 /**
  * Returns a Prisma 'where' clause for scoping queries based on the user's
  * permissions and organizational assignment.
@@ -214,11 +224,9 @@ export async function getScopingFilter(resourceType: ResourceType) {
       return { id: user.id };
 
     case 'specialAudit': {
-      // Special audits are not tied to an owner; access to the register or its
-      // report grants visibility of the whole list.
-      const perms = effectivePermissionsFor(user);
-      if (perms.includes('reports_special_audits_access') || perms.includes('special_audits_new_access')) return {};
-      return { id: 'none' };
+      // Special audits are not tied to an owner; access to the register, its
+      // report, or the Special Auditee View grants visibility of the whole list.
+      return hasSpecialAuditAccess(user) ? {} : { id: 'none' };
     }
 
     default:
@@ -330,12 +338,9 @@ export function enforceDefaultOwnership(user: any, type: ResourceType, resource:
       if (!isFindingInScope(user, resource)) throw new AuthorizationError();
       break;
 
-    case 'specialAudit': {
-      const perms = effectivePermissionsFor(user);
-      if (!perms.includes('reports_special_audits_access') && !perms.includes('special_audits_new_access'))
-        throw new AuthorizationError();
+    case 'specialAudit':
+      if (!hasSpecialAuditAccess(user)) throw new AuthorizationError();
       break;
-    }
 
     default:
       throw new AuthorizationError();

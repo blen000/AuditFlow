@@ -65,7 +65,8 @@ const leafFindingSchema = z.object({
     name: z.string().min(1, 'Name is required.'),
     amount: z.coerce.number().min(0, 'Amount must be positive.'),
   })).optional(),
-  assignedDate: z.date().optional(),
+  findingDate: z.date().optional(),
+  reportingPeriod: z.string().optional(),
   tatDays: z.coerce.number().min(1).optional(),
   dynamicValues: z.record(z.any()).optional(),
 });
@@ -527,10 +528,10 @@ function LeafDetailFields({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <FormField
               control={control}
-              name={`${prefix}.assignedDate` as any}
+              name={`${prefix}.findingDate` as any}
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Assignment Date</FormLabel>
+                  <FormLabel>Finding Date</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>

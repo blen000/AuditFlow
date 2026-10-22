@@ -108,7 +108,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, followUpStatuses, 
     
     setForwardingHistory(prev => [newEntry, ...prev]);
     setCollaboratingWith(target);
-    setStatus('Refereed');
+    setStatus('Referred');
   };
 
   const updateEntry = (
@@ -132,7 +132,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, followUpStatuses, 
     setter((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const CommSection = ({
+  const renderCommSection = ({
     title,
     entries,
     setter,
@@ -239,7 +239,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, followUpStatuses, 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-[10px] font-bold uppercase text-primary tracking-widest">Follow-up Lifecycle Status</Label>
-                      {status === 'Refereed' && (
+                      {status === 'Referred' && (
                         <Button 
                           variant="outline" 
                           size="sm" 
@@ -267,7 +267,7 @@ export function FollowUpDialog({ open, onOpenChange, finding, followUpStatuses, 
                             <SelectItem value="Pending">Pending</SelectItem>
                             <SelectItem value="Partially Rectified">Partially Rectified</SelectItem>
                             <SelectItem value="Rectified">Rectified</SelectItem>
-                            <SelectItem value="Refereed">Refereed</SelectItem>
+                            <SelectItem value="Referred">Referred</SelectItem>
                             <SelectItem value="Action Plan">Action Plan</SelectItem>
                           </>
                         )}
@@ -303,41 +303,13 @@ export function FollowUpDialog({ open, onOpenChange, finding, followUpStatuses, 
                 </TabsList>
 
                 <TabsContent value="comm" className="space-y-8 pt-4">
-                  <CommSection
-                    title="Verbal Communication"
-                    icon={MessageSquare}
-                    entries={verbal}
-                    setter={setVerbal}
-                    metaLabel="Involved Individuals"
-                    metaPlaceholder="Names of staff spoken to..."
-                  />
-                  <CommSection
-                    title="Written Communication"
-                    icon={MessageSquare}
-                    entries={written}
-                    setter={setWritten}
-                    metaLabel="Address / Reference"
-                    metaPlaceholder="Letter Ref No or Memo Address..."
-                  />
+                  {renderCommSection({ title: "Verbal Communication", icon: MessageSquare, entries: verbal, setter: setVerbal, metaLabel: "Involved Individuals", metaPlaceholder: "Names of staff spoken to..." })}
+                  {renderCommSection({ title: "Written Communication", icon: MessageSquare, entries: written, setter: setWritten, metaLabel: "Address / Reference", metaPlaceholder: "Letter Ref No or Memo Address..." })}
                 </TabsContent>
 
                 <TabsContent value="esc" className="space-y-8 pt-4">
-                  <CommSection
-                    title="1st Escalation"
-                    icon={AlertTriangle}
-                    entries={esc1}
-                    setter={setEsc1}
-                    metaLabel="Escalated To (Address)"
-                    metaPlaceholder="Supervisor / Dept Head..."
-                  />
-                  <CommSection
-                    title="2nd Escalation"
-                    icon={AlertTriangle}
-                    entries={esc2}
-                    setter={setEsc2}
-                    metaLabel="Escalated To (Address)"
-                    metaPlaceholder="Executive / Internal Audit HQ..."
-                  />
+                  {renderCommSection({ title: "1st Escalation", icon: AlertTriangle, entries: esc1, setter: setEsc1, metaLabel: "Escalated To (Address)", metaPlaceholder: "Supervisor / Dept Head..." })}
+                  {renderCommSection({ title: "2nd Escalation", icon: AlertTriangle, entries: esc2, setter: setEsc2, metaLabel: "Escalated To (Address)", metaPlaceholder: "Executive / Internal Audit HQ..." })}
                 </TabsContent>
 
                 <TabsContent value="history" className="space-y-4 pt-4">

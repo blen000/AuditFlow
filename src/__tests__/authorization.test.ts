@@ -48,9 +48,11 @@ describe('Authorization Utility', () => {
       await expect(authorizeAction({ allowedRoles: ['Admin'] })).rejects.toThrow(AuthorizationError);
     });
 
-    it('should throw AuthenticationError if user is not logged in', async () => {
+    it('should redirect to login if user is not logged in', async () => {
+      // authorizeAction() redirects unauthenticated server-action callers to /login
+      // (next/navigation throws NEXT_REDIRECT); AuthenticationError is for API routes.
       mockGetUserFromCookiesServer.mockResolvedValue(null);
-      await expect(authorizeAction()).rejects.toThrow(AuthenticationError);
+      await expect(authorizeAction()).rejects.toThrow('NEXT_REDIRECT');
     });
 
     it('should allow access if user has the correct permission', async () => {

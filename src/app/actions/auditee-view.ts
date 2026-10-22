@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { securePrisma } from '@/lib/securePrisma';
 import { authorizeAction, describeFindingScope } from '@/lib/authorization';
 import { ensureFollowUpStatuses } from '@/app/actions/settings';
-import { AUDITEE_VIEW_PAGE_PERMISSIONS } from '@/lib/permissions';
+import { NORMAL_AUDITEE_VIEW_PERMISSION } from '@/lib/permissions';
 
 function formatDate(date: Date | null | undefined) {
   return date ? date.toISOString() : null;
@@ -18,6 +18,7 @@ function formatFinding(finding: any) {
   return {
     ...finding,
     assignedDate: formatDate(finding.assignedDate),
+    findingDate: formatDate(finding.findingDate),
     dateCommunicated: formatDate(finding.dateCommunicated),
     finalizationDate: formatDate(finding.finalizationDate),
     revalidationDate: formatDate(finding.revalidationDate),
@@ -51,10 +52,10 @@ function formatHierarchyNode(node: any) {
 }
 
 export async function getAuditeeViewData() {
-  // Any Auditee View permission (parent, view-only, or an individual child action)
-  // is sufficient to load the page and its finding list.
+  // Only the Normal Auditee View permission loads regular audit findings; the
+  // Special Auditee View has its own action (getSpecialAuditeeViewData).
   // Which findings are returned is decided by securePrisma's visibility scope.
-  const user = await authorizeAction({ anyPermissions: [...AUDITEE_VIEW_PAGE_PERMISSIONS] });
+  const user = await authorizeAction({ allowedPermissions: [NORMAL_AUDITEE_VIEW_PERMISSION] });
   try {
     const [findings, hierarchy, branches, departments, riskLevels, statuses, followUpStatuses] = await Promise.all([
       securePrisma.finding.findMany({

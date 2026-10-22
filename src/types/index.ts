@@ -96,9 +96,11 @@ export type AuditFinding = {
   teamMembers: string[];
   // KPI Fields
   assignedDate?: Date | Timestamp | string;
+  findingDate?: Date | Timestamp | string | null;
   dateCommunicated?: Date | Timestamp | string;
   finalizationDate?: Date | Timestamp | string;
   tatDays?: number;
+  reportingPeriod?: string | null;
   // Follow-up Fields
   followUpStatus?: FollowUpStatus;
   verbalComm?: CommunicationEntry[];
@@ -162,6 +164,14 @@ export type SpecialAudit = {
   auditCause?: string;
   auditEffect?: string;
   recommendation?: string;
+  category?: string;
+  status?: string;
+  followUpStatus?: string;
+  progressUpdates?: { id: string; date: Date | string; details: string }[];
+  auditeeResponse?: string | null;
+  auditeeAgreement?: AuditeeAgreement;
+  mitigationDueDate?: Date | string | null;
+  auditeeResponseDate?: Date | string | null;
   dateCreated: Date | string;
 };
 

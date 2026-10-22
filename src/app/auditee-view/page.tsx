@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo, useEffect, Suspense } from 'react';
 import { getCsrfToken } from '@/lib/csrf';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PageHeader from '@/components/layout/PageHeader';
 import {
   Select,
@@ -27,8 +27,13 @@ import type { AuditFinding, Branch, RiskLevelData, StatusData, RiskLevel, Findin
 import { CaseReportDialog } from '@/components/audit/CaseReportDialog';
 import { getAuditeeViewData } from '@/app/actions/auditee-view';
 import { updateFinding } from '@/app/actions/findings';
+import { SpecialAuditeeView } from '@/components/audit/SpecialAuditeeView';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/context/AuthContext';
+import { NORMAL_AUDITEE_VIEW_PERMISSION, SPECIAL_AUDITEE_VIEW_PERMISSION } from '@/lib/permissions';
 
-function AuditeeViewContent() {
+/** Normal Auditee View: findings from regular audits only. */
+function NormalAuditeeViewContent() {
   const searchParams = useSearchParams();
   const highlightId = searchParams.get('id');
 
@@ -259,7 +264,7 @@ function AuditeeViewContent() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
+      <div className="flex w-full items-center justify-center py-24">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
           <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Synchronizing Mission Data...</p>
@@ -269,13 +274,7 @@ function AuditeeViewContent() {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <PageHeader
-        title="Auditee Mission Control"
-        description="Dynamic hierarchical management of audit findings from the live database."
-      />
-      <main className="flex-1 p-4 sm:p-6 md:p-8">
-        <div className="mx-auto max-w-7xl">
+    <div>
           
           <div className="mb-8 bg-card p-6 rounded-xl border shadow-sm">
             <div className="flex flex-col md:flex-row items-end gap-6">
@@ -485,6 +484,62 @@ function AuditeeViewContent() {
               )}
             </div>
           </div>
+    </div>
+  );
+}
+
+type AuditeeViewKind = 'normal' | 'special';
+
+function AuditeeViewShell() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { permissions, isLoading: authLoading } = useAuth();
+
+  const canNormal = permissions.includes(NORMAL_AUDITEE_VIEW_PERMISSION);
+  const canSpecial = permissions.includes(SPECIAL_AUDITEE_VIEW_PERMISSION);
+
+  // Honour ?view= only for a view the user may open; otherwise fall back to one they can.
+  const requested = searchParams.get('view');
+  let view: AuditeeViewKind = 'normal';
+  if (requested === 'special' && canSpecial) view = 'special';
+  else if (requested !== 'special' && canNormal) view = 'normal';
+  else if (canSpecial && !canNormal) view = 'special';
+
+  const switchView = (next: string) => {
+    router.replace(next === 'special' ? '/auditee-view?view=special' : '/auditee-view');
+  };
+
+  const isSpecial = view === 'special';
+
+  return (
+    <div className="flex min-h-screen w-full flex-col bg-background">
+      <PageHeader
+        title={isSpecial ? 'Special Auditee View' : 'Auditee Mission Control'}
+        description={
+          isSpecial
+            ? 'Follow-up and response management for special audit cases.'
+            : 'Dynamic hierarchical management of audit findings from the live database.'
+        }
+      />
+      <main className="flex-1 p-4 sm:p-6 md:p-8">
+        <div className="mx-auto max-w-7xl">
+          {authLoading ? (
+            <div className="flex w-full items-center justify-center py-24">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+          ) : (
+            <>
+              {canNormal && canSpecial && (
+                <Tabs value={view} onValueChange={switchView} className="mb-6">
+                  <TabsList>
+                    <TabsTrigger value="normal">Normal Audits</TabsTrigger>
+                    <TabsTrigger value="special">Special Audits</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              )}
+              {isSpecial ? <SpecialAuditeeView /> : <NormalAuditeeViewContent />}
+            </>
+          )}
         </div>
       </main>
     </div>
@@ -498,7 +553,7 @@ export default function AuditeeViewPage() {
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     }>
-      <AuditeeViewContent />
+      <AuditeeViewShell />
     </Suspense>
   );
 }

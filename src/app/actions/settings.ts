@@ -6,6 +6,7 @@ import { authorizeAction } from '@/lib/authorization';
 
 import { 
   hierarchyNodeSchema, 
+  hierarchyNodeCreateSchema,
   branchSchema, 
   districtSchema, 
   departmentSchema, 
@@ -15,6 +16,7 @@ import {
   specialFindingCategorySchema
 } from '@/lib/schemas';
 import { logSecurityEvent } from '@/lib/securityLogger';
+import { suggestNextNumber } from '@/lib/hierarchy';
 
 /**
  * Audit Hierarchy Actions
@@ -27,13 +29,36 @@ export async function getHierarchy() {
   });
 }
 
+/**
+ * Creates one node. The level always comes from the parent, and the Ref No. is
+ * generated (next free number under the parent) unless one is supplied.
+ */
 export async function createHierarchyNode(data: any) {
   const user = await authorizeAction({ anyPermissions: ['settings_audit_structure_access'] });
   try {
-    const validation = hierarchyNodeSchema.safeParse(data);
-    if (!validation.success) return { success: false, error: 'Invalid data' };
+    const validation = hierarchyNodeCreateSchema.safeParse(data);
+    if (!validation.success) return { success: false, error: 'Please enter a title.' };
+    const { title, number, parentId, customFields } = validation.data;
 
-    const result = await prisma.auditHierarchyNode.create({ data: validation.data });
+    const nodes = await prisma.auditHierarchyNode.findMany({
+      select: { id: true, number: true, level: true, parentId: true },
+    });
+    const parent = parentId ? nodes.find((n) => n.id === parentId) ?? null : null;
+    if (parentId && !parent) return { success: false, error: 'The parent level no longer exists.' };
+
+    if (number && nodes.some((n) => n.number === number)) {
+      return { success: false, error: `Ref No. ${number} is already used. Leave it blank to number it automatically.` };
+    }
+
+    const result = await prisma.auditHierarchyNode.create({
+      data: {
+        title,
+        number: number || suggestNextNumber(nodes, parent),
+        level: parent ? parent.level + 1 : 1,
+        parentId: parent?.id ?? null,
+        ...(customFields ? { customFields } : {}),
+      },
+    });
     await logSecurityEvent('SENSITIVE_OP', {
       userId: user.id,
       action: `Created hierarchy node: ${result.title}`,
@@ -44,7 +69,47 @@ export async function createHierarchyNode(data: any) {
     return { success: true };
   } catch (error) {
     console.error('Create Hierarchy Node error:', error);
-    return { success: false, error: 'Reference Number must be unique.' };
+    return { success: false, error: 'Could not save this level. Please try again.' };
+  }
+}
+
+/**
+ * Creates several sibling nodes in one go (one title per entry), numbering each
+ * automatically under `parentId` (or as Level 1 missions when null).
+ */
+export async function createHierarchyNodes(parentId: string | null, titles: string[]) {
+  const user = await authorizeAction({ anyPermissions: ['settings_audit_structure_access'] });
+  const clean = (Array.isArray(titles) ? titles : [])
+    .map((t) => (typeof t === 'string' ? t.trim() : ''))
+    .filter(Boolean);
+  if (clean.length === 0) return { success: false, error: 'Enter at least one title.' };
+  if (clean.length > 100) return { success: false, error: 'Add at most 100 levels at a time.' };
+
+  try {
+    const nodes = await prisma.auditHierarchyNode.findMany({
+      select: { id: true, number: true, level: true, parentId: true },
+    });
+    const parent = parentId ? nodes.find((n) => n.id === parentId) ?? null : null;
+    if (parentId && !parent) return { success: false, error: 'The parent level no longer exists.' };
+
+    // Number in memory so each title sees the ones just assigned, then write atomically.
+    const rows = clean.map((title) => {
+      const number = suggestNextNumber(nodes, parent);
+      nodes.push({ id: `pending-${number}`, number, level: parent ? parent.level + 1 : 1, parentId: parent?.id ?? null });
+      return { title, number, level: parent ? parent.level + 1 : 1, parentId: parent?.id ?? null };
+    });
+    await prisma.$transaction(rows.map((data) => prisma.auditHierarchyNode.create({ data })));
+
+    await logSecurityEvent('SENSITIVE_OP', {
+      userId: user.id,
+      action: `Created ${rows.length} hierarchy nodes${parent ? ` under ${parent.number}` : ''}`,
+      resourceType: 'AuditHierarchyNode',
+    });
+    revalidatePath('/settings/audit-structure');
+    return { success: true, created: rows.length };
+  } catch (error) {
+    console.error('Create Hierarchy Nodes error:', error);
+    return { success: false, error: 'Could not save these levels. Please try again.' };
   }
 }
 
@@ -57,7 +122,8 @@ export async function updateHierarchyNode(id: string, data: any) {
     await prisma.auditHierarchyNode.update({ where: { id }, data: validation.data });
     revalidatePath('/settings/audit-structure');
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'P2002') return { success: false, error: 'That Ref No. is already used by another level.' };
     return { success: false, error: 'Update failed.' };
   }
 }
@@ -334,7 +400,7 @@ const DEFAULT_FOLLOW_UP_STATUSES = [
   'Pending',
   'Rectified',
   'Partially Rectified',
-  'Refereed',
+  'Referred',
   'Action Plan',
 ];
 

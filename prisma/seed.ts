@@ -22,6 +22,7 @@ async function main() {
       permissions: [
         'dashboard_access',
         'auditee_view_access',
+        'auditee_view_special',
         'auditee_view_all_findings',
         'findings_new_access',
         'special_audits_new_access',
@@ -49,6 +50,7 @@ async function main() {
       permissions: [
         'dashboard_access',
         'auditee_view_access',
+        'auditee_view_special',
         'findings_new_access',
         'special_audits_new_access',
         'reports_consolidated_access',
@@ -71,6 +73,7 @@ async function main() {
       permissions: [
         'dashboard_access',
         'auditee_view_access',
+        'auditee_view_special',
         'auditee_view_all_findings',
         'reports_consolidated_access',
         'reports_frequency_access',
@@ -86,6 +89,7 @@ async function main() {
       permissions: [
         'dashboard_access',
         'auditee_view_access',
+        'auditee_view_special',
         'auditee_view_all_findings',
         'findings_new_access',
         'special_audits_new_access',

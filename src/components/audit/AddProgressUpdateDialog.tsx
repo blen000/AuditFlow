@@ -22,6 +22,8 @@ type AddProgressUpdateDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSubmit: (updates: { details: string; attachmentFilename?: string; attachmentId?: string }) => void;
   findingId: string;
+  /** Hide the file input when the record cannot hold attachments (e.g. special audits). */
+  allowAttachment?: boolean;
 };
 
 export function AddProgressUpdateDialog({
@@ -29,6 +31,7 @@ export function AddProgressUpdateDialog({
   onOpenChange,
   onSubmit,
   findingId,
+  allowAttachment = true,
 }: AddProgressUpdateDialogProps) {
   const { toast } = useToast();
   const [details, setDetails] = useState('');
@@ -102,15 +105,17 @@ export function AddProgressUpdateDialog({
               className="h-24"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="attachment">Attach Supporting File (Optional)</Label>
-            <Input id="attachment" type="file" onChange={handleFileChange} />
-            {attachment && (
-              <p className="text-xs text-muted-foreground">
-                Selected: {attachment.name}
-              </p>
-            )}
-          </div>
+          {allowAttachment && (
+            <div className="space-y-2">
+              <Label htmlFor="attachment">Attach Supporting File (Optional)</Label>
+              <Input id="attachment" type="file" onChange={handleFileChange} />
+              {attachment && (
+                <p className="text-xs text-muted-foreground">
+                  Selected: {attachment.name}
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>

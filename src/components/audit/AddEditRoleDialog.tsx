@@ -29,7 +29,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Role } from '@/types';
 import { ShieldAlert, Star } from 'lucide-react';
-import { PERMISSION_DEFINITIONS, AUDITEE_VIEW_CHILD_PERMISSIONS } from '@/lib/permissions';
+import { PERMISSION_DEFINITIONS, AUDITEE_VIEW_PARENT_GRANTS, normalizePermissions, storedPermissionsFromSelection } from '@/lib/permissions';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Role name is required.'),
@@ -64,16 +64,13 @@ export function AddEditRoleDialog({
   useEffect(() => {
     if (open) {
       if (role) {
-        // If the role holds the Auditee View parent toggle, surface every child
-        // as checked too (the parent implies them at runtime).
-        const stored = new Set(role.permissions);
-        if (stored.has('auditee_view_access')) {
-          AUDITEE_VIEW_CHILD_PERMISSIONS.forEach((c) => stored.add(c));
-        }
+        // Show the role's effective permissions: the Auditee View parent toggle
+        // surfaces the Normal Auditee View and every action as checked, and roles
+        // saved before the normal/special split show the view they could open.
         form.reset({
           name: role.name,
           description: role.description,
-          permissions: Array.from(stored),
+          permissions: normalizePermissions(role.permissions),
           isSpecial: role.isSpecial || false,
         });
       } else {
@@ -83,7 +80,8 @@ export function AddEditRoleDialog({
   }, [role, form, open]);
 
   const handleFormSubmit = async (values: z.infer<typeof formSchema>) => {
-    const success = await onSubmit(values as any);
+    const permissions = storedPermissionsFromSelection(values.permissions);
+    const success = await onSubmit({ ...values, permissions } as any);
     if (success) {
       onOpenChange(false);
     }
@@ -196,22 +194,23 @@ export function AddEditRoleDialog({
                               render={({ field }) => {
                                 const current = field.value || [];
                                 const isParent = 'isParent' in p && p.isParent;
-                                // The Auditee View parent toggle reads as checked when
-                                // every child action is granted, and ticking it grants
-                                // them all; unticking removes the parent + all children.
+                                // The Auditee View parent toggle reads as checked when the
+                                // Normal Auditee View and every action are granted, and
+                                // ticking it grants them all (never the Special Auditee
+                                // View); unticking removes the parent + those grants.
                                 const isChecked = isParent
                                   ? current.includes(p.key) &&
-                                    AUDITEE_VIEW_CHILD_PERMISSIONS.every((c) => current.includes(c))
+                                    AUDITEE_VIEW_PARENT_GRANTS.every((c) => current.includes(c))
                                   : current.includes(p.key);
 
                                 const handleChange = (checked: boolean | 'indeterminate') => {
                                   if (isParent) {
                                     if (checked) {
                                       field.onChange(
-                                        Array.from(new Set([...current, p.key, ...AUDITEE_VIEW_CHILD_PERMISSIONS]))
+                                        Array.from(new Set([...current, p.key, ...AUDITEE_VIEW_PARENT_GRANTS]))
                                       );
                                     } else {
-                                      const strip = new Set<string>([p.key, ...AUDITEE_VIEW_CHILD_PERMISSIONS]);
+                                      const strip = new Set<string>([p.key, ...AUDITEE_VIEW_PARENT_GRANTS]);
                                       field.onChange(current.filter((v) => !strip.has(v)));
                                     }
                                     return;

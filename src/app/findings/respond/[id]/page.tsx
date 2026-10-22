@@ -23,14 +23,17 @@ export default async function RespondToFindingPage({ params }: { params: Promise
     redirect('/login?callbackUrl=' + encodeURIComponent(`/findings/respond/${id}`));
   }
 
-  // Require the Auditee View "Auditee Response" permission (Admins bypass).
+  // Require the Normal Auditee View plus the "Auditee Response" permission (Admins bypass).
   const effectivePermissions = withAdminPermissions(
     currentUser.role?.name,
     currentUser.role?.permissions ?? []
   );
   if (
     currentUser.role?.name !== 'Admin' &&
-    !effectivePermissions.includes('auditee_view_auditee_response')
+    !(
+      effectivePermissions.includes('auditee_view_normal') &&
+      effectivePermissions.includes('auditee_view_auditee_response')
+    )
   ) {
     notFound();
   }

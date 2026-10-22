@@ -21,7 +21,10 @@ export default async function EditFindingPage({
   );
   if (
     currentUser.role?.name !== 'Admin' &&
-    !effectivePermissions.includes('auditee_view_edit_finding') &&
+    !(
+      effectivePermissions.includes('auditee_view_normal') &&
+      effectivePermissions.includes('auditee_view_edit_finding')
+    ) &&
     !effectivePermissions.includes('findings_new_access')
   ) {
     notFound();

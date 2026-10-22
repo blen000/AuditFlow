@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import {
   AUDIT_REPORTS_HUB_PERMISSIONS,
   AUDITEE_VIEW_PAGE_PERMISSIONS,
+  SPECIAL_AUDITEE_VIEW_PERMISSION,
   SYSTEM_SETTINGS_PERMISSIONS,
   isAdminRole,
   type PermissionKey,
@@ -48,6 +49,7 @@ function getFirstAllowedPathForUser(role: string | undefined, rawPermissions: st
 
 function getRequiredPermissionsForPath(pathname: string): PermissionKey[] {
   if (pathname === '/dashboard') return ['dashboard_access'];
+  if (pathname.startsWith('/auditee-view/special')) return [SPECIAL_AUDITEE_VIEW_PERMISSION];
   if (pathname.startsWith('/auditee-view')) return [...AUDITEE_VIEW_PAGE_PERMISSIONS];
   if (pathname.startsWith('/findings/edit')) return ['auditee_view_edit_finding', 'findings_new_access'];
   if (pathname.startsWith('/findings/respond')) return ['auditee_view_auditee_response'];

@@ -127,6 +127,9 @@ export function CaseReportDialog({ caseNum, caseSummary, findings }: CaseReportD
                           <div className="flex items-center gap-2">
                             <RiskBadge riskLevel={finding.riskLevel} />
                             <StatusBadge status={finding.status} />
+                            {finding.followUpStatus && (
+                              <span className="rounded border px-2 py-0.5 text-[10px] font-bold uppercase">FU: {finding.followUpStatus}</span>
+                            )}
                           </div>
                         </div>
 
