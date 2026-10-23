@@ -36,6 +36,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import type { Branch, Department, District, RiskLevelData, Auditor, AuditHierarchyNode } from '@/types';
+import { orderHierarchyAsTree } from '@/lib/hierarchy';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
 import PageHeader from '../layout/PageHeader';
@@ -156,12 +157,15 @@ export function CreateFindingForm() {
     }
   }, [selectedNode, form]);
 
+  // Tree order (each category followed by its own sub-sections). A search keeps the
+  // matches together with their parents so the structure stays readable.
   const filteredHierarchy = useMemo(() => {
-    if (!searchQuery) return hierarchy;
-    return hierarchy.filter(n => 
-      n.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      n.number.includes(searchQuery)
+    if (!searchQuery) return orderHierarchyAsTree(hierarchy);
+    const q = searchQuery.toLowerCase();
+    const matches = new Set(
+      hierarchy.filter(n => n.title.toLowerCase().includes(q) || n.number.includes(searchQuery)).map(n => n.id)
     );
+    return orderHierarchyAsTree(hierarchy, matches);
   }, [hierarchy, searchQuery]);
 
   // Determine which nodes are leaves (no other node has them as parent)

@@ -1,5 +1,7 @@
 const prismaMock: any = {
   specialAudit: { create: jest.fn(), update: jest.fn(), delete: jest.fn(), findMany: jest.fn() },
+  specialAuditIndividual: { deleteMany: jest.fn() },
+  $transaction: jest.fn(),
   findingStatus: { findMany: jest.fn() },
 };
 const secureMock: any = { specialAudit: { findMany: jest.fn() } };
@@ -17,6 +19,8 @@ import {
   deleteSpecialAudit,
   getSpecialAuditeeViewData,
   getSpecialAudits,
+  getSpecialAuditForEdit,
+  updateSpecialAuditReport,
   submitSpecialAudit,
   updateSpecialAuditCase,
 } from '@/app/actions/special-audits';
@@ -151,13 +155,13 @@ describe('updateSpecialAuditCase', () => {
   const denied = { success: false, error: 'You do not have permission to perform this action.' };
 
   it('needs BOTH the special view and the matching action permission', async () => {
-    asRole(['auditee_view_follow_up']); // action only (legacy -> normal view)
+    asRole(['auditee_special_follow_up']); // action only (legacy -> normal view)
     expect(await updateSpecialAuditCase('SA1', { status: 'Open' }, 'status')).toEqual(denied);
     asRole(['auditee_view_special']); // view only
     expect(await updateSpecialAuditCase('SA1', { status: 'Open' }, 'status')).toEqual(denied);
-    asRole(['auditee_view_special', 'auditee_view_follow_up']); // wrong action
+    asRole(['auditee_view_special', 'auditee_special_follow_up']); // wrong action
     expect(await updateSpecialAuditCase('SA1', { status: 'Open' }, 'status')).toEqual(denied);
-    asRole(['auditee_view_normal', 'auditee_view_change_status']); // normal view is not enough
+    asRole(['auditee_view_normal', 'auditee_special_change_status']); // normal view is not enough
     expect(await updateSpecialAuditCase('SA1', { status: 'Open' }, 'status')).toEqual(denied);
     expect(prismaMock.specialAudit.update).not.toHaveBeenCalled();
   });
@@ -168,7 +172,7 @@ describe('updateSpecialAuditCase', () => {
   });
 
   it('changes status and writes only the status field', async () => {
-    asRole(['auditee_view_special', 'auditee_view_change_status']);
+    asRole(['auditee_view_special', 'auditee_special_change_status']);
     expect((await updateSpecialAuditCase('SA1', { status: '  Closed ' }, 'status')).success).toBe(true);
     expect(prismaMock.specialAudit.update).toHaveBeenCalledWith({ where: { id: 'SA1' }, data: { status: 'Closed' } });
     expect((await updateSpecialAuditCase('SA1', { status: '  ' }, 'status')).success).toBe(false);
@@ -176,26 +180,26 @@ describe('updateSpecialAuditCase', () => {
 
   it('maps each intent to its own permission', async () => {
     const cases: [any, string, any][] = [
-      ['follow_up', 'auditee_view_follow_up', { followUpStatus: 'Rectified' }],
-      ['progress', 'auditee_view_add_progress', { progressUpdates: [{ id: 'p1', date: '2026-10-01', details: 'x' }] }],
-      ['response', 'auditee_view_auditee_response', { auditeeAgreement: 'Agreed' }],
+      ['follow_up', 'auditee_special_follow_up', { followUpStatus: 'Rectified' }],
+      ['progress', 'auditee_special_add_progress', { progressUpdates: [{ id: 'p1', date: '2026-10-01', details: 'x' }] }],
+      ['response', 'auditee_special_auditee_response', { auditeeAgreement: 'Agreed' }],
     ];
     for (const [intent, perm, data] of cases) {
       asRole(['auditee_view_special', perm]);
       expect((await updateSpecialAuditCase('SA1', data, intent)).success).toBe(true);
-      asRole(['auditee_view_special', 'auditee_view_change_status']);
+      asRole(['auditee_view_special', 'auditee_special_change_status']);
       expect(await updateSpecialAuditCase('SA1', data, intent)).toEqual(denied);
     }
   });
 
   it('rejects a follow-up without a status and a malformed progress payload', async () => {
-    asRole(['auditee_view_special', 'auditee_view_follow_up', 'auditee_view_add_progress']);
+    asRole(['auditee_view_special', 'auditee_special_follow_up', 'auditee_special_add_progress']);
     expect((await updateSpecialAuditCase('SA1', {}, 'follow_up')).success).toBe(false);
     expect((await updateSpecialAuditCase('SA1', { progressUpdates: 'x' }, 'progress')).success).toBe(false);
   });
 
   it('validates the auditee response rules', async () => {
-    asRole(['auditee_view_special', 'auditee_view_auditee_response']);
+    asRole(['auditee_view_special', 'auditee_special_auditee_response']);
     expect((await updateSpecialAuditCase('SA1', { auditeeAgreement: 'Maybe' }, 'response')).success).toBe(false);
     expect((await updateSpecialAuditCase('SA1', { auditeeAgreement: 'Declined', auditeeResponse: '' }, 'response')).success).toBe(false);
     expect((await updateSpecialAuditCase('SA1', { auditeeAgreement: 'Agreed', mitigationDueDate: 'garbage' }, 'response')).success).toBe(false);
@@ -214,7 +218,7 @@ describe('updateSpecialAuditCase', () => {
 
   it('reports not-found for a case outside the user scope', async () => {
     secureMock.specialAudit.findMany.mockResolvedValue([]);
-    asRole(['auditee_view_special', 'auditee_view_change_status']);
+    asRole(['auditee_view_special', 'auditee_special_change_status']);
     expect(await updateSpecialAuditCase('NOPE', { status: 'Open' }, 'status')).toEqual({ success: false, error: 'Case not found' });
     expect(prismaMock.specialAudit.update).not.toHaveBeenCalled();
   });
@@ -226,23 +230,74 @@ describe('deleteSpecialAudit', () => {
   it('is allowed for Admin and for roles with special view + delete', async () => {
     asAdmin();
     expect((await deleteSpecialAudit('SA1')).success).toBe(true);
-    asRole(['auditee_view_special', 'auditee_view_delete_finding']);
+    asRole(['auditee_view_special', 'auditee_special_delete']);
     expect((await deleteSpecialAudit('SA2')).success).toBe(true);
-    asRole(['auditee_view_access', 'auditee_view_special']); // parent grants delete
+    asRole(['auditee_view_special_access']); // special parent grants delete
     expect((await deleteSpecialAudit('SA3')).success).toBe(true);
     expect(prismaMock.specialAudit.delete).toHaveBeenCalledTimes(3);
   });
 
   it('is denied without the special view, without delete, or with only report access', async () => {
     for (const perms of [
-      ['auditee_view_delete_finding'], // delete but only the normal view
+      ['auditee_special_delete'], // delete but only the normal view
       ['auditee_view_special'],
       ['reports_special_audits_access', 'special_audits_new_access'],
-      ['auditee_view_normal', 'auditee_view_delete_finding'],
+      ['auditee_view_normal', 'auditee_special_delete'],
+      ['auditee_view_access', 'auditee_view_delete_finding'], // normal-view delete must not delete special cases
     ]) {
       asRole(perms);
       await expect(deleteSpecialAudit('SA1')).rejects.toThrow();
     }
     expect(prismaMock.specialAudit.delete).not.toHaveBeenCalled();
+  });
+});
+
+describe('Edit Finding (special): getSpecialAuditForEdit / updateSpecialAuditReport', () => {
+  const stored = {
+    id: 'SA1', ...validReport, categoryId: 'cat1', auditCause: null, auditEffect: null, recommendation: null,
+    dateCreated: new Date('2026-09-01'), individuals: validReport.individuals.map((i, n) => ({ id: `i${n}`, ...i })),
+  };
+  beforeEach(() => {
+    secureMock.specialAudit.findMany.mockResolvedValue([stored]);
+    prismaMock.$transaction.mockResolvedValue([]);
+  });
+
+  const DENIED = [
+    ['auditee_special_edit_finding'], // action only
+    ['auditee_view_special'], // view only
+    ['auditee_view_normal', 'auditee_special_edit_finding'], // normal view is not enough
+    ['auditee_view_normal', 'auditee_view_edit_finding'], // the normal edit key does not carry over
+    ['special_audits_new_access', 'reports_special_audits_access'],
+  ];
+
+  it('is denied unless the Special view AND special Edit Finding are held', async () => {
+    for (const perms of DENIED) {
+      asRole(perms);
+      expect((await getSpecialAuditForEdit('SA1')).success).toBe(false);
+      expect((await updateSpecialAuditReport('SA1', { ...validReport })).success).toBe(false);
+    }
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('allows view + edit, the special parent toggle, and Admin', async () => {
+    for (const perms of [['auditee_view_special', 'auditee_special_edit_finding'], ['auditee_view_special_access']]) {
+      asRole(perms);
+      const res = await getSpecialAuditForEdit('SA1');
+      expect(res.success).toBe(true);
+      expect((res as any).audit.individuals).toHaveLength(1);
+      expect((res as any).audit.auditCause).toBe('');
+      expect((await updateSpecialAuditReport('SA1', { ...validReport })).success).toBe(true);
+    }
+    asAdmin();
+    expect((await updateSpecialAuditReport('SA1', { ...validReport })).success).toBe(true);
+  });
+
+  it('validates the report, rejects bad dates and unseen cases without writing', async () => {
+    asRole(['auditee_view_special_access']);
+    expect((await updateSpecialAuditReport('SA1', { ...validReport, shortSummary: 'short' })).success).toBe(false);
+    expect((await updateSpecialAuditReport('SA1', { ...validReport, dateCreated: new Date(Date.now() + 5 * 864e5) })).success).toBe(false);
+    secureMock.specialAudit.findMany.mockResolvedValue([]);
+    expect((await updateSpecialAuditReport('SA1', { ...validReport })).success).toBe(false);
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 });

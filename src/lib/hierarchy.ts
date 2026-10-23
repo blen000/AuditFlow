@@ -33,3 +33,48 @@ export function parseTitleList(text: string): string[] {
     .map((line) => line.replace(/^\s*(?:[-*•]|\d+\.\d+(?:\.\d+)*[.)]?|\d+[.)])\s+/, '').trim())
     .filter(Boolean);
 }
+
+type TreeNode = { id: string; number: string; parentId?: string | null };
+
+const byNumber = (a: TreeNode, b: TreeNode) => a.number.localeCompare(b.number, undefined, { numeric: true, sensitivity: 'base' });
+
+/**
+ * Orders nodes as a tree: each level's sub-levels directly under it (1, 1.1, 1.2, 2, 2.1 ...),
+ * siblings by Ref No. Nodes whose parent is missing are treated as top-level so none are lost.
+ * With `keep`, only those nodes plus their ancestors are returned (for search results).
+ */
+export function orderHierarchyAsTree<T extends TreeNode>(nodes: T[], keep?: Set<string>): T[] {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  let visible = nodes;
+  if (keep) {
+    const ids = new Set<string>();
+    for (const id of keep) {
+      let cur = byId.get(id);
+      const seen = new Set<string>();
+      while (cur && !seen.has(cur.id)) {
+        seen.add(cur.id);
+        ids.add(cur.id);
+        cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+      }
+    }
+    visible = nodes.filter((n) => ids.has(n.id));
+  }
+
+  const visibleIds = new Set(visible.map((n) => n.id));
+  const children = new Map<string | null, T[]>();
+  for (const n of visible) {
+    const key = n.parentId && visibleIds.has(n.parentId) ? n.parentId : null;
+    (children.get(key) ?? children.set(key, []).get(key)!).push(n);
+  }
+
+  const out: T[] = [];
+  const walk = (key: string | null, trail: Set<string>) => {
+    for (const n of (children.get(key) ?? []).sort(byNumber)) {
+      if (trail.has(n.id)) continue; // guard against a cyclic parent chain
+      out.push(n);
+      walk(n.id, new Set(trail).add(n.id));
+    }
+  };
+  walk(null, new Set());
+  return out;
+}

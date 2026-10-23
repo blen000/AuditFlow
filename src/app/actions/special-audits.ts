@@ -116,8 +116,8 @@ export async function submitSpecialAudit(data: any) {
  * Removes a special audit report.
  */
 export async function deleteSpecialAudit(id: string) {
-  // Admins, or roles holding both the Special Auditee View and the Delete permission.
-  await authorizeAction({ allowedPermissions: [SPECIAL_AUDITEE_VIEW_PERMISSION, 'auditee_view_delete_finding'] });
+  // Admins, or roles holding the Special Auditee View and its own Delete permission.
+  await authorizeAction({ allowedPermissions: [SPECIAL_AUDITEE_VIEW_PERMISSION, 'auditee_special_delete'] });
   try {
     await prisma.specialAudit.delete({
       where: { id }
@@ -132,6 +132,125 @@ export async function deleteSpecialAudit(id: string) {
   }
 }
 
+/** Special Auditee View access plus the Edit Finding action (Admins bypass). */
+async function authorizeSpecialEdit() {
+  const user = await authorizeAction();
+  const perms = effectivePermissionsFor(user);
+  const allowed =
+    user?.role?.name === 'Admin' ||
+    (perms.includes(SPECIAL_AUDITEE_VIEW_PERMISSION) && perms.includes('auditee_special_edit_finding'));
+  return allowed;
+}
+
+/**
+ * Loads one special audit report, in the shape of the report form, for editing.
+ */
+export async function getSpecialAuditForEdit(id: string) {
+  if (!(await authorizeSpecialEdit())) return { success: false as const, error: 'You do not have permission to edit this case.' };
+  try {
+    const [found] = await securePrisma.specialAudit.findMany({
+      where: { id },
+      include: { individuals: true },
+    });
+    if (!found) return { success: false as const, error: 'Case not found' };
+    return {
+      success: true as const,
+      audit: {
+        shortSummary: found.shortSummary,
+        placement: found.placement,
+        placementValue: found.placementValue,
+        categoryId: found.categoryId ?? '',
+        amountInvolved: found.amountInvolved,
+        recovered: found.recovered,
+        pending: found.pending,
+        actionDisciplinary: found.actionDisciplinary,
+        gapWitnessed: found.gapWitnessed,
+        correctiveActionTaken: found.correctiveActionTaken,
+        auditCause: found.auditCause ?? '',
+        auditEffect: found.auditEffect ?? '',
+        recommendation: found.recommendation ?? '',
+        dateCreated: found.dateCreated.toISOString(),
+        individuals: found.individuals.map((i: any) => ({
+          name: i.name,
+          position: i.position,
+          tenure: i.tenure,
+          age: i.age,
+          sex: i.sex,
+        })),
+      },
+    };
+  } catch (error) {
+    console.error('Failed to load special audit for edit:', error);
+    return { success: false as const, error: 'Failed to load the case.' };
+  }
+}
+
+/**
+ * Edits the report details of a special audit case. Does not touch the case
+ * management fields (status, follow-up, progress, auditee response).
+ */
+export async function updateSpecialAuditReport(id: string, data: any) {
+  if (!(await authorizeSpecialEdit())) {
+    return { success: false, error: 'You do not have permission to perform this action.' };
+  }
+  try {
+    const validation = specialAuditSchema.safeParse(data);
+    if (!validation.success) {
+      return {
+        success: false,
+        error: 'Please correct the highlighted fields.',
+        fieldErrors: validation.error.flatten().fieldErrors,
+      };
+    }
+
+    const visible = await securePrisma.specialAudit.findMany({ where: { id }, select: { id: true } });
+    if (visible.length === 0) return { success: false, error: 'Case not found' };
+
+    const { individuals, categoryId, dateCreated: requestedDate, ...rest } = validation.data;
+
+    let dateCreated: Date | undefined;
+    if (requestedDate) {
+      const parsed = new Date(requestedDate);
+      if (isNaN(parsed.getTime())) {
+        return { success: false, error: 'Report date is invalid.', fieldErrors: { dateCreated: ['Report date is invalid.'] } };
+      }
+      if (parsed.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
+        return { success: false, error: 'Report date cannot be in the future.', fieldErrors: { dateCreated: ['Report date cannot be in the future.'] } };
+      }
+      dateCreated = parsed;
+    }
+
+    await prisma.$transaction([
+      prisma.specialAuditIndividual.deleteMany({ where: { specialAuditId: id } }),
+      prisma.specialAudit.update({
+        where: { id },
+        data: {
+          ...rest,
+          categoryId: categoryId || null,
+          ...(dateCreated ? { dateCreated } : {}),
+          individuals: {
+            create: individuals.map((ind: any) => ({
+              name: ind.name,
+              position: ind.position,
+              tenure: ind.tenure,
+              age: ind.age,
+              sex: ind.sex,
+            })),
+          },
+        },
+      }),
+    ]);
+
+    revalidatePath('/special-audits');
+    revalidatePath('/auditee-view');
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update special audit:', error);
+    return { success: false, error: 'Failed to save changes. Please try again.' };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Special audit case management (status, follow-up, progress, auditee response)
 // ---------------------------------------------------------------------------
@@ -139,10 +258,10 @@ export async function deleteSpecialAudit(id: string) {
 type SpecialAuditCaseIntent = 'status' | 'follow_up' | 'progress' | 'response';
 
 const CASE_INTENT_PERMISSION: Record<SpecialAuditCaseIntent, string> = {
-  status: 'auditee_view_change_status',
-  follow_up: 'auditee_view_follow_up',
-  progress: 'auditee_view_add_progress',
-  response: 'auditee_view_auditee_response',
+  status: 'auditee_special_change_status',
+  follow_up: 'auditee_special_follow_up',
+  progress: 'auditee_special_add_progress',
+  response: 'auditee_special_auditee_response',
 };
 
 function formatCase(a: any) {

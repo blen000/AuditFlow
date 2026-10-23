@@ -30,6 +30,8 @@ import { updateFinding } from '@/app/actions/findings';
 import { SpecialAuditeeView } from '@/components/audit/SpecialAuditeeView';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
+import { DateRangeFilter } from '@/components/audit/DateRangeFilter';
+import { isInDateRange, type DateRange } from '@/lib/period';
 import { NORMAL_AUDITEE_VIEW_PERMISSION, SPECIAL_AUDITEE_VIEW_PERMISSION } from '@/lib/permissions';
 
 /** Normal Auditee View: findings from regular audits only. */
@@ -54,6 +56,7 @@ function NormalAuditeeViewContent() {
   const [statusFilter, setStatusFilter] = useState<FindingStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [auditorSearch, setAuditorSearch] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange>({});
 
   // Expansion State
   const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
@@ -164,6 +167,7 @@ function NormalAuditeeViewContent() {
     setStatusFilter([]);
     setSearchQuery('');
     setAuditorSearch('');
+    setDateRange({});
   };
 
   const filteredFindings = findings.filter((finding) => {
@@ -181,7 +185,9 @@ function NormalAuditeeViewContent() {
       (finding.teamLeader || '').toLowerCase().includes(auditorSearch.toLowerCase()) ||
       (finding.teamMembers || []).some(m => m.toLowerCase().includes(auditorSearch.toLowerCase()));
 
-    return branchMatch && deptMatch && riskMatch && statusMatch && searchMatch && auditorMatch;
+    const dateMatch = isInDateRange(finding.findingDate ?? finding.dateCommunicated ?? finding.assignedDate, dateRange);
+
+    return branchMatch && deptMatch && riskMatch && statusMatch && searchMatch && auditorMatch && dateMatch;
   });
 
   const hierarchicalData = useMemo(() => {
@@ -260,7 +266,7 @@ function NormalAuditeeViewContent() {
     }).filter(m => m.allFindings.length > 0);
   }, [filteredFindings, hierarchy]);
 
-  const hasActiveFilters = selectedBranch !== 'all' || selectedDepartment !== 'all' || riskFilter.length > 0 || statusFilter.length > 0 || searchQuery !== '' || auditorSearch !== '';
+  const hasActiveFilters = selectedBranch !== 'all' || selectedDepartment !== 'all' || riskFilter.length > 0 || statusFilter.length > 0 || searchQuery !== '' || auditorSearch !== '' || !!dateRange.from || !!dateRange.to;
 
   if (isLoading) {
     return (
@@ -311,6 +317,8 @@ function NormalAuditeeViewContent() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <DateRangeFilter value={dateRange} onChange={setDateRange} />
 
               {hasActiveFilters && (
                 <Button variant="ghost" size="icon" onClick={clearGlobalFilters} className="h-11 w-11 text-muted-foreground shrink-0" title="Reset all filters">

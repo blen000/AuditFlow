@@ -49,6 +49,8 @@ function getFirstAllowedPathForUser(role: string | undefined, rawPermissions: st
 
 function getRequiredPermissionsForPath(pathname: string): PermissionKey[] {
   if (pathname === '/dashboard') return ['dashboard_access'];
+  if (pathname.startsWith('/auditee-view/special/edit')) return ['auditee_special_edit_finding'];
+  if (pathname.startsWith('/auditee-view/special/respond')) return ['auditee_special_auditee_response'];
   if (pathname.startsWith('/auditee-view/special')) return [SPECIAL_AUDITEE_VIEW_PERMISSION];
   if (pathname.startsWith('/auditee-view')) return [...AUDITEE_VIEW_PAGE_PERMISSIONS];
   if (pathname.startsWith('/findings/edit')) return ['auditee_view_edit_finding', 'findings_new_access'];

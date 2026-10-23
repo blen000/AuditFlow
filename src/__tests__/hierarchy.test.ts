@@ -142,3 +142,60 @@ describe('hierarchy server actions', () => {
     });
   });
 });
+
+describe('deleteHierarchyNode', () => {
+  const { deleteHierarchyNode } = require('@/app/actions/settings');
+  beforeEach(() => {
+    jest.clearAllMocks();
+    asRole(['settings_audit_structure_access']);
+    prismaMock.auditHierarchyNode.findMany.mockResolvedValue([n('m1', '1', 1), n('s1', '1.1', 2, 'm1'), n('m2', '2', 1)]);
+    prismaMock.auditFinding = { count: jest.fn().mockResolvedValue(0) };
+    prismaMock.auditHierarchyNode.delete = jest.fn().mockResolvedValue({});
+  });
+
+  it('deletes an empty leaf level', async () => {
+    expect((await deleteHierarchyNode('m2')).success).toBe(true);
+    expect(prismaMock.auditHierarchyNode.delete).toHaveBeenCalledWith({ where: { id: 'm2' } });
+  });
+  it('refuses a level that still has findings, with a clear message, without touching the database', async () => {
+    prismaMock.auditFinding.count.mockResolvedValue(3);
+    const res = await deleteHierarchyNode('m2');
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/2 cannot be deleted: 3 findings are logged/);
+    expect(prismaMock.auditHierarchyNode.delete).not.toHaveBeenCalled();
+  });
+  it('refuses a level that has sub-levels', async () => {
+    const res = await deleteHierarchyNode('m1');
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/has sub-levels/);
+    expect(prismaMock.auditHierarchyNode.delete).not.toHaveBeenCalled();
+  });
+  it('requires the Audit Structure permission', async () => {
+    asRole([]);
+    await expect(deleteHierarchyNode('m2')).rejects.toThrow();
+  });
+});
+
+describe('orderHierarchyAsTree', () => {
+  const { orderHierarchyAsTree } = require('@/lib/hierarchy');
+  const nodes = [
+    n('c1', '1.1', 2, 'm1'), n('m2', '2', 1), n('m1', '1', 1), n('c2', '1.2', 2, 'm1'),
+    n('g', '1.1.1', 3, 'c1'), n('m10', '10', 1), n('d', '2.1', 2, 'm2'),
+  ];
+  const nums = (l: any[]) => l.map((x) => x.number);
+
+  it('puts each category directly above its own sub-sections', () => {
+    expect(nums(orderHierarchyAsTree(nodes))).toEqual(['1', '1.1', '1.1.1', '1.2', '2', '2.1', '10']);
+  });
+  it('sorts numerically, so 10 comes after 2', () => {
+    expect(nums(orderHierarchyAsTree(nodes)).slice(-1)).toEqual(['10']);
+  });
+  it('keeps matches with their ancestors when filtering', () => {
+    expect(nums(orderHierarchyAsTree(nodes, new Set(['g'])))).toEqual(['1', '1.1', '1.1.1']);
+    expect(nums(orderHierarchyAsTree(nodes, new Set(['d', 'm10'])))).toEqual(['2', '2.1', '10']);
+  });
+  it('does not lose orphans or loop on a cycle', () => {
+    expect(nums(orderHierarchyAsTree([n('o', '5.1', 2, 'gone'), n('a', '1', 1)]))).toEqual(['1', '5.1']);
+    expect(orderHierarchyAsTree([n('x', '1', 1, 'y'), n('y', '2', 1, 'x')])).toHaveLength(0);
+  });
+});

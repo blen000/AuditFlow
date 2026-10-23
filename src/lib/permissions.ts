@@ -13,58 +13,101 @@ export const PERMISSION_DEFINITIONS = [
   },
   {
     key: 'auditee_view_access',
-    label: 'Auditee View',
-    description: 'Parent access to the Auditee View module. Selecting this grants the Normal Auditee View and every action below. The Special Auditee View is granted separately.',
-    group: 'Core Actions → Auditee View',
+    label: 'Full access to the Normal Auditee View',
+    description: 'Grants the Normal Auditee View and every normal-audit action below. Does not grant anything in the Special Auditee View.',
+    group: 'Core Actions → Auditee View (Normal)',
     isParent: true,
   },
   {
     key: 'auditee_view_normal',
-    label: 'Normal Auditee View',
+    label: 'Open Normal Auditee View',
     description: 'Open the Normal Auditee View and read findings from regular audits. Grants no actions on its own.',
-    group: 'Core Actions → Auditee View',
-  },
-  {
-    key: 'auditee_view_special',
-    label: 'Special Auditee View',
-    description: 'Open the Special Auditee View (a tab inside Auditee View) and read special audit cases. Grants no actions on its own and does not open the Normal Auditee View.',
-    group: 'Core Actions → Auditee View',
+    group: 'Core Actions → Auditee View (Normal)',
   },
   {
     key: 'auditee_view_edit_finding',
     label: 'Edit Finding',
     description: 'Edit existing audit finding details.',
-    group: 'Core Actions → Auditee View',
+    group: 'Core Actions → Auditee View (Normal)',
   },
   {
     key: 'auditee_view_follow_up',
     label: 'Follow Up',
     description: 'Access follow-up management for findings.',
-    group: 'Core Actions → Auditee View',
+    group: 'Core Actions → Auditee View (Normal)',
   },
   {
     key: 'auditee_view_auditee_response',
     label: 'Auditee Response',
     description: 'Submit or view auditee responses to findings.',
-    group: 'Core Actions → Auditee View',
+    group: 'Core Actions → Auditee View (Normal)',
   },
   {
     key: 'auditee_view_add_progress',
     label: 'Add Progress',
     description: 'Add progress updates to findings.',
-    group: 'Core Actions → Auditee View',
+    group: 'Core Actions → Auditee View (Normal)',
   },
   {
     key: 'auditee_view_change_status',
     label: 'Change Status',
     description: 'Modify finding workflow status.',
-    group: 'Core Actions → Auditee View',
+    group: 'Core Actions → Auditee View (Normal)',
   },
   {
     key: 'auditee_view_delete_finding',
     label: 'Delete',
     description: 'Remove audit findings from the system.',
-    group: 'Core Actions → Auditee View',
+    group: 'Core Actions → Auditee View (Normal)',
+  },
+  {
+    key: 'auditee_view_special_access',
+    label: 'Full access to the Special Auditee View',
+    description: 'Grants the Special Auditee View and every special-audit action below. Does not grant anything in the Normal Auditee View.',
+    group: 'Core Actions → Auditee View (Special)',
+    isParent: true,
+  },
+  {
+    key: 'auditee_view_special',
+    label: 'Open Special Auditee View',
+    description: 'Open the Special Auditee View (a tab inside Auditee View) and read special audit cases. Grants no actions on its own.',
+    group: 'Core Actions → Auditee View (Special)',
+  },
+  {
+    key: 'auditee_special_edit_finding',
+    label: 'Edit Finding',
+    description: 'Edit the details of existing special audit cases.',
+    group: 'Core Actions → Auditee View (Special)',
+  },
+  {
+    key: 'auditee_special_follow_up',
+    label: 'Follow Up',
+    description: 'Access follow-up management for special audit cases.',
+    group: 'Core Actions → Auditee View (Special)',
+  },
+  {
+    key: 'auditee_special_auditee_response',
+    label: 'Auditee Response',
+    description: 'Record the auditee response to special audit cases.',
+    group: 'Core Actions → Auditee View (Special)',
+  },
+  {
+    key: 'auditee_special_add_progress',
+    label: 'Add Progress',
+    description: 'Add progress updates to special audit cases.',
+    group: 'Core Actions → Auditee View (Special)',
+  },
+  {
+    key: 'auditee_special_change_status',
+    label: 'Change Status',
+    description: 'Modify the workflow status of special audit cases.',
+    group: 'Core Actions → Auditee View (Special)',
+  },
+  {
+    key: 'auditee_special_delete',
+    label: 'Delete',
+    description: 'Remove special audit cases from the system.',
+    group: 'Core Actions → Auditee View (Special)',
   },
   {
     key: 'auditee_view_all_findings',
@@ -205,7 +248,14 @@ const PERMISSION_META_BY_KEY = Object.fromEntries(
 ) as Record<PermissionKey, (typeof PERMISSION_DEFINITIONS)[number]>;
 
 export function getPermissionLabel(key: PermissionKey): string {
-  return PERMISSION_META_BY_KEY[key]?.label ?? key;
+  const meta = PERMISSION_META_BY_KEY[key];
+  if (!meta) return key;
+  // Normal and Special Auditee View actions share labels ("Follow Up", "Delete", ...),
+  // so say which view an action belongs to wherever it is listed on its own.
+  const view = /Auditee View \((Normal|Special)\)/.exec(meta.group)?.[1];
+  return view && !('isParent' in meta && meta.isParent) && meta.key !== 'auditee_view_normal' && meta.key !== 'auditee_view_special'
+    ? `${meta.label} (${view})`
+    : meta.label;
 }
 
 export function isAdminRole(role?: string | null): boolean {
@@ -227,12 +277,35 @@ export const AUDITEE_VIEW_CHILD_PERMISSIONS: PermissionKey[] = [
 export const NORMAL_AUDITEE_VIEW_PERMISSION: PermissionKey = 'auditee_view_normal';
 export const SPECIAL_AUDITEE_VIEW_PERMISSION: PermissionKey = 'auditee_view_special';
 
+// Special Auditee View actions. Separate keys from the normal ones, so a role can
+// act on normal findings without acting on special audit cases, and vice versa.
+export const SPECIAL_AUDITEE_VIEW_CHILD_PERMISSIONS: PermissionKey[] = [
+  'auditee_special_edit_finding',
+  'auditee_special_follow_up',
+  'auditee_special_auditee_response',
+  'auditee_special_add_progress',
+  'auditee_special_change_status',
+  'auditee_special_delete',
+];
+
 // Everything the parent `auditee_view_access` toggle grants. Deliberately excludes
-// the Special Auditee View, which must be granted explicitly.
+// the Special Auditee View, which has its own parent toggle.
 export const AUDITEE_VIEW_PARENT_GRANTS: PermissionKey[] = [
   NORMAL_AUDITEE_VIEW_PERMISSION,
   ...AUDITEE_VIEW_CHILD_PERMISSIONS,
 ];
+
+// Everything the parent `auditee_view_special_access` toggle grants.
+export const SPECIAL_AUDITEE_VIEW_PARENT_GRANTS: PermissionKey[] = [
+  SPECIAL_AUDITEE_VIEW_PERMISSION,
+  ...SPECIAL_AUDITEE_VIEW_CHILD_PERMISSIONS,
+];
+
+/** Parent toggle -> the permissions it grants, for the Role Management page. */
+export const PARENT_PERMISSION_GRANTS: Record<string, PermissionKey[]> = {
+  auditee_view_access: AUDITEE_VIEW_PARENT_GRANTS,
+  auditee_view_special_access: SPECIAL_AUDITEE_VIEW_PARENT_GRANTS,
+};
 
 // Any of these (effective) keys is sufficient to OPEN the /auditee-view page.
 // Which view the user lands in, and which data it may load, is decided per view.
@@ -291,6 +364,10 @@ export function normalizePermissions(permissions: string[] = []): PermissionKey[
   if (out.has('auditee_view_access')) {
     AUDITEE_VIEW_PARENT_GRANTS.forEach((k) => out.add(k));
   }
+  // The Special Auditee View parent likewise grants its view and its own actions only.
+  if (out.has('auditee_view_special_access')) {
+    SPECIAL_AUDITEE_VIEW_PARENT_GRANTS.forEach((k) => out.add(k));
+  }
 
   // Roles saved before the normal/special split hold child actions without either
   // view key; they could only ever open the (normal) Auditee View. Once a role
@@ -336,12 +413,13 @@ export const SYSTEM_SETTINGS_PERMISSIONS: PermissionKey[] = [
 ];
 
 /**
- * Permissions to store for a role given what the admin ticked. The Auditee View
- * parent key implies the Normal Auditee View and every action at runtime, so it is
- * stored only when all of those are ticked; otherwise it would silently re-grant
- * whatever the admin unticked.
+ * Permissions to store for a role given what the admin ticked. A parent key implies
+ * its whole group at runtime, so it is stored only when everything in that group is
+ * ticked; otherwise it would silently re-grant whatever the admin unticked.
  */
 export function storedPermissionsFromSelection(selected: string[]): string[] {
-  const parentFullyGranted = AUDITEE_VIEW_PARENT_GRANTS.every((k) => selected.includes(k));
-  return parentFullyGranted ? selected : selected.filter((k) => k !== 'auditee_view_access');
+  return selected.filter((k) => {
+    const grants = PARENT_PERMISSION_GRANTS[k];
+    return !grants || grants.every((g) => selected.includes(g));
+  });
 }

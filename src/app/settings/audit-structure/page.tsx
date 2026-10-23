@@ -61,9 +61,11 @@ export default function AuditStructurePage() {
       if (result.success) {
         setHierarchy(prev => prev.filter(n => n.id !== id));
         toast({ title: 'Hierarchy Level Removed' });
+      } else {
+        toast({ variant: 'destructive', title: 'Cannot delete this level', description: result.error });
       }
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Removal Failed' });
+      toast({ variant: 'destructive', title: 'Removal Failed', description: 'Please try again.' });
     }
   };
 

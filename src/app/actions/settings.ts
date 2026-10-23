@@ -178,11 +178,30 @@ export async function deleteSpecialFindingCategory(id: string) {
 export async function deleteHierarchyNode(id: string) {
   await authorizeAction({ anyPermissions: ['settings_audit_structure_access'] });
   try {
+    const nodes = await prisma.auditHierarchyNode.findMany({ select: { id: true, number: true, parentId: true } });
+    const target = nodes.find((n) => n.id === id);
+    if (!target) return { success: true }; // already gone
+
+    // A level cannot be removed while it has sub-levels, or while findings are logged
+    // under it or any sub-level. Deleting would orphan (or destroy) audit records.
+    const childrenOf = (parent: string) => nodes.filter((n) => n.parentId === parent);
+    if (childrenOf(id).length > 0) {
+      return { success: false, error: `Level ${target.number} has sub-levels. Delete or move those first.` };
+    }
+    const findingCount = await prisma.auditFinding.count({ where: { hierarchyNodeId: id } });
+    if (findingCount > 0) {
+      return {
+        success: false,
+        error: `Level ${target.number} cannot be deleted: ${findingCount} finding${findingCount === 1 ? ' is' : 's are'} logged under it. Rename it instead, or remove those findings first.`,
+      };
+    }
+
     await prisma.auditHierarchyNode.delete({ where: { id } });
     revalidatePath('/settings/audit-structure');
     return { success: true };
   } catch (error) {
-    return { success: false, error: 'Delete failed.' };
+    console.error('Delete Hierarchy Node error:', error);
+    return { success: false, error: 'Delete failed. Please try again.' };
   }
 }
 

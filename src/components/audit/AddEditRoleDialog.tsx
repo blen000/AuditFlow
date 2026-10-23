@@ -29,7 +29,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Role } from '@/types';
 import { ShieldAlert, Star } from 'lucide-react';
-import { PERMISSION_DEFINITIONS, AUDITEE_VIEW_PARENT_GRANTS, normalizePermissions, storedPermissionsFromSelection } from '@/lib/permissions';
+import { PERMISSION_DEFINITIONS, PARENT_PERMISSION_GRANTS, normalizePermissions, storedPermissionsFromSelection } from '@/lib/permissions';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Role name is required.'),
@@ -165,7 +165,7 @@ export function AddEditRoleDialog({
                   </FormLabel>
                   <div className="space-y-4">
                     {Array.from(new Set(PERMISSION_DEFINITIONS.map((p) => p.group))).map((group) => {
-                      const isAuditeeViewGroup = group === 'Core Actions → Auditee View';
+                      const isAuditeeViewGroup = group.startsWith('Core Actions → Auditee View');
                       return (
                       <div
                         key={group}
@@ -194,23 +194,23 @@ export function AddEditRoleDialog({
                               render={({ field }) => {
                                 const current = field.value || [];
                                 const isParent = 'isParent' in p && p.isParent;
-                                // The Auditee View parent toggle reads as checked when the
-                                // Normal Auditee View and every action are granted, and
-                                // ticking it grants them all (never the Special Auditee
-                                // View); unticking removes the parent + those grants.
+                                // Each Auditee View group (Normal / Special) has its own
+                                // parent toggle. It reads as checked when everything in
+                                // its group is granted; ticking it grants that group only,
+                                // and unticking removes the parent + that group's grants.
+                                const grants: string[] = PARENT_PERMISSION_GRANTS[p.key] ?? [];
                                 const isChecked = isParent
-                                  ? current.includes(p.key) &&
-                                    AUDITEE_VIEW_PARENT_GRANTS.every((c) => current.includes(c))
+                                  ? current.includes(p.key) && grants.every((c) => current.includes(c))
                                   : current.includes(p.key);
 
                                 const handleChange = (checked: boolean | 'indeterminate') => {
                                   if (isParent) {
                                     if (checked) {
                                       field.onChange(
-                                        Array.from(new Set([...current, p.key, ...AUDITEE_VIEW_PARENT_GRANTS]))
+                                        Array.from(new Set([...current, p.key, ...grants]))
                                       );
                                     } else {
-                                      const strip = new Set<string>([p.key, ...AUDITEE_VIEW_PARENT_GRANTS]);
+                                      const strip = new Set<string>([p.key, ...grants]);
                                       field.onChange(current.filter((v) => !strip.has(v)));
                                     }
                                     return;

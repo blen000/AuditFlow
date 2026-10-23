@@ -9,6 +9,7 @@ import {
   Handshake,
   Loader2,
   MoreHorizontal,
+  Pencil,
   PlusCircle,
   Repeat,
   Search,
@@ -52,6 +53,8 @@ import { AddProgressUpdateDialog } from '@/components/audit/AddProgressUpdateDia
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { deleteSpecialAudit, getSpecialAuditeeViewData, updateSpecialAuditCase } from '@/app/actions/special-audits';
+import { DateRangeFilter } from '@/components/audit/DateRangeFilter';
+import { isInDateRange, type DateRange } from '@/lib/period';
 import type { SpecialAudit } from '@/types';
 
 type StatusOption = { id?: string; name: string };
@@ -76,6 +79,7 @@ export function SpecialAuditeeView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateRange, setDateRange] = useState<DateRange>({});
 
   const [viewing, setViewing] = useState<SpecialAudit | null>(null);
   const [followUpTarget, setFollowUpTarget] = useState<SpecialAudit | null>(null);
@@ -116,15 +120,17 @@ export function SpecialAuditeeView() {
         (a.placementValue || '').toLowerCase().includes(q);
       const categoryMatch = categoryFilter === 'all' || a.category === categoryFilter;
       const statusMatch = statusFilter === 'all' || a.status === statusFilter;
-      return searchMatch && categoryMatch && statusMatch;
+      const dateMatch = isInDateRange(a.dateCreated, dateRange);
+      return searchMatch && categoryMatch && statusMatch && dateMatch;
     });
-  }, [audits, searchQuery, categoryFilter, statusFilter]);
+  }, [audits, searchQuery, categoryFilter, statusFilter, dateRange]);
 
-  const hasActiveFilters = searchQuery !== '' || categoryFilter !== 'all' || statusFilter !== 'all';
+  const hasActiveFilters = searchQuery !== '' || categoryFilter !== 'all' || statusFilter !== 'all' || !!dateRange.from || !!dateRange.to;
   const clearFilters = () => {
     setSearchQuery('');
     setCategoryFilter('all');
     setStatusFilter('all');
+    setDateRange({});
   };
 
   const patchAudit = (id: string, updates: Partial<SpecialAudit>) =>
@@ -194,11 +200,12 @@ export function SpecialAuditeeView() {
   }
 
   const hasActions =
-    can('auditee_view_follow_up') ||
-    can('auditee_view_auditee_response') ||
-    can('auditee_view_add_progress') ||
-    can('auditee_view_change_status') ||
-    can('auditee_view_delete_finding');
+    can('auditee_special_edit_finding') ||
+    can('auditee_special_follow_up') ||
+    can('auditee_special_auditee_response') ||
+    can('auditee_special_add_progress') ||
+    can('auditee_special_change_status') ||
+    can('auditee_special_delete');
 
   return (
     <div className="space-y-8">
@@ -235,6 +242,7 @@ export function SpecialAuditeeView() {
             ))}
           </SelectContent>
         </Select>
+        <DateRangeFilter value={dateRange} onChange={setDateRange} label="Report Date" />
         {hasActiveFilters && (
           <Button variant="ghost" size="icon" onClick={clearFilters} className="shrink-0 text-muted-foreground" title="Reset all filters">
             <FilterX className="h-5 w-5" />
@@ -264,24 +272,31 @@ export function SpecialAuditeeView() {
                       <DropdownMenuItem onClick={() => setViewing(audit)}>
                         <Eye className="mr-2 h-4 w-4" /> View Report
                       </DropdownMenuItem>
-                      {can('auditee_view_follow_up') && (
+                      {can('auditee_special_edit_finding') && (
+                        <DropdownMenuItem asChild>
+                          <Link href={`/auditee-view/special/edit/${audit.id}`}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit Finding
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      {can('auditee_special_follow_up') && (
                         <DropdownMenuItem onClick={() => setFollowUpTarget(audit)}>
                           <Repeat className="mr-2 h-4 w-4" /> Follow-up
                         </DropdownMenuItem>
                       )}
-                      {can('auditee_view_auditee_response') && (
+                      {can('auditee_special_auditee_response') && (
                         <DropdownMenuItem asChild>
                           <Link href={`/auditee-view/special/respond/${audit.id}`}>
                             <Handshake className="mr-2 h-4 w-4" /> Auditee Response
                           </Link>
                         </DropdownMenuItem>
                       )}
-                      {can('auditee_view_add_progress') && (
+                      {can('auditee_special_add_progress') && (
                         <DropdownMenuItem onClick={() => setProgressTarget(audit)}>
                           <PlusCircle className="mr-2 h-4 w-4" /> Add Progress
                         </DropdownMenuItem>
                       )}
-                      {can('auditee_view_change_status') && (
+                      {can('auditee_special_change_status') && (
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
                           <DropdownMenuSubContent>
@@ -297,7 +312,7 @@ export function SpecialAuditeeView() {
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
                       )}
-                      {can('auditee_view_delete_finding') && (
+                      {can('auditee_special_delete') && (
                         <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(audit)}>
                           <Trash2 className="mr-2 h-4 w-4" /> Delete
                         </DropdownMenuItem>

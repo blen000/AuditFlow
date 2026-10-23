@@ -20,7 +20,7 @@ export default async function RespondToSpecialAuditPage({ params }: { params: Pr
   const effectivePermissions = withAdminPermissions(currentUser.role?.name, currentUser.role?.permissions ?? []);
   if (
     currentUser.role?.name !== 'Admin' &&
-    !(effectivePermissions.includes('auditee_view_special') && effectivePermissions.includes('auditee_view_auditee_response'))
+    !(effectivePermissions.includes('auditee_view_special') && effectivePermissions.includes('auditee_special_auditee_response'))
   ) {
     notFound();
   }

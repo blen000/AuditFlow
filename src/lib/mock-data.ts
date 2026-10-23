@@ -138,7 +138,7 @@ export const initialRoles: Role[] = [
     permissions: [
       'dashboard_access',
       'auditee_view_access',
-      'auditee_view_special',
+      'auditee_view_special_access',
       'findings_new_access',
       'special_audits_new_access',
       'reports_consolidated_access',
@@ -163,7 +163,7 @@ export const initialRoles: Role[] = [
     permissions: [
       'dashboard_access',
       'auditee_view_access',
-      'auditee_view_special',
+      'auditee_view_special_access',
       'reports_consolidated_access',
       'reports_frequency_access',
       'reports_assignments_access',
@@ -179,7 +179,7 @@ export const initialRoles: Role[] = [
     permissions: [
       'dashboard_access',
       'auditee_view_access',
-      'auditee_view_special',
+      'auditee_view_special_access',
       'reports_consolidated_access',
       'reports_frequency_access',
       'reports_assignments_access',
